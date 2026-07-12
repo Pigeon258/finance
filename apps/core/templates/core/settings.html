@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}系统设置 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>系统设置</h1>
+  <p><a href="{% url 'core:password-change' %}">修改密码</a></p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">保存设置</button>
+  </form>
+{% endblock %}

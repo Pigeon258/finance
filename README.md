@@ -24,6 +24,7 @@ Copy-Item .env.example .env
 
 ```powershell
 uv run python manage.py migrate
+uv run python manage.py create_owner
 uv run python manage.py runserver
 ```
 
@@ -47,3 +48,6 @@ uv run python manage.py check
 - 数据库存储带时区时间，页面展示时区由 `APP_TIME_ZONE` 配置。
 
 不得提交 `.env`、密钥、真实账单、数据库转储或生产备份。
+
+系统只允许通过 `create_owner` 创建第一个管理员；不存在注册入口。不要使用 Django
+shell 或其他方式创建额外用户。

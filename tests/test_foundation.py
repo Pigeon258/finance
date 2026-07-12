@@ -5,7 +5,10 @@ from django.db import DatabaseError, connections
 from django.urls import reverse
 
 
-def test_home_renders_base_template(client):
+@pytest.mark.django_db
+def test_home_renders_base_template(client, django_user_model):
+    owner = django_user_model.objects.create_superuser(username="owner", password="safe-password")
+    client.force_login(owner)
     response = client.get(reverse("core:home"))
 
     assert response.status_code == 200

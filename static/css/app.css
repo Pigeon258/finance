@@ -18,9 +18,28 @@ main {
 
 nav {
   display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
 [aria-disabled="true"] {
   color: #687386;
+}
+
+.inline-form {
+  display: inline;
+  margin: 0;
+}
+
+form > div {
+  margin-block: 0.75rem;
+}
+
+.errorlist {
+  color: #a32626;
+}
+
+.messages {
+  max-width: 70rem;
+  margin: 0 auto;
 }
