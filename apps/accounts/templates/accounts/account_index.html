@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}账户管理 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>账户管理</h1>
+  <p><a href="{% url 'accounts:create' %}">新增账户</a></p>
+  <table>
+    <thead><tr><th>名称</th><th>类型</th><th>性质</th><th>初始余额</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for account in accounts %}
+        <tr>
+          <td>{{ account.name }}</td>
+          <td>{{ account.get_account_type_display }}</td>
+          <td>{{ account.get_balance_nature_display }}</td>
+          <td>{{ account.initial_balance }}</td>
+          <td>{% if account.is_active %}启用{% else %}停用{% endif %}</td>
+          <td>
+            <a href="{% url 'accounts:edit' account.id %}">编辑</a>
+            {% if account.is_active %}
+              <form class="inline-form" method="post" action="{% url 'accounts:deactivate' account.id %}">
+                {% csrf_token %}<button type="submit">停用</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

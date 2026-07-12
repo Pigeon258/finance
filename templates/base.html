@@ -16,6 +16,8 @@
           <span aria-disabled="true">预算管理</span>
           <span aria-disabled="true">信用卡与分期</span>
           <a href="{% url 'core:settings' %}">系统设置</a>
+          <a href="{% url 'accounts:index' %}">账户</a>
+          <a href="{% url 'ledger:category-index' %}">分类</a>
           <form class="inline-form" method="post" action="{% url 'core:logout' %}">
             {% csrf_token %}
             <button type="submit">退出登录</button>

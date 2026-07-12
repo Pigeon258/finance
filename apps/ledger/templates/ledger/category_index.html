@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>分类管理</h1>
+  <p><a href="{% url 'ledger:category-create' %}">新增分类</a></p>
+  <table>
+    <thead><tr><th>名称</th><th>类型</th><th>消费性质</th><th>默认预算</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for category in categories %}
+        <tr>
+          <td>{{ category.name }}</td>
+          <td>{{ category.get_category_type_display }}</td>
+          <td>{{ category.get_necessity_display|default:"—" }}</td>
+          <td>{{ category.default_budget }}</td>
+          <td>{% if category.is_active %}启用{% else %}停用{% endif %}</td>
+          <td>
+            <a href="{% url 'ledger:category-edit' category.id %}">编辑</a>
+            {% if category.is_active %}
+              <form class="inline-form" method="post" action="{% url 'ledger:category-deactivate' category.id %}">
+                {% csrf_token %}<button type="submit">停用</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -43,3 +43,16 @@ form > div {
   max-width: 70rem;
   margin: 0 auto;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  padding: 0.65rem;
+  border: 1px solid #d9dee8;
+  text-align: left;
+}
