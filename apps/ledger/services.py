@@ -1,9 +1,16 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction as db_transaction
+from django.db.models import Sum
+from django.utils import timezone
 
-from .models import Category
+from apps.accounts.models import Account
+
+from .models import Category, Merchant, Tag, Transaction, TransactionEntry, TransactionTag
+
+CENT = Decimal("0.01")
+MAX_MONEY = Decimal("999999999999.99")
 
 
 def normalized_necessity(*, category_type: str, necessity: str | None) -> str | None:
@@ -12,7 +19,7 @@ def normalized_necessity(*, category_type: str, necessity: str | None) -> str | 
     return necessity
 
 
-@transaction.atomic
+@db_transaction.atomic
 def create_category(
     *,
     name: str,
@@ -35,7 +42,7 @@ def create_category(
     return category
 
 
-@transaction.atomic
+@db_transaction.atomic
 def update_category(
     *,
     category: Category,
@@ -66,7 +73,7 @@ def update_category(
     return category
 
 
-@transaction.atomic
+@db_transaction.atomic
 def deactivate_category(*, category: Category) -> Category:
     if not category.is_active:
         raise ValidationError("分类已经停用。")
@@ -74,3 +81,379 @@ def deactivate_category(*, category: Category) -> Category:
     category.full_clean()
     category.save(update_fields=["is_active", "updated_at"])
     return category
+
+
+def _validate_decimal(value: Decimal, *, allow_negative: bool = False) -> Decimal:
+    if not isinstance(value, Decimal):
+        raise ValidationError("财务金额必须使用 Decimal。")
+    if not value.is_finite():
+        raise ValidationError("财务金额必须是有限十进制数。")
+    try:
+        quantized = value.quantize(CENT)
+    except InvalidOperation as error:
+        raise ValidationError("财务金额超出允许范围。") from error
+    if quantized != value:
+        raise ValidationError("财务金额必须精确到人民币分。")
+    if abs(value) > MAX_MONEY:
+        raise ValidationError("财务金额超出允许范围。")
+    if not allow_negative and value <= 0:
+        raise ValidationError("交易金额必须大于零。")
+    if allow_negative and value == 0:
+        raise ValidationError("余额变化不得为零。")
+    return value
+
+
+def _validate_occurred_at(occurred_at) -> None:
+    if not timezone.is_aware(occurred_at):
+        raise ValidationError("交易时间必须包含时区。")
+
+
+def _validate_account(account: Account, *, nature: str | None = None) -> None:
+    if not account.is_active:
+        raise ValidationError("停用账户不能用于新交易。")
+    if nature is not None and account.balance_nature != nature:
+        raise ValidationError("账户性质与交易类型不匹配。")
+
+
+def _validate_category(category: Category, *, category_type: str) -> None:
+    if not category.is_active:
+        raise ValidationError("停用分类不能用于新交易。")
+    if category.category_type != category_type:
+        raise ValidationError("分类类型与交易类型不匹配。")
+
+
+def _budget_month(occurred_at):
+    return timezone.localdate(occurred_at).replace(day=1)
+
+
+def _create_transaction(
+    *,
+    transaction_type: str,
+    amount: Decimal,
+    occurred_at,
+    category: Category | None,
+    channel: str,
+    counterparty: str,
+    note: str,
+    source: str,
+    budget_month=None,
+    merchant: Merchant | None = None,
+    related_transaction: Transaction | None = None,
+    tags: list[Tag] | tuple[Tag, ...] = (),
+) -> Transaction:
+    _validate_decimal(amount)
+    _validate_occurred_at(occurred_at)
+    ledger_transaction = Transaction(
+        transaction_type=transaction_type,
+        amount=amount,
+        occurred_at=occurred_at,
+        budget_month=budget_month,
+        category=category,
+        channel=channel,
+        merchant=merchant,
+        counterparty=counterparty,
+        note=note,
+        source=source,
+        related_transaction=related_transaction,
+    )
+    ledger_transaction.full_clean()
+    ledger_transaction.save()
+    for tag in tags:
+        if not tag.is_active:
+            raise ValidationError("停用标签不能用于新交易。")
+        TransactionTag.objects.create(transaction=ledger_transaction, tag=tag)
+    return ledger_transaction
+
+
+def _create_entry(
+    *, transaction: Transaction, account: Account, balance_delta: Decimal, note: str = ""
+) -> TransactionEntry:
+    _validate_decimal(balance_delta, allow_negative=True)
+    entry = TransactionEntry(
+        transaction=transaction, account=account, balance_delta=balance_delta, note=note
+    )
+    entry.full_clean()
+    entry.save()
+    return entry
+
+
+@db_transaction.atomic
+def create_income(
+    *,
+    account: Account,
+    category: Category,
+    amount: Decimal,
+    occurred_at,
+    channel: str,
+    counterparty: str = "",
+    note: str = "",
+    source: str = Transaction.Source.MANUAL,
+    merchant: Merchant | None = None,
+    tags: list[Tag] | tuple[Tag, ...] = (),
+) -> Transaction:
+    _validate_account(account, nature=Account.BalanceNature.ASSET)
+    _validate_category(category, category_type=Category.CategoryType.INCOME)
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.INCOME,
+        amount=amount,
+        occurred_at=occurred_at,
+        budget_month=_budget_month(occurred_at),
+        category=category,
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        source=source,
+        merchant=merchant,
+        tags=tags,
+    )
+    _create_entry(transaction=ledger_transaction, account=account, balance_delta=amount)
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def create_expense(
+    *,
+    account: Account,
+    category: Category,
+    amount: Decimal,
+    occurred_at,
+    channel: str,
+    counterparty: str = "",
+    note: str = "",
+    source: str = Transaction.Source.MANUAL,
+    merchant: Merchant | None = None,
+    tags: list[Tag] | tuple[Tag, ...] = (),
+) -> Transaction:
+    _validate_account(account)
+    _validate_category(category, category_type=Category.CategoryType.EXPENSE)
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.EXPENSE,
+        amount=amount,
+        occurred_at=occurred_at,
+        budget_month=_budget_month(occurred_at),
+        category=category,
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        source=source,
+        merchant=merchant,
+        tags=tags,
+    )
+    delta = -amount if account.balance_nature == Account.BalanceNature.ASSET else amount
+    _create_entry(transaction=ledger_transaction, account=account, balance_delta=delta)
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def create_credit_card_purchase(**kwargs) -> Transaction:
+    account = kwargs.get("account")
+    if account is None or account.balance_nature != Account.BalanceNature.LIABILITY:
+        raise ValidationError("信用卡消费必须使用负债账户。")
+    return create_expense(**kwargs)
+
+
+@db_transaction.atomic
+def create_transfer(
+    *,
+    source_account: Account,
+    destination_account: Account,
+    amount: Decimal,
+    occurred_at,
+    channel: str = Transaction.Channel.DIRECT,
+    counterparty: str = "",
+    note: str = "",
+    source: str = Transaction.Source.MANUAL,
+) -> Transaction:
+    _validate_account(source_account, nature=Account.BalanceNature.ASSET)
+    _validate_account(destination_account, nature=Account.BalanceNature.ASSET)
+    if source_account.pk == destination_account.pk:
+        raise ValidationError("转出和转入账户不能相同。")
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.TRANSFER,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=None,
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        source=source,
+    )
+    _create_entry(transaction=ledger_transaction, account=source_account, balance_delta=-amount)
+    _create_entry(
+        transaction=ledger_transaction, account=destination_account, balance_delta=amount
+    )
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def create_credit_card_repayment(
+    *,
+    source_account: Account,
+    credit_card_account: Account,
+    amount: Decimal,
+    occurred_at,
+    channel: str = Transaction.Channel.BANK,
+    note: str = "",
+    source: str = Transaction.Source.MANUAL,
+) -> Transaction:
+    _validate_account(source_account, nature=Account.BalanceNature.ASSET)
+    _validate_account(credit_card_account, nature=Account.BalanceNature.LIABILITY)
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.TRANSFER,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=None,
+        channel=channel,
+        counterparty=credit_card_account.name,
+        note=note,
+        source=source,
+    )
+    _create_entry(transaction=ledger_transaction, account=source_account, balance_delta=-amount)
+    _create_entry(
+        transaction=ledger_transaction, account=credit_card_account, balance_delta=-amount
+    )
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def create_refund(
+    *,
+    original_transaction: Transaction,
+    amount: Decimal,
+    occurred_at,
+    account: Account | None = None,
+    channel: str | None = None,
+    note: str = "",
+    source: str = Transaction.Source.MANUAL,
+) -> Transaction:
+    original = (
+        Transaction.objects.select_for_update()
+        .prefetch_related("entries")
+        .get(pk=original_transaction.pk)
+    )
+    if original.transaction_type != Transaction.TransactionType.EXPENSE:
+        raise ValidationError("退款只能关联支出交易。")
+    if original.status != Transaction.Status.ACTIVE:
+        raise ValidationError("只能退款有效支出。")
+    _validate_decimal(amount)
+    refunded_amount = (
+        Transaction.objects.filter(
+            related_transaction=original,
+            transaction_type=Transaction.TransactionType.REFUND,
+            status=Transaction.Status.ACTIVE,
+        ).aggregate(total=Sum("amount"))["total"]
+        or Decimal("0.00")
+    )
+    if refunded_amount + amount > original.amount:
+        raise ValidationError("累计退款金额不得超过原支出。")
+    original_entry = original.entries.get()
+    refund_account = account or original_entry.account
+    _validate_account(refund_account, nature=original_entry.account.balance_nature)
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.REFUND,
+        amount=amount,
+        occurred_at=occurred_at,
+        budget_month=original.budget_month,
+        category=original.category,
+        channel=channel or original.channel,
+        counterparty=original.counterparty,
+        note=note,
+        source=source,
+        related_transaction=original,
+    )
+    delta = amount if refund_account.balance_nature == Account.BalanceNature.ASSET else -amount
+    _create_entry(transaction=ledger_transaction, account=refund_account, balance_delta=delta)
+    original.is_financial_locked = True
+    original.save(update_fields=["is_financial_locked", "updated_at"])
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def create_balance_adjustment(
+    *,
+    account: Account,
+    balance_delta: Decimal,
+    occurred_at,
+    reason: str,
+    source: str = Transaction.Source.MANUAL,
+    related_transaction: Transaction | None = None,
+) -> Transaction:
+    _validate_account(account)
+    _validate_decimal(balance_delta, allow_negative=True)
+    ledger_transaction = _create_transaction(
+        transaction_type=Transaction.TransactionType.BALANCE_ADJUSTMENT,
+        amount=abs(balance_delta),
+        occurred_at=occurred_at,
+        category=None,
+        channel=Transaction.Channel.DIRECT,
+        counterparty="",
+        note=reason,
+        source=source,
+        related_transaction=related_transaction,
+    )
+    _create_entry(
+        transaction=ledger_transaction, account=account, balance_delta=balance_delta, note=reason
+    )
+    return ledger_transaction
+
+
+@db_transaction.atomic
+def lock_transaction(*, ledger_transaction: Transaction) -> Transaction:
+    locked = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
+    locked.is_financial_locked = True
+    locked.save(update_fields=["is_financial_locked", "updated_at"])
+    return locked
+
+
+@db_transaction.atomic
+def void_transaction(*, ledger_transaction: Transaction, reason: str) -> Transaction:
+    target = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
+    if target.status != Transaction.Status.ACTIVE:
+        raise ValidationError("只能作废有效交易。")
+    if target.is_financial_locked or target.related_transactions.filter(
+        status=Transaction.Status.ACTIVE
+    ).exists():
+        raise ValidationError("存在正式关联的交易不能直接作废。")
+    if not reason.strip():
+        raise ValidationError("作废原因不能为空。")
+    target.status = Transaction.Status.VOID
+    target.voided_at = timezone.now()
+    target.void_reason = reason
+    target.save(update_fields=["status", "voided_at", "void_reason", "updated_at"])
+    return target
+
+
+@db_transaction.atomic
+def reverse_transaction(
+    *, ledger_transaction: Transaction, occurred_at, reason: str
+) -> list[Transaction]:
+    target = (
+        Transaction.objects.select_for_update()
+        .prefetch_related("entries__account")
+        .get(pk=ledger_transaction.pk)
+    )
+    if target.status != Transaction.Status.ACTIVE:
+        raise ValidationError("只能反向修正有效交易。")
+    if target.related_transactions.filter(status=Transaction.Status.ACTIVE).exists():
+        raise ValidationError("存在有效关联交易时需先处理关联关系。")
+    if not reason.strip():
+        raise ValidationError("修正原因不能为空。")
+    target.status = Transaction.Status.REVERSED
+    target.is_financial_locked = True
+    target.void_reason = reason
+    target.save(
+        update_fields=["status", "is_financial_locked", "void_reason", "updated_at"]
+    )
+    reversals = []
+    for entry in target.entries.all():
+        reversals.append(
+            create_balance_adjustment(
+                account=entry.account,
+                balance_delta=-entry.balance_delta,
+                occurred_at=occurred_at,
+                reason=reason,
+                source=Transaction.Source.SYSTEM,
+                related_transaction=target,
+            )
+        )
+    return reversals
