@@ -56,3 +56,17 @@ td {
   border: 1px solid #d9dee8;
   text-align: left;
 }
+
+.filter-form {
+  margin-block: 1rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+dt {
+  font-weight: 700;
+}
+
+dd {
+  margin: 0 0 0.75rem;
+}

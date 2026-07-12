@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}交易详情 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>交易详情</h1>
+  <dl>
+    <dt>类型</dt><dd>{{ transaction.get_transaction_type_display }}</dd>
+    <dt>状态</dt><dd>{{ transaction.get_status_display }}</dd>
+    <dt>金额</dt><dd>{{ transaction.amount }}</dd>
+    <dt>发生时间</dt><dd>{{ transaction.occurred_at }}</dd>
+    <dt>预算月份</dt><dd>{{ transaction.budget_month|default:"—" }}</dd>
+    <dt>分类</dt><dd>{{ transaction.category|default:"—" }}</dd>
+    <dt>支付渠道</dt><dd>{{ transaction.get_channel_display }}</dd>
+    <dt>商家或交易对象</dt><dd>{{ transaction.counterparty|default:"—" }}</dd>
+    <dt>备注</dt><dd>{{ transaction.note|default:"—" }}</dd>
+    <dt>标签</dt><dd>{% for tag in transaction.tags.all %}{{ tag.name }}{% if not forloop.last %}、{% endif %}{% empty %}—{% endfor %}</dd>
+  </dl>
+
+  <h2>账户变动</h2>
+  <table>
+    <thead><tr><th>账户</th><th>余额变化</th></tr></thead>
+    <tbody>{% for entry in transaction.entries.all %}<tr><td>{{ entry.account.name }}</td><td>{{ entry.balance_delta }}</td></tr>{% endfor %}</tbody>
+  </table>
+
+  {% if transaction.related_transaction %}
+    <p>关联原交易：<a href="{% url 'ledger:transaction-detail' transaction.related_transaction.id %}">#{{ transaction.related_transaction.id }}</a></p>
+  {% endif %}
+  {% if transaction.related_transactions.all %}
+    <h2>关联记录</h2>
+    <ul>{% for related in transaction.related_transactions.all %}<li><a href="{% url 'ledger:transaction-detail' related.id %}">#{{ related.id }} {{ related.get_transaction_type_display }} {{ related.amount }}</a></li>{% empty %}<li>无</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if can_edit %}
+    <p><a href="{% url 'ledger:transaction-edit' transaction.id %}">编辑交易</a></p>
+    <form method="post" action="{% url 'ledger:transaction-void' transaction.id %}">
+      {% csrf_token %}
+      {{ void_form.as_div }}
+      <button type="submit">作废交易</button>
+    </form>
+  {% elif transaction.is_financial_locked %}
+    <p>该交易已进入正式关联，不能直接编辑或作废；请使用后续修正流程。</p>
+  {% endif %}
+{% endblock %}

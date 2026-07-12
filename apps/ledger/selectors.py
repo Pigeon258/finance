@@ -87,3 +87,41 @@ def monthly_net_expense(*, month: date, category: Category | None = None) -> Dec
     return (totals["expenses"] or Decimal("0.00")) - (
         totals["refunds"] or Decimal("0.00")
     )
+
+
+def transaction_list(*, filters: dict | None = None) -> QuerySet[Transaction]:
+    filters = filters or {}
+    queryset = Transaction.objects.select_related("category", "merchant").prefetch_related(
+        "entries__account", "tags"
+    )
+    if filters.get("date_from"):
+        queryset = queryset.filter(occurred_at__date__gte=filters["date_from"])
+    if filters.get("date_to"):
+        queryset = queryset.filter(occurred_at__date__lte=filters["date_to"])
+    if filters.get("transaction_type"):
+        queryset = queryset.filter(transaction_type=filters["transaction_type"])
+    if filters.get("account"):
+        queryset = queryset.filter(entries__account=filters["account"])
+    if filters.get("category"):
+        queryset = queryset.filter(category=filters["category"])
+    if filters.get("amount_min") is not None:
+        queryset = queryset.filter(amount__gte=filters["amount_min"])
+    if filters.get("amount_max") is not None:
+        queryset = queryset.filter(amount__lte=filters["amount_max"])
+    if filters.get("keyword"):
+        keyword = filters["keyword"]
+        queryset = queryset.filter(
+            Q(counterparty__icontains=keyword)
+            | Q(note__icontains=keyword)
+            | Q(merchant__name__icontains=keyword)
+            | Q(tags__name__icontains=keyword)
+        )
+    return queryset.distinct().order_by("-occurred_at", "-id")
+
+
+def transaction_detail(*, transaction_id: int) -> Transaction:
+    return (
+        Transaction.objects.select_related("category", "merchant", "related_transaction")
+        .prefetch_related("entries__account", "tags", "related_transactions")
+        .get(pk=transaction_id)
+    )

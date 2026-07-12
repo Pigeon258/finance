@@ -457,3 +457,221 @@ def reverse_transaction(
             )
         )
     return reversals
+
+
+def _validate_manual_edit_target(target: Transaction) -> None:
+    if target.status != Transaction.Status.ACTIVE:
+        raise ValidationError("只能编辑有效交易。")
+    if target.source != Transaction.Source.MANUAL:
+        raise ValidationError("只能直接编辑手工交易。")
+    if target.is_financial_locked or target.related_transactions.filter(
+        status=Transaction.Status.ACTIVE
+    ).exists():
+        raise ValidationError("存在正式关联的交易不能直接编辑。")
+
+
+def _rewrite_manual_transaction(
+    *,
+    ledger_transaction: Transaction,
+    transaction_type: str,
+    amount: Decimal,
+    occurred_at,
+    category: Category | None,
+    budget_month,
+    channel: str,
+    counterparty: str,
+    note: str,
+    entries: list[tuple[Account, Decimal]],
+    tags: list[Tag] | tuple[Tag, ...],
+) -> Transaction:
+    target = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
+    _validate_manual_edit_target(target)
+    _validate_decimal(amount)
+    _validate_occurred_at(occurred_at)
+    for account, balance_delta in entries:
+        _validate_account(account)
+        _validate_decimal(balance_delta, allow_negative=True)
+    for tag in tags:
+        if not tag.is_active:
+            raise ValidationError("停用标签不能用于交易。")
+
+    target.transaction_type = transaction_type
+    target.amount = amount
+    target.occurred_at = occurred_at
+    target.budget_month = budget_month
+    target.category = category
+    target.channel = channel
+    target.counterparty = counterparty
+    target.note = note
+    target.merchant = None
+    target.related_transaction = None
+    target.full_clean()
+
+    target.entries.all().delete()
+    TransactionTag.objects.filter(transaction=target).delete()
+    target.save(
+        update_fields=[
+            "transaction_type",
+            "amount",
+            "occurred_at",
+            "budget_month",
+            "category",
+            "channel",
+            "counterparty",
+            "note",
+            "merchant",
+            "related_transaction",
+            "updated_at",
+        ]
+    )
+    for account, balance_delta in entries:
+        _create_entry(transaction=target, account=account, balance_delta=balance_delta)
+    for tag in tags:
+        TransactionTag.objects.create(transaction=target, tag=tag)
+    return target
+
+
+@db_transaction.atomic
+def update_income(
+    *,
+    ledger_transaction: Transaction,
+    account: Account,
+    category: Category,
+    amount: Decimal,
+    occurred_at,
+    channel: str,
+    counterparty: str = "",
+    note: str = "",
+    tags: list[Tag] | tuple[Tag, ...] = (),
+) -> Transaction:
+    _validate_account(account, nature=Account.BalanceNature.ASSET)
+    _validate_category(category, category_type=Category.CategoryType.INCOME)
+    return _rewrite_manual_transaction(
+        ledger_transaction=ledger_transaction,
+        transaction_type=Transaction.TransactionType.INCOME,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=category,
+        budget_month=_budget_month(occurred_at),
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        entries=[(account, amount)],
+        tags=tags,
+    )
+
+
+@db_transaction.atomic
+def update_expense(
+    *,
+    ledger_transaction: Transaction,
+    account: Account,
+    category: Category,
+    amount: Decimal,
+    occurred_at,
+    channel: str,
+    counterparty: str = "",
+    note: str = "",
+    tags: list[Tag] | tuple[Tag, ...] = (),
+) -> Transaction:
+    _validate_account(account)
+    _validate_category(category, category_type=Category.CategoryType.EXPENSE)
+    delta = -amount if account.balance_nature == Account.BalanceNature.ASSET else amount
+    return _rewrite_manual_transaction(
+        ledger_transaction=ledger_transaction,
+        transaction_type=Transaction.TransactionType.EXPENSE,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=category,
+        budget_month=_budget_month(occurred_at),
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        entries=[(account, delta)],
+        tags=tags,
+    )
+
+
+@db_transaction.atomic
+def update_transfer(
+    *,
+    ledger_transaction: Transaction,
+    source_account: Account,
+    destination_account: Account,
+    amount: Decimal,
+    occurred_at,
+    channel: str = Transaction.Channel.DIRECT,
+    counterparty: str = "",
+    note: str = "",
+) -> Transaction:
+    _validate_account(source_account, nature=Account.BalanceNature.ASSET)
+    _validate_account(destination_account, nature=Account.BalanceNature.ASSET)
+    if source_account.pk == destination_account.pk:
+        raise ValidationError("转出和转入账户不能相同。")
+    return _rewrite_manual_transaction(
+        ledger_transaction=ledger_transaction,
+        transaction_type=Transaction.TransactionType.TRANSFER,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=None,
+        budget_month=None,
+        channel=channel,
+        counterparty=counterparty,
+        note=note,
+        entries=[(source_account, -amount), (destination_account, amount)],
+        tags=(),
+    )
+
+
+@db_transaction.atomic
+def update_credit_card_repayment(
+    *,
+    ledger_transaction: Transaction,
+    source_account: Account,
+    credit_card_account: Account,
+    amount: Decimal,
+    occurred_at,
+    channel: str = Transaction.Channel.BANK,
+    note: str = "",
+) -> Transaction:
+    _validate_account(source_account, nature=Account.BalanceNature.ASSET)
+    _validate_account(credit_card_account, nature=Account.BalanceNature.LIABILITY)
+    return _rewrite_manual_transaction(
+        ledger_transaction=ledger_transaction,
+        transaction_type=Transaction.TransactionType.TRANSFER,
+        amount=amount,
+        occurred_at=occurred_at,
+        category=None,
+        budget_month=None,
+        channel=channel,
+        counterparty=credit_card_account.name,
+        note=note,
+        entries=[(source_account, -amount), (credit_card_account, -amount)],
+        tags=(),
+    )
+
+
+@db_transaction.atomic
+def update_balance_adjustment(
+    *,
+    ledger_transaction: Transaction,
+    account: Account,
+    balance_delta: Decimal,
+    occurred_at,
+    reason: str,
+) -> Transaction:
+    _validate_account(account)
+    _validate_decimal(balance_delta, allow_negative=True)
+    return _rewrite_manual_transaction(
+        ledger_transaction=ledger_transaction,
+        transaction_type=Transaction.TransactionType.BALANCE_ADJUSTMENT,
+        amount=abs(balance_delta),
+        occurred_at=occurred_at,
+        category=None,
+        budget_month=None,
+        channel=Transaction.Channel.DIRECT,
+        counterparty="",
+        note=reason,
+        entries=[(account, balance_delta)],
+        tags=(),
+    )

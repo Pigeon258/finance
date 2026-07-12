@@ -1,11 +1,27 @@
+from uuid import uuid4
+
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from . import selectors, services
-from .forms import CategoryForm
-from .models import Category
+from .forms import (
+    BalanceAdjustmentForm,
+    CategoryForm,
+    CreditCardExpenseForm,
+    CreditCardRepaymentForm,
+    ExpenseForm,
+    IncomeForm,
+    TransactionFilterForm,
+    TransferForm,
+    VoidTransactionForm,
+)
+from .models import Category, Transaction
+
+SUBMISSION_TOKEN_SESSION_KEY = "manual_transaction_submission_tokens"
 
 
 def _add_service_error(form, error: ValidationError) -> None:
@@ -64,3 +80,247 @@ def category_deactivate(request: HttpRequest, category_id: int):
     except ValidationError:
         pass
     return redirect("ledger:category-index")
+
+
+def _issue_submission_token(request: HttpRequest) -> str:
+    token = str(uuid4())
+    tokens = request.session.get(SUBMISSION_TOKEN_SESSION_KEY, [])[-19:]
+    request.session[SUBMISSION_TOKEN_SESSION_KEY] = [*tokens, token]
+    return token
+
+
+def _consume_submission_token(request: HttpRequest) -> bool:
+    token = request.POST.get("submission_token")
+    tokens = request.session.get(SUBMISSION_TOKEN_SESSION_KEY, [])
+    if not token or token not in tokens:
+        return False
+    tokens.remove(token)
+    request.session[SUBMISSION_TOKEN_SESSION_KEY] = tokens
+    return True
+
+
+MANUAL_CREATE_FORMS = {
+    "income": ("记录收入", IncomeForm),
+    "expense": ("记录普通支出", ExpenseForm),
+    "credit-card-expense": ("记录信用卡消费", CreditCardExpenseForm),
+    "transfer": ("账户间转账", TransferForm),
+    "credit-card-repayment": ("信用卡还款", CreditCardRepaymentForm),
+    "balance-adjustment": ("余额调整", BalanceAdjustmentForm),
+}
+
+
+def _create_manual_transaction(operation: str, cleaned_data: dict) -> Transaction:
+    if operation == "income":
+        return services.create_income(**cleaned_data)
+    if operation == "expense":
+        return services.create_expense(**cleaned_data)
+    if operation == "credit-card-expense":
+        return services.create_credit_card_purchase(**cleaned_data)
+    if operation == "transfer":
+        return services.create_transfer(**cleaned_data)
+    if operation == "credit-card-repayment":
+        return services.create_credit_card_repayment(**cleaned_data)
+    if operation == "balance-adjustment":
+        return services.create_balance_adjustment(**cleaned_data)
+    raise ValueError(f"Unsupported manual operation: {operation}")
+
+
+@require_http_methods(["GET", "POST"])
+def transaction_create(request: HttpRequest, operation: str):
+    form_config = MANUAL_CREATE_FORMS.get(operation)
+    if form_config is None:
+        return redirect("ledger:transaction-index")
+    title, form_class = form_config
+    form = form_class(request.POST or None)
+    if request.method == "POST":
+        if not _consume_submission_token(request):
+            messages.warning(request, "该提交已处理或已失效。")
+            return redirect("ledger:transaction-index")
+        if form.is_valid():
+            try:
+                ledger_transaction = _create_manual_transaction(operation, form.cleaned_data)
+            except ValidationError as error:
+                _add_service_error(form, error)
+            else:
+                messages.success(request, "交易已记录。")
+                return redirect("ledger:transaction-detail", transaction_id=ledger_transaction.id)
+    submission_token = _issue_submission_token(request)
+    return render(
+        request,
+        "ledger/transaction_form.html",
+        {"form": form, "title": title, "submission_token": submission_token},
+    )
+
+
+@require_GET
+def transaction_index(request: HttpRequest):
+    filter_form = TransactionFilterForm(request.GET or None)
+    filters = filter_form.cleaned_data if filter_form.is_valid() else {}
+    paginator = Paginator(selectors.transaction_list(filters=filters), 25)
+    page = paginator.get_page(request.GET.get("page"))
+    query = request.GET.copy()
+    query.pop("page", None)
+    return render(
+        request,
+        "ledger/transaction_index.html",
+        {"filter_form": filter_form, "page": page, "filter_query": query.urlencode()},
+    )
+
+
+@require_GET
+def transaction_detail(request: HttpRequest, transaction_id: int):
+    try:
+        ledger_transaction = selectors.transaction_detail(transaction_id=transaction_id)
+    except Transaction.DoesNotExist:
+        ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
+    can_edit = _can_edit_transaction(ledger_transaction)
+    return render(
+        request,
+        "ledger/transaction_detail.html",
+        {
+            "transaction": ledger_transaction,
+            "can_edit": can_edit,
+            "void_form": VoidTransactionForm(),
+        },
+    )
+
+
+def _can_edit_transaction(ledger_transaction: Transaction) -> bool:
+    return (
+        ledger_transaction.status == Transaction.Status.ACTIVE
+        and ledger_transaction.source == Transaction.Source.MANUAL
+        and not ledger_transaction.is_financial_locked
+        and ledger_transaction.transaction_type != Transaction.TransactionType.REFUND
+        and not ledger_transaction.related_transactions.filter(
+            status=Transaction.Status.ACTIVE
+        ).exists()
+    )
+
+
+def _edit_form_config(ledger_transaction: Transaction):
+    entries = list(ledger_transaction.entries.select_related("account").all())
+    common = {
+        "amount": ledger_transaction.amount,
+        "occurred_at": ledger_transaction.occurred_at,
+        "channel": ledger_transaction.channel,
+        "counterparty": ledger_transaction.counterparty,
+        "note": ledger_transaction.note,
+    }
+    if ledger_transaction.transaction_type == Transaction.TransactionType.INCOME:
+        return (
+            IncomeForm,
+            services.update_income,
+            {
+                **common,
+                "account": entries[0].account,
+                "category": ledger_transaction.category,
+                "tags": list(ledger_transaction.tags.all()),
+            },
+        )
+    if ledger_transaction.transaction_type == Transaction.TransactionType.EXPENSE:
+        form_class = (
+            CreditCardExpenseForm
+            if entries[0].account.balance_nature == "LIABILITY"
+            else ExpenseForm
+        )
+        return (
+            form_class,
+            services.update_expense,
+            {
+                **common,
+                "account": entries[0].account,
+                "category": ledger_transaction.category,
+                "tags": list(ledger_transaction.tags.all()),
+            },
+        )
+    if ledger_transaction.transaction_type == Transaction.TransactionType.TRANSFER:
+        liability_entries = [
+            entry for entry in entries if entry.account.balance_nature == "LIABILITY"
+        ]
+        asset_entries = [entry for entry in entries if entry.account.balance_nature == "ASSET"]
+        if liability_entries:
+            return (
+                CreditCardRepaymentForm,
+                services.update_credit_card_repayment,
+                {
+                    "amount": ledger_transaction.amount,
+                    "occurred_at": ledger_transaction.occurred_at,
+                    "source_account": asset_entries[0].account,
+                    "credit_card_account": liability_entries[0].account,
+                    "channel": ledger_transaction.channel,
+                    "note": ledger_transaction.note,
+                },
+            )
+        source_entry = next(entry for entry in asset_entries if entry.balance_delta < 0)
+        destination_entry = next(entry for entry in asset_entries if entry.balance_delta > 0)
+        return (
+            TransferForm,
+            services.update_transfer,
+            {
+                **common,
+                "source_account": source_entry.account,
+                "destination_account": destination_entry.account,
+            },
+        )
+    if ledger_transaction.transaction_type == Transaction.TransactionType.BALANCE_ADJUSTMENT:
+        return (
+            BalanceAdjustmentForm,
+            services.update_balance_adjustment,
+            {
+                "account": entries[0].account,
+                "balance_delta": entries[0].balance_delta,
+                "occurred_at": ledger_transaction.occurred_at,
+                "reason": ledger_transaction.note,
+            },
+        )
+    return None
+
+
+@require_http_methods(["GET", "POST"])
+def transaction_edit(request: HttpRequest, transaction_id: int):
+    ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
+    if not _can_edit_transaction(ledger_transaction):
+        messages.error(request, "该交易已锁定或存在正式关联，不能直接编辑。")
+        return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+    config = _edit_form_config(ledger_transaction)
+    if config is None:
+        messages.error(request, "该交易类型不能在此编辑。")
+        return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+    form_class, update_service, initial = config
+    form = form_class(request.POST or None, initial=initial)
+    if request.method == "POST":
+        if not _consume_submission_token(request):
+            messages.warning(request, "该提交已处理或已失效。")
+            return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+        if form.is_valid():
+            try:
+                update_service(ledger_transaction=ledger_transaction, **form.cleaned_data)
+            except ValidationError as error:
+                _add_service_error(form, error)
+            else:
+                messages.success(request, "交易已更新。")
+                return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+    submission_token = _issue_submission_token(request)
+    return render(
+        request,
+        "ledger/transaction_form.html",
+        {"form": form, "title": "编辑交易", "submission_token": submission_token},
+    )
+
+
+@require_POST
+def transaction_void(request: HttpRequest, transaction_id: int):
+    ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
+    form = VoidTransactionForm(request.POST)
+    if form.is_valid():
+        try:
+            services.void_transaction(
+                ledger_transaction=ledger_transaction, reason=form.cleaned_data["reason"]
+            )
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+        else:
+            messages.success(request, "交易已作废。")
+    else:
+        messages.error(request, "请输入作废原因。")
+    return redirect("ledger:transaction-detail", transaction_id=transaction_id)

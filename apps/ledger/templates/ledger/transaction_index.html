@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}交易记录 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>交易记录</h1>
+  <nav aria-label="交易快捷操作">
+    <a href="{% url 'ledger:transaction-create' 'income' %}">记收入</a>
+    <a href="{% url 'ledger:transaction-create' 'expense' %}">记支出</a>
+    <a href="{% url 'ledger:transaction-create' 'credit-card-expense' %}">记信用卡消费</a>
+    <a href="{% url 'ledger:transaction-create' 'transfer' %}">账户转账</a>
+    <a href="{% url 'ledger:transaction-create' 'credit-card-repayment' %}">信用卡还款</a>
+    <a href="{% url 'ledger:transaction-create' 'balance-adjustment' %}">余额调整</a>
+  </nav>
+
+  <form method="get" class="filter-form">
+    {{ filter_form.as_div }}
+    <button type="submit">筛选</button>
+    <a href="{% url 'ledger:transaction-index' %}">清除</a>
+  </form>
+
+  <table>
+    <thead><tr><th>时间</th><th>类型</th><th>金额</th><th>账户</th><th>分类</th><th>交易对象</th><th>状态</th></tr></thead>
+    <tbody>
+      {% for transaction in page %}
+        <tr>
+          <td><a href="{% url 'ledger:transaction-detail' transaction.id %}">{{ transaction.occurred_at }}</a></td>
+          <td>{{ transaction.get_transaction_type_display }}</td>
+          <td>{{ transaction.amount }}</td>
+          <td>{% for entry in transaction.entries.all %}{{ entry.account.name }}{% if not forloop.last %} → {% endif %}{% endfor %}</td>
+          <td>{{ transaction.category|default:"—" }}</td>
+          <td>{{ transaction.counterparty|default:"—" }}</td>
+          <td>{{ transaction.get_status_display }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">没有符合条件的交易。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.paginator.num_pages > 1 %}
+    <nav aria-label="分页">
+      {% if page.has_previous %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.previous_page_number }}">上一页</a>{% endif %}
+      <span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页</span>
+      {% if page.has_next %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.next_page_number }}">下一页</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

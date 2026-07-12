@@ -12,7 +12,7 @@
       <nav aria-label="主导航">
         {% if request.user.is_authenticated %}
           <a href="{% url 'core:home' %}">首页</a>
-          <span aria-disabled="true">交易记录</span>
+          <a href="{% url 'ledger:transaction-index' %}">交易记录</a>
           <span aria-disabled="true">预算管理</span>
           <span aria-disabled="true">信用卡与分期</span>
           <a href="{% url 'core:settings' %}">系统设置</a>

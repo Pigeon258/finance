@@ -335,7 +335,7 @@ def test_service_rolls_back_header_when_later_validation_fails(bank, income_cate
 @pytest.mark.django_db
 def test_merchant_and_tags_are_attached_without_changing_entries(bank, expense_category):
     merchant = Merchant.objects.create(name="测试商家", normalized_name="测试商家")
-    tag = Tag.objects.create(name="冲动消费")
+    tag = Tag.objects.get(name="冲动消费")
     expense = services.create_expense(
         account=bank,
         category=expense_category,
