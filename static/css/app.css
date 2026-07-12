@@ -1,0 +1,26 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  color: #172033;
+  background: #f5f7fa;
+}
+
+header,
+main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+[aria-disabled="true"] {
+  color: #687386;
+}

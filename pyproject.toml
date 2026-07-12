@@ -1,0 +1,39 @@
+[project]
+name = "personal-finance"
+version = "0.1.0"
+description = "A single-user personal finance management system"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "argon2-cffi>=23.1,<26",
+    "django>=5.2,<5.3",
+    "gunicorn>=23,<24; sys_platform != 'win32'",
+    "psycopg[binary]>=3.2,<4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+    "pytest-django>=4.11,<5",
+    "ruff>=0.11,<1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests", "apps"]
+addopts = "--strict-markers --strict-config"
+markers = [
+    "integration: tests spanning multiple application modules",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.ruff.format]
+quote-style = "double"

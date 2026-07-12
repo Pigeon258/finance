@@ -1,0 +1,21 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}个人财务{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  </head>
+  <body>
+    <header>
+      <nav aria-label="主导航">
+        <a href="{% url 'core:home' %}">首页</a>
+        <span aria-disabled="true">交易记录</span>
+        <span aria-disabled="true">预算管理</span>
+        <span aria-disabled="true">信用卡与分期</span>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>
