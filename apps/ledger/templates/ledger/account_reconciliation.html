@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}余额核对 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>{{ account.name }}余额核对</h1>
+  <p>当前系统计算余额：{{ calculated_balance }}</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="submission_token" value="{{ submission_token }}">
+    {{ form.as_div }}
+    <button type="submit">保存核对</button>
+  </form>
+
+  <h2>最近核对记录</h2>
+  <table>
+    <thead><tr><th>核对时间</th><th>实际余额</th><th>核对前系统余额</th><th>差额</th><th>调整交易</th></tr></thead>
+    <tbody>
+      {% for item in reconciliations %}
+        <tr>
+          <td>{{ item.checked_at }}</td>
+          <td>{{ item.actual_balance }}</td>
+          <td>{{ item.calculated_balance }}</td>
+          <td>{{ item.difference }}</td>
+          <td>{% if item.adjustment_transaction_id %}<a href="{% url 'ledger:transaction-detail' item.adjustment_transaction_id %}">#{{ item.adjustment_transaction_id }}</a>{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="5">尚无核对记录。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

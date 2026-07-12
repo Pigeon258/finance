@@ -45,10 +45,7 @@ class Account(models.Model):
                         account_type="CREDIT_CARD",
                         balance_nature="LIABILITY",
                     )
-                    | (
-                        ~models.Q(account_type="CREDIT_CARD")
-                        & models.Q(balance_nature="ASSET")
-                    )
+                    | (~models.Q(account_type="CREDIT_CARD") & models.Q(balance_nature="ASSET"))
                 ),
                 name="accounts_type_matches_balance_nature",
             ),
@@ -59,10 +56,31 @@ class Account(models.Model):
             ),
         ]
         indexes = [
-            models.Index(
-                fields=["is_active", "sort_order"], name="accounts_ac_is_acti_24960f_idx"
-            )
+            models.Index(fields=["is_active", "sort_order"], name="accounts_ac_is_acti_24960f_idx")
         ]
 
     def __str__(self) -> str:
         return self.name
+
+
+class AccountReconciliation(models.Model):
+    account = models.ForeignKey(
+        Account, on_delete=models.PROTECT, related_name="reconciliations", verbose_name="账户"
+    )
+    actual_balance = models.DecimalField("实际余额", max_digits=14, decimal_places=2)
+    calculated_balance = models.DecimalField("核对前系统余额", max_digits=14, decimal_places=2)
+    difference = models.DecimalField("差额", max_digits=14, decimal_places=2)
+    checked_at = models.DateTimeField("核对时间")
+    note = models.TextField("备注", blank=True)
+    # The ledger service owns this raw ID, preserving the accounts -> core dependency direction.
+    adjustment_transaction_id = models.PositiveBigIntegerField(
+        "余额调整交易 ID", null=True, blank=True, unique=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-checked_at", "-id"]
+        indexes = [models.Index(fields=["account", "checked_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.account} {self.checked_at:%Y-%m-%d}: {self.difference}"

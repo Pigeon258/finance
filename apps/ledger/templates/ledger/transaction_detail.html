@@ -31,14 +31,26 @@
     <ul>{% for related in transaction.related_transactions.all %}<li><a href="{% url 'ledger:transaction-detail' related.id %}">#{{ related.id }} {{ related.get_transaction_type_display }} {{ related.amount }}</a></li>{% empty %}<li>无</li>{% endfor %}</ul>
   {% endif %}
 
+  {% if remaining_refund > 0 %}
+    <p><a href="{% url 'ledger:transaction-refund' transaction.id %}">记录部分或全额退款（剩余 {{ remaining_refund }}）</a></p>
+  {% endif %}
+
   {% if can_edit %}
     <p><a href="{% url 'ledger:transaction-edit' transaction.id %}">编辑交易</a></p>
+  {% endif %}
+  {% if can_correct %}
+    <p><a href="{% url 'ledger:transaction-correct' transaction.id %}">通过反向交易进行修正</a></p>
+  {% endif %}
+  {% if can_void %}
     <form method="post" action="{% url 'ledger:transaction-void' transaction.id %}">
       {% csrf_token %}
       {{ void_form.as_div }}
       <button type="submit">作废交易</button>
     </form>
-  {% elif transaction.is_financial_locked %}
-    <p>该交易已进入正式关联，不能直接编辑或作废；请使用后续修正流程。</p>
+  {% endif %}
+  {% if transaction.is_financial_locked %}
+    <p>该交易已进入正式关联，不能直接编辑、删除或作废。修正会影响余额、预算及关联记录，必须保留完整修正链。</p>
+  {% elif transaction.related_transactions.all %}
+    <p>该交易存在关联记录，不能直接删除或作废；请先检查上方关联记录的影响。</p>
   {% endif %}
 {% endblock %}

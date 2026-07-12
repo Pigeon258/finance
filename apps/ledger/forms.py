@@ -185,3 +185,44 @@ class TransactionFilterForm(forms.Form):
 
 class VoidTransactionForm(forms.Form):
     reason = forms.CharField(label="作废原因", max_length=500)
+
+
+class RefundForm(forms.Form):
+    amount = forms.DecimalField(label="退款金额", max_digits=14, decimal_places=2, min_value=0.01)
+    occurred_at = BaseManualTransactionForm.base_fields["occurred_at"]
+    account = forms.ModelChoiceField(label="退款到账账户", queryset=Account.objects.none())
+    channel = forms.ChoiceField(label="支付渠道", choices=Transaction.Channel.choices)
+    note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, original_transaction: Transaction, remaining_amount, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_transaction = original_transaction
+        self.remaining_amount = remaining_amount
+        original_entry = original_transaction.entries.select_related("account").get()
+        self.fields["account"].queryset = Account.objects.filter(
+            balance_nature=original_entry.account.balance_nature, is_active=True
+        )
+        self.fields["amount"].help_text = f"最多可退 {remaining_amount} 元。"
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount > self.remaining_amount:
+            raise forms.ValidationError("退款金额不得超过剩余可退金额。")
+        return amount
+
+
+class AccountReconciliationForm(forms.Form):
+    actual_balance = forms.DecimalField(label="实际余额", max_digits=14, decimal_places=2)
+    checked_at = BaseManualTransactionForm.base_fields["occurred_at"]
+    note = forms.CharField(
+        label="核对说明", required=False, widget=forms.Textarea(attrs={"rows": 3})
+    )
+    create_adjustment = forms.BooleanField(
+        label="按差额创建余额调整", required=False, help_text="调整不会计入收入、支出或预算。"
+    )
+
+
+class CorrectionReasonForm(forms.Form):
+    correction_reason = forms.CharField(
+        label="修正原因", max_length=500, widget=forms.Textarea(attrs={"rows": 3})
+    )

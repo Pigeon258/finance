@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}记录退款 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>记录退款</h1>
+  <p>原支出：#{{ original.id }}，金额 {{ original.amount }}，剩余可退 {{ remaining }}。</p>
+  <p>退款将继承原分类和预算月份，并冲减原预算占用。</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="submission_token" value="{{ submission_token }}">
+    {{ form.as_div }}
+    <button type="submit">保存退款</button>
+  </form>
+{% endblock %}

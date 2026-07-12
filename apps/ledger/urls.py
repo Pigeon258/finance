@@ -24,6 +24,21 @@ urlpatterns = [
         views.transaction_void,
         name="transaction-void",
     ),
+    path(
+        "transactions/<int:transaction_id>/refund/",
+        views.transaction_refund,
+        name="transaction-refund",
+    ),
+    path(
+        "transactions/<int:transaction_id>/correct/",
+        views.transaction_correct,
+        name="transaction-correct",
+    ),
+    path(
+        "reconciliations/accounts/<int:account_id>/",
+        views.account_reconcile,
+        name="account-reconcile",
+    ),
     path("categories/", views.category_index, name="category-index"),
     path("categories/new/", views.category_create, name="category-create"),
     path("categories/<int:category_id>/edit/", views.category_edit, name="category-edit"),

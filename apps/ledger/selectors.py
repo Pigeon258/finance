@@ -125,3 +125,26 @@ def transaction_detail(*, transaction_id: int) -> Transaction:
         .prefetch_related("entries__account", "tags", "related_transactions")
         .get(pk=transaction_id)
     )
+
+
+def refunded_amount(*, original_transaction: Transaction) -> Decimal:
+    return (
+        Transaction.objects.filter(
+            related_transaction=original_transaction,
+            transaction_type=Transaction.TransactionType.REFUND,
+            status=Transaction.Status.ACTIVE,
+        ).aggregate(total=Sum("amount"))["total"]
+        or Decimal("0.00")
+    )
+
+
+def refundable_remaining(*, original_transaction: Transaction) -> Decimal:
+    if (
+        original_transaction.transaction_type != Transaction.TransactionType.EXPENSE
+        or original_transaction.status != Transaction.Status.ACTIVE
+    ):
+        return Decimal("0.00")
+    return max(
+        original_transaction.amount - refunded_amount(original_transaction=original_transaction),
+        Decimal("0.00"),
+    )

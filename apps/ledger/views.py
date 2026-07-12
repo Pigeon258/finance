@@ -5,16 +5,23 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from apps.accounts import selectors as account_selectors
+from apps.accounts.models import Account
 
 from . import selectors, services
 from .forms import (
+    AccountReconciliationForm,
     BalanceAdjustmentForm,
     CategoryForm,
+    CorrectionReasonForm,
     CreditCardExpenseForm,
     CreditCardRepaymentForm,
     ExpenseForm,
     IncomeForm,
+    RefundForm,
     TransactionFilterForm,
     TransferForm,
     VoidTransactionForm,
@@ -174,12 +181,32 @@ def transaction_detail(request: HttpRequest, transaction_id: int):
     except Transaction.DoesNotExist:
         ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
     can_edit = _can_edit_transaction(ledger_transaction)
+    remaining_refund = selectors.refundable_remaining(original_transaction=ledger_transaction)
+    has_active_relations = ledger_transaction.related_transactions.filter(
+        status=Transaction.Status.ACTIVE
+    ).exists()
+    can_void = (
+        ledger_transaction.status == Transaction.Status.ACTIVE
+        and ledger_transaction.source == Transaction.Source.MANUAL
+        and not ledger_transaction.is_financial_locked
+        and not has_active_relations
+    )
+    can_correct = (
+        ledger_transaction.status == Transaction.Status.ACTIVE
+        and ledger_transaction.source == Transaction.Source.MANUAL
+        and ledger_transaction.is_financial_locked
+        and not has_active_relations
+        and ledger_transaction.transaction_type != Transaction.TransactionType.REFUND
+    )
     return render(
         request,
         "ledger/transaction_detail.html",
         {
             "transaction": ledger_transaction,
             "can_edit": can_edit,
+            "can_void": can_void,
+            "can_correct": can_correct,
+            "remaining_refund": remaining_refund,
             "void_form": VoidTransactionForm(),
         },
     )
@@ -324,3 +351,145 @@ def transaction_void(request: HttpRequest, transaction_id: int):
     else:
         messages.error(request, "请输入作废原因。")
     return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+
+
+@require_http_methods(["GET", "POST"])
+def transaction_refund(request: HttpRequest, transaction_id: int):
+    original = get_object_or_404(Transaction, pk=transaction_id)
+    remaining = selectors.refundable_remaining(original_transaction=original)
+    if remaining <= 0:
+        messages.error(request, "该交易当前没有可退款金额。")
+        return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+    form = RefundForm(
+        request.POST or None,
+        original_transaction=original,
+        remaining_amount=remaining,
+        initial={"channel": original.channel},
+    )
+    if request.method == "POST":
+        if not _consume_submission_token(request):
+            messages.warning(request, "该提交已处理或已失效。")
+            return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+        if form.is_valid():
+            try:
+                refund = services.create_refund(original_transaction=original, **form.cleaned_data)
+            except ValidationError as error:
+                _add_service_error(form, error)
+            else:
+                messages.success(request, "退款已记录。")
+                return redirect("ledger:transaction-detail", transaction_id=refund.id)
+    submission_token = _issue_submission_token(request)
+    return render(
+        request,
+        "ledger/refund_form.html",
+        {
+            "form": form,
+            "original": original,
+            "remaining": remaining,
+            "submission_token": submission_token,
+        },
+    )
+
+
+def _correction_service(ledger_transaction: Transaction):
+    if ledger_transaction.transaction_type == Transaction.TransactionType.INCOME:
+        return services.correct_income
+    if ledger_transaction.transaction_type == Transaction.TransactionType.EXPENSE:
+        entry = ledger_transaction.entries.select_related("account").get()
+        if entry.account.balance_nature == Account.BalanceNature.LIABILITY:
+            return services.correct_credit_card_purchase
+        return services.correct_expense
+    if ledger_transaction.transaction_type == Transaction.TransactionType.TRANSFER:
+        if ledger_transaction.entries.filter(
+            account__balance_nature=Account.BalanceNature.LIABILITY
+        ).exists():
+            return services.correct_credit_card_repayment
+        return services.correct_transfer
+    if ledger_transaction.transaction_type == Transaction.TransactionType.BALANCE_ADJUSTMENT:
+        return services.correct_balance_adjustment
+    return None
+
+
+@require_http_methods(["GET", "POST"])
+def transaction_correct(request: HttpRequest, transaction_id: int):
+    ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
+    config = _edit_form_config(ledger_transaction)
+    correction_service = _correction_service(ledger_transaction)
+    has_active_relations = ledger_transaction.related_transactions.filter(
+        status=Transaction.Status.ACTIVE
+    ).exists()
+    if (
+        config is None
+        or correction_service is None
+        or ledger_transaction.status != Transaction.Status.ACTIVE
+        or not ledger_transaction.is_financial_locked
+        or has_active_relations
+    ):
+        messages.error(request, "该交易当前不能执行反向修正。")
+        return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+
+    form_class, _, initial = config
+    transaction_form = form_class(request.POST or None, initial=initial)
+    reason_form = CorrectionReasonForm(request.POST or None)
+    if request.method == "POST":
+        if not _consume_submission_token(request):
+            messages.warning(request, "该提交已处理或已失效。")
+            return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+        if transaction_form.is_valid() and reason_form.is_valid():
+            try:
+                replacement, _ = correction_service(
+                    ledger_transaction=ledger_transaction,
+                    correction_occurred_at=timezone.now(),
+                    reason=reason_form.cleaned_data["correction_reason"],
+                    **transaction_form.cleaned_data,
+                )
+            except ValidationError as error:
+                _add_service_error(transaction_form, error)
+            else:
+                messages.success(request, "原交易已反向修正，并创建替代交易。")
+                return redirect("ledger:transaction-detail", transaction_id=replacement.id)
+    submission_token = _issue_submission_token(request)
+    return render(
+        request,
+        "ledger/transaction_correction_form.html",
+        {
+            "transaction": ledger_transaction,
+            "transaction_form": transaction_form,
+            "reason_form": reason_form,
+            "submission_token": submission_token,
+        },
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def account_reconcile(request: HttpRequest, account_id: int):
+    account = get_object_or_404(Account, pk=account_id)
+    calculated_balance = selectors.account_balance(account=account)
+    form = AccountReconciliationForm(
+        request.POST or None,
+        initial={"actual_balance": calculated_balance, "checked_at": timezone.now()},
+    )
+    if request.method == "POST":
+        if not _consume_submission_token(request):
+            messages.warning(request, "该提交已处理或已失效。")
+            return redirect("ledger:account-reconcile", account_id=account_id)
+        if form.is_valid():
+            try:
+                reconciliation = services.reconcile_account(account=account, **form.cleaned_data)
+            except ValidationError as error:
+                _add_service_error(form, error)
+            else:
+                messages.success(request, "账户余额核对已保存。")
+                return redirect("ledger:account-reconcile", account_id=reconciliation.account_id)
+    submission_token = _issue_submission_token(request)
+    return render(
+        request,
+        "ledger/account_reconciliation.html",
+        {
+            "account": account,
+            "calculated_balance": calculated_balance,
+            "reconciliations": account_selectors.reconciliation_list(account=account)[:20],
+            "form": form,
+            "submission_token": submission_token,
+        },
+    )

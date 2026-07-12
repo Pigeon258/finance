@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}反向修正交易 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>反向修正交易 #{{ transaction.id }}</h1>
+  <p>提交后系统将保留原交易，创建反向调整，再创建正确的替代交易。整个流程整体成功或整体回滚。</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="submission_token" value="{{ submission_token }}">
+    {{ reason_form.as_div }}
+    <h2>替代交易内容</h2>
+    {{ transaction_form.as_div }}
+    <button type="submit">确认反向修正</button>
+  </form>
+{% endblock %}

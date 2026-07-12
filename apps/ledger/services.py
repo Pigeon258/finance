@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
@@ -5,7 +6,7 @@ from django.db import transaction as db_transaction
 from django.db.models import Sum
 from django.utils import timezone
 
-from apps.accounts.models import Account
+from apps.accounts.models import Account, AccountReconciliation
 
 from .models import Category, Merchant, Tag, Transaction, TransactionEntry, TransactionTag
 
@@ -84,6 +85,15 @@ def deactivate_category(*, category: Category) -> Category:
 
 
 def _validate_decimal(value: Decimal, *, allow_negative: bool = False) -> Decimal:
+    _validate_storable_decimal(value)
+    if not allow_negative and value <= 0:
+        raise ValidationError("交易金额必须大于零。")
+    if allow_negative and value == 0:
+        raise ValidationError("余额变化不得为零。")
+    return value
+
+
+def _validate_storable_decimal(value: Decimal) -> Decimal:
     if not isinstance(value, Decimal):
         raise ValidationError("财务金额必须使用 Decimal。")
     if not value.is_finite():
@@ -96,10 +106,6 @@ def _validate_decimal(value: Decimal, *, allow_negative: bool = False) -> Decima
         raise ValidationError("财务金额必须精确到人民币分。")
     if abs(value) > MAX_MONEY:
         raise ValidationError("财务金额超出允许范围。")
-    if not allow_negative and value <= 0:
-        raise ValidationError("交易金额必须大于零。")
-    if allow_negative and value == 0:
-        raise ValidationError("余额变化不得为零。")
     return value
 
 
@@ -279,9 +285,7 @@ def create_transfer(
         source=source,
     )
     _create_entry(transaction=ledger_transaction, account=source_account, balance_delta=-amount)
-    _create_entry(
-        transaction=ledger_transaction, account=destination_account, balance_delta=amount
-    )
+    _create_entry(transaction=ledger_transaction, account=destination_account, balance_delta=amount)
     return ledger_transaction
 
 
@@ -336,14 +340,11 @@ def create_refund(
     if original.status != Transaction.Status.ACTIVE:
         raise ValidationError("只能退款有效支出。")
     _validate_decimal(amount)
-    refunded_amount = (
-        Transaction.objects.filter(
-            related_transaction=original,
-            transaction_type=Transaction.TransactionType.REFUND,
-            status=Transaction.Status.ACTIVE,
-        ).aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
-    )
+    refunded_amount = Transaction.objects.filter(
+        related_transaction=original,
+        transaction_type=Transaction.TransactionType.REFUND,
+        status=Transaction.Status.ACTIVE,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
     if refunded_amount + amount > original.amount:
         raise ValidationError("累计退款金额不得超过原支出。")
     original_entry = original.entries.get()
@@ -410,9 +411,10 @@ def void_transaction(*, ledger_transaction: Transaction, reason: str) -> Transac
     target = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
     if target.status != Transaction.Status.ACTIVE:
         raise ValidationError("只能作废有效交易。")
-    if target.is_financial_locked or target.related_transactions.filter(
-        status=Transaction.Status.ACTIVE
-    ).exists():
+    if (
+        target.is_financial_locked
+        or target.related_transactions.filter(status=Transaction.Status.ACTIVE).exists()
+    ):
         raise ValidationError("存在正式关联的交易不能直接作废。")
     if not reason.strip():
         raise ValidationError("作废原因不能为空。")
@@ -441,9 +443,7 @@ def reverse_transaction(
     target.status = Transaction.Status.REVERSED
     target.is_financial_locked = True
     target.void_reason = reason
-    target.save(
-        update_fields=["status", "is_financial_locked", "void_reason", "updated_at"]
-    )
+    target.save(update_fields=["status", "is_financial_locked", "void_reason", "updated_at"])
     reversals = []
     for entry in target.entries.all():
         reversals.append(
@@ -464,9 +464,10 @@ def _validate_manual_edit_target(target: Transaction) -> None:
         raise ValidationError("只能编辑有效交易。")
     if target.source != Transaction.Source.MANUAL:
         raise ValidationError("只能直接编辑手工交易。")
-    if target.is_financial_locked or target.related_transactions.filter(
-        status=Transaction.Status.ACTIVE
-    ).exists():
+    if (
+        target.is_financial_locked
+        or target.related_transactions.filter(status=Transaction.Status.ACTIVE).exists()
+    ):
         raise ValidationError("存在正式关联的交易不能直接编辑。")
 
 
@@ -674,4 +675,142 @@ def update_balance_adjustment(
         note=reason,
         entries=[(account, balance_delta)],
         tags=(),
+    )
+
+
+@db_transaction.atomic
+def reconcile_account(
+    *,
+    account: Account,
+    actual_balance: Decimal,
+    checked_at,
+    note: str = "",
+    create_adjustment: bool = False,
+) -> AccountReconciliation:
+    locked_account = Account.objects.select_for_update().get(pk=account.pk)
+    if not locked_account.is_active:
+        raise ValidationError("停用账户不能创建新的余额核对。")
+    _validate_storable_decimal(actual_balance)
+    _validate_occurred_at(checked_at)
+
+    from .selectors import account_balance
+
+    calculated_balance = account_balance(account=locked_account, as_of=checked_at)
+    difference = actual_balance - calculated_balance
+    _validate_storable_decimal(calculated_balance)
+    _validate_storable_decimal(difference)
+    reconciliation = AccountReconciliation(
+        account=locked_account,
+        actual_balance=actual_balance,
+        calculated_balance=calculated_balance,
+        difference=difference,
+        checked_at=checked_at,
+        note=note,
+    )
+    reconciliation.full_clean()
+    reconciliation.save()
+
+    if create_adjustment and difference != Decimal("0.00"):
+        adjustment = create_balance_adjustment(
+            account=locked_account,
+            balance_delta=difference,
+            occurred_at=checked_at,
+            reason=note or "账户余额核对调整",
+            source=Transaction.Source.MANUAL,
+        )
+        reconciliation.adjustment_transaction_id = adjustment.id
+        reconciliation.save(update_fields=["adjustment_transaction_id"])
+    return reconciliation
+
+
+def _correct_locked_transaction(
+    *,
+    ledger_transaction: Transaction,
+    correction_occurred_at,
+    reason: str,
+    replacement_creator: Callable[[], Transaction],
+) -> tuple[Transaction, list[Transaction]]:
+    target = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
+    if not target.is_financial_locked:
+        raise ValidationError("未锁定交易应直接编辑，不需要反向修正。")
+    reversals = reverse_transaction(
+        ledger_transaction=target, occurred_at=correction_occurred_at, reason=reason
+    )
+    replacement = replacement_creator()
+    replacement.related_transaction = target
+    replacement.is_financial_locked = True
+    replacement.full_clean()
+    replacement.save(update_fields=["related_transaction", "is_financial_locked", "updated_at"])
+    return replacement, reversals
+
+
+@db_transaction.atomic
+def correct_income(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_income(**replacement_data),
+    )
+
+
+@db_transaction.atomic
+def correct_expense(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_expense(**replacement_data),
+    )
+
+
+@db_transaction.atomic
+def correct_credit_card_purchase(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_credit_card_purchase(**replacement_data),
+    )
+
+
+@db_transaction.atomic
+def correct_transfer(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_transfer(**replacement_data),
+    )
+
+
+@db_transaction.atomic
+def correct_credit_card_repayment(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_credit_card_repayment(**replacement_data),
+    )
+
+
+@db_transaction.atomic
+def correct_balance_adjustment(
+    *, ledger_transaction: Transaction, correction_occurred_at, reason: str, **replacement_data
+) -> tuple[Transaction, list[Transaction]]:
+    return _correct_locked_transaction(
+        ledger_transaction=ledger_transaction,
+        correction_occurred_at=correction_occurred_at,
+        reason=reason,
+        replacement_creator=lambda: create_balance_adjustment(**replacement_data),
     )

@@ -17,6 +17,7 @@
           <td>{% if account.is_active %}启用{% else %}停用{% endif %}</td>
           <td>
             <a href="{% url 'accounts:edit' account.id %}">编辑</a>
+            <a href="{% url 'ledger:account-reconcile' account.id %}">余额核对</a>
             {% if account.is_active %}
               <form class="inline-form" method="post" action="{% url 'accounts:deactivate' account.id %}">
                 {% csrf_token %}<button type="submit">停用</button>
