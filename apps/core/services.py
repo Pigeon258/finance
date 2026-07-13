@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from django.conf import settings
-from django.contrib.auth import authenticate
+from django.contrib.auth import SESSION_KEY, authenticate
 from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.sessions.models import Session
 from django.db import DatabaseError, transaction
 from django.utils import timezone
-from django.utils.crypto import salted_hmac
+from django.utils.crypto import constant_time_compare, salted_hmac
 
 from .models import LoginAttempt, SystemPreference
 
@@ -83,3 +84,35 @@ def get_display_time_zone() -> str:
         )
     except (SystemPreference.DoesNotExist, DatabaseError):
         return settings.TIME_ZONE
+
+
+def revoke_owner_session(*, owner_id: int, reference: str, current_session_key: str) -> bool:
+    from .selectors import session_reference
+
+    for session in Session.objects.filter(expire_date__gt=timezone.now()):
+        try:
+            data = session.get_decoded()
+        except Exception:
+            continue
+        if str(data.get(SESSION_KEY, "")) != str(owner_id):
+            continue
+        if constant_time_compare(session_reference(session.session_key), reference):
+            is_current = session.session_key == current_session_key
+            session.delete()
+            return is_current
+    raise ValueError("会话不存在或已经失效。")
+
+
+def revoke_other_owner_sessions(*, owner_id: int, current_session_key: str) -> int:
+    count = 0
+    for session in Session.objects.filter(expire_date__gt=timezone.now()).exclude(
+        session_key=current_session_key
+    ):
+        try:
+            data = session.get_decoded()
+        except Exception:
+            continue
+        if str(data.get(SESSION_KEY, "")) == str(owner_id):
+            session.delete()
+            count += 1
+    return count

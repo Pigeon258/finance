@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from . import selectors, services
 from .forms import OwnerAuthenticationForm, SystemPreferenceForm
 from .middleware import SESSION_CREATED_AT, SESSION_LAST_ACTIVITY_AT
 from .models import SystemPreference
@@ -108,4 +109,35 @@ def settings_view(request: HttpRequest):
         form.save()
         messages.success(request, "系统设置已保存。")
         return redirect(reverse("core:settings"))
-    return render(request, "core/settings.html", {"form": form})
+    current_session_key = request.session.session_key or ""
+    sessions = selectors.active_owner_sessions(
+        owner_id=request.user.pk, current_session_key=current_session_key
+    )
+    return render(request, "core/settings.html", {"form": form, "sessions": sessions})
+
+
+@require_POST
+def session_revoke(request: HttpRequest, reference: str):
+    try:
+        is_current = services.revoke_owner_session(
+            owner_id=request.user.pk,
+            reference=reference,
+            current_session_key=request.session.session_key or "",
+        )
+    except ValueError as error:
+        messages.error(request, str(error))
+        return redirect("core:settings")
+    if is_current:
+        auth.logout(request)
+        return redirect("core:login")
+    messages.success(request, "所选会话已撤销。")
+    return redirect("core:settings")
+
+
+@require_POST
+def sessions_revoke_others(request: HttpRequest):
+    count = services.revoke_other_owner_sessions(
+        owner_id=request.user.pk, current_session_key=request.session.session_key or ""
+    )
+    messages.success(request, f"已撤销 {count} 个其他会话。")
+    return redirect("core:settings")

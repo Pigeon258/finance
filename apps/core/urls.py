@@ -10,6 +10,16 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
     path("settings/", views.settings_view, name="settings"),
     path("settings/password/", views.password_change_view, name="password-change"),
+    path(
+        "settings/sessions/revoke-others/",
+        views.sessions_revoke_others,
+        name="sessions-revoke-others",
+    ),
+    path(
+        "settings/sessions/<str:reference>/revoke/",
+        views.session_revoke,
+        name="session-revoke",
+    ),
     path("health/live", views.health_live, name="health-live"),
     path("health/ready", views.health_ready, name="health-ready"),
 ]

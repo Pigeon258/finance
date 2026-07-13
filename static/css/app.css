@@ -9,6 +9,20 @@ body {
   background: #f5f7fa;
 }
 
+.skip-link {
+  position: absolute;
+  left: -10000px;
+}
+
+.skip-link:focus {
+  position: fixed;
+  z-index: 10;
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem;
+  background: #fff;
+}
+
 header,
 main {
   max-width: 72rem;
@@ -22,6 +36,24 @@ nav {
   gap: 1rem;
 }
 
+.nav-menu {
+  position: relative;
+}
+
+.nav-menu > div {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  min-width: 10rem;
+  padding: 0.5rem;
+  border: 1px solid #b9c2d0;
+  background: #fff;
+}
+
+.nav-menu a {
+  padding: 0.4rem;
+}
+
 [aria-disabled="true"] {
   color: #687386;
 }
@@ -33,6 +65,20 @@ nav {
 
 form > div {
   margin-block: 0.75rem;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+  font: inherit;
+}
+
+button,
+summary,
+a {
+  min-height: 2rem;
 }
 
 .errorlist {
@@ -167,5 +213,22 @@ section + section {
   header,
   main {
     padding: 0.75rem;
+  }
+
+  nav {
+    align-items: stretch;
+  }
+
+  .nav-menu {
+    width: 100%;
+  }
+
+  .nav-menu > div {
+    position: static;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
   }
 }

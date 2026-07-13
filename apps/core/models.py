@@ -28,19 +28,19 @@ class SystemPreference(models.Model):
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     login_failure_window_minutes = models.PositiveSmallIntegerField(
-        default=15, validators=[MinValueValidator(1)]
+        default=15, validators=[MinValueValidator(1), MaxValueValidator(1440)]
     )
     login_failure_ip_limit = models.PositiveSmallIntegerField(
-        default=5, validators=[MinValueValidator(1)]
+        default=5, validators=[MinValueValidator(1), MaxValueValidator(10000)]
     )
     login_failure_global_limit = models.PositiveSmallIntegerField(
-        default=20, validators=[MinValueValidator(1)]
+        default=20, validators=[MinValueValidator(1), MaxValueValidator(10000)]
     )
     session_idle_timeout_minutes = models.PositiveSmallIntegerField(
-        default=60, validators=[MinValueValidator(1)]
+        default=60, validators=[MinValueValidator(1), MaxValueValidator(10080)]
     )
     session_absolute_timeout_hours = models.PositiveSmallIntegerField(
-        default=24, validators=[MinValueValidator(1)]
+        default=24, validators=[MinValueValidator(1), MaxValueValidator(8760)]
     )
     updated_at = models.DateTimeField(auto_now=True)
 

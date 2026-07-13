@@ -50,4 +50,12 @@ class SystemPreferenceForm(forms.ModelForm):
         global_limit = cleaned_data.get("login_failure_global_limit")
         if ip_limit is not None and global_limit is not None and ip_limit > global_limit:
             self.add_error("login_failure_ip_limit", "单个来源限制不得高于全局限制。")
+        idle_minutes = cleaned_data.get("session_idle_timeout_minutes")
+        absolute_hours = cleaned_data.get("session_absolute_timeout_hours")
+        if (
+            idle_minutes is not None
+            and absolute_hours is not None
+            and idle_minutes > absolute_hours * 60
+        ):
+            self.add_error("session_idle_timeout_minutes", "空闲超时不得长于会话最长时间。")
         return cleaned_data

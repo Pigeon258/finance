@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}未来 30 天事项 · 个人财务{% endblock %}
+{% block content %}
+  <h1>未来 30 天事项</h1>
+  <p>{{ as_of }} 至 {{ date_to }}，包含起止日期；已进入信用卡账单的分期期次不会重复累计应付款。</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>日期</th><th>类型</th><th>事项</th><th>金额</th><th>说明</th></tr></thead>
+      <tbody>
+        {% for item in items %}
+          <tr><td>{{ item.due_date }}</td><td>{{ item.kind }}</td><td>{{ item.title }}</td><td>{{ item.amount|default_if_none:"—" }}</td><td>{{ item.note|default:"—" }}</td></tr>
+        {% empty %}
+          <tr><td colspan="5">未来 30 天没有待办事项。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -10,4 +10,35 @@
     {{ form.as_div }}
     <button type="submit">保存设置</button>
   </form>
+  <section aria-labelledby="sessions">
+    <h2 id="sessions">登录会话</h2>
+    <p>页面不会显示或记录会话令牌。</p>
+    <form method="post" action="{% url 'core:sessions-revoke-others' %}">
+      {% csrf_token %}
+      <button type="submit">撤销全部其他会话</button>
+    </form>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>会话</th><th>创建时间</th><th>最后活动</th><th>过期时间</th><th>操作</th></tr></thead>
+        <tbody>
+          {% for item in sessions %}
+            <tr>
+              <td>{% if item.is_current %}当前会话{% else %}其他会话{% endif %}</td>
+              <td>{{ item.created_at|default:"未知" }}</td>
+              <td>{{ item.last_activity_at|default:"未知" }}</td>
+              <td>{{ item.expire_date }}</td>
+              <td>
+                <form method="post" action="{% url 'core:session-revoke' item.reference %}">
+                  {% csrf_token %}
+                  <button type="submit">{% if item.is_current %}退出当前会话{% else %}撤销{% endif %}</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">没有活动会话。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 {% endblock %}

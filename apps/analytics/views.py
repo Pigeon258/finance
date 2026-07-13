@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 from django.shortcuts import render
@@ -25,6 +27,20 @@ def dashboard(request: HttpRequest):
     if form.is_valid():
         snapshot = selectors.dashboard_snapshot(month=form.cleaned_data["month"], as_of=today)
     return render(request, "analytics/dashboard.html", {"form": form, "snapshot": snapshot})
+
+
+@require_GET
+def upcoming(request: HttpRequest):
+    today = timezone.localdate()
+    return render(
+        request,
+        "analytics/upcoming.html",
+        {
+            "as_of": today,
+            "date_to": today + timedelta(days=30),
+            "items": selectors.upcoming_items(as_of=today),
+        },
+    )
 
 
 @require_GET
