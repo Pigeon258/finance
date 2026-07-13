@@ -9,7 +9,7 @@ from django.db import DatabaseError, transaction
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 
-from .models import LoginAttempt, SystemPreference
+from .models import LoginAttempt, MaintenanceState, SystemPreference
 
 LOGIN_ATTEMPT_RETENTION_DAYS = 30
 
@@ -84,6 +84,15 @@ def get_display_time_zone() -> str:
         )
     except (SystemPreference.DoesNotExist, DatabaseError):
         return settings.TIME_ZONE
+
+
+def maintenance_enabled() -> bool:
+    try:
+        return MaintenanceState.objects.filter(
+            pk=MaintenanceState.SINGLETON_ID, enabled=True
+        ).exists()
+    except DatabaseError:
+        return False
 
 
 def revoke_owner_session(*, owner_id: int, reference: str, current_session_key: str) -> bool:

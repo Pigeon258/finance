@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}导出、备份与恢复 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>导出、备份与恢复</h1>
+  <section aria-labelledby="csv-export">
+    <h2 id="csv-export">CSV 导出</h2>
+    <p>CSV 仅用于查看和分析，不能用于完整恢复。文本字段已进行电子表格公式注入防护。</p>
+    <form method="get">
+      {{ range_form.as_div }}
+      <button formaction="{% url 'core:transactions-csv' %}" type="submit">导出交易 CSV</button>
+      <button formaction="{% url 'core:monthly-statistics-csv' %}" type="submit">导出月度统计 CSV</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="business-backup">
+    <h2 id="business-backup">加密完整业务备份</h2>
+    <p>系统只提供加密的 <code>.pfbackup</code>，不会下载明文完整 JSON。请将口令与备份文件分开保管；口令遗失后无法恢复。</p>
+    <form method="post" action="{% url 'core:backup-download' %}">
+      {% csrf_token %}
+      {{ backup_form.as_div }}
+      <button type="submit">生成并下载加密备份</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="business-restore">
+    <h2 id="business-restore">恢复业务备份</h2>
+    <p class="errorlist">恢复会替换账户、账本、账期、分期、预算、模板、规则和非敏感设置；不会替换当前管理员密码。成功后全部登录会话都会失效。</p>
+    <p>恢复前系统会使用本次备份口令，在服务器备份目录保留一份当前业务数据的加密备份。</p>
+    <form method="post" enctype="multipart/form-data" action="{% url 'core:backup-restore' %}">
+      {% csrf_token %}
+      {{ restore_form.as_div }}
+      <button type="submit">验证并恢复</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="backup-history">
+    <h2 id="backup-history">最近运行记录</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>开始时间</th><th>类型</th><th>状态</th><th>文件</th><th>大小</th></tr></thead>
+        <tbody>
+          {% for run in backup_runs %}
+            <tr><td>{{ run.started_at }}</td><td>{{ run.get_backup_type_display }}</td><td>{{ run.get_status_display }}</td><td>{{ run.file_name|default:"—" }}</td><td>{{ run.file_size|default_if_none:"—" }}</td></tr>
+          {% empty %}
+            <tr><td colspan="5">尚无备份或恢复记录。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

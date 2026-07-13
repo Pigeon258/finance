@@ -1,10 +1,12 @@
+import io
+
 from django.contrib import auth, messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.sessions.models import Session
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
-from django.http import HttpRequest, JsonResponse
+from django.http import FileResponse, HttpRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -12,9 +14,17 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from . import selectors, services
-from .forms import OwnerAuthenticationForm, SystemPreferenceForm
+from .backup import BackupError, create_user_backup, restore_business_backup
+from .exports import monthly_statistics_csv, transaction_csv
+from .forms import (
+    BackupDownloadForm,
+    BackupRestoreForm,
+    ExportRangeForm,
+    OwnerAuthenticationForm,
+    SystemPreferenceForm,
+)
 from .middleware import SESSION_CREATED_AT, SESSION_LAST_ACTIVITY_AT
-from .models import SystemPreference
+from .models import BackupRun, SystemPreference
 from .services import authenticate_with_throttle, get_session_limits
 
 
@@ -141,3 +151,109 @@ def sessions_revoke_others(request: HttpRequest):
     )
     messages.success(request, f"已撤销 {count} 个其他会话。")
     return redirect("core:settings")
+
+
+def _export_context(*, range_form=None, backup_form=None, restore_form=None):
+    return {
+        "range_form": range_form or ExportRangeForm(),
+        "backup_form": backup_form or BackupDownloadForm(),
+        "restore_form": restore_form or BackupRestoreForm(),
+        "backup_runs": BackupRun.objects.all()[:20],
+    }
+
+
+@require_GET
+def export_center(request: HttpRequest):
+    return render(request, "core/export_center.html", _export_context())
+
+
+@require_GET
+def export_transactions_csv(request: HttpRequest):
+    form = ExportRangeForm(request.GET)
+    if not form.is_valid():
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(range_form=form),
+            status=400,
+        )
+    return transaction_csv(**form.cleaned_data)
+
+
+@require_GET
+def export_monthly_statistics_csv(request: HttpRequest):
+    form = ExportRangeForm(request.GET)
+    if not form.is_valid():
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(range_form=form),
+            status=400,
+        )
+    return monthly_statistics_csv(**form.cleaned_data)
+
+
+@require_POST
+def backup_download(request: HttpRequest):
+    form = BackupDownloadForm(request.POST)
+    if not form.is_valid():
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(backup_form=form),
+            status=400,
+        )
+    try:
+        file_bytes, filename = create_user_backup(form.cleaned_data["backup_passphrase"])
+    except BackupError as error:
+        form.add_error(None, str(error))
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(backup_form=form),
+            status=400,
+        )
+    response = FileResponse(
+        io.BytesIO(file_bytes),
+        as_attachment=True,
+        filename=filename,
+        content_type="application/octet-stream",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@require_POST
+def backup_restore(request: HttpRequest):
+    form = BackupRestoreForm(request.POST, request.FILES)
+    if form.is_valid() and not request.user.check_password(form.cleaned_data["system_password"]):
+        form.add_error("system_password", "当前系统密码不正确。")
+    if not form.is_valid():
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(restore_form=form),
+            status=400,
+        )
+    uploaded = form.cleaned_data["backup_file"]
+    file_bytes = uploaded.read()
+    try:
+        restore_business_backup(
+            file_bytes,
+            form.cleaned_data["backup_passphrase"],
+            uploaded_filename=uploaded.name,
+        )
+    except BackupError as error:
+        form.add_error(None, str(error))
+    except Exception:
+        form.add_error(None, "恢复失败，原业务数据未改变。请检查备份文件后重试。")
+    if form.errors:
+        return render(
+            request,
+            "core/export_center.html",
+            _export_context(restore_form=form),
+            status=400,
+        )
+    auth.logout(request)
+    return redirect(f"{reverse('core:login')}?restored=1")

@@ -4,6 +4,7 @@
 
 {% block content %}
   <h1>登录</h1>
+  {% if request.GET.restored %}<p role="status">业务数据已恢复，请使用当前管理员密码重新登录。</p>{% endif %}
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ request.GET.next }}">

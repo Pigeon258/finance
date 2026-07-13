@@ -1,27 +1,33 @@
 from django.contrib import auth
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from .services import get_display_time_zone, get_session_limits
+from .services import get_display_time_zone, get_session_limits, maintenance_enabled
 
 SESSION_CREATED_AT = "owner_session_created_at"
 SESSION_LAST_ACTIVITY_AT = "owner_session_last_activity_at"
 
 
 class SingleUserSessionMiddleware:
-    PUBLIC_PATH_NAMES = {"core:health-live", "core:health-ready", "core:login"}
+    HEALTH_PATH_NAMES = {"core:health-live", "core:health-ready"}
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         path_name = self._resolve_path_name(request.path_info)
-        if path_name in self.PUBLIC_PATH_NAMES:
+        if path_name in self.HEALTH_PATH_NAMES:
+            return self.get_response(request)
+
+        if path_name == "core:login":
             return self.get_response(request)
 
         if not request.user.is_authenticated:
             return redirect(f"{reverse('core:login')}?next={request.get_full_path()}")
+
+        if maintenance_enabled():
+            return render(request, "core/maintenance.html", status=503)
 
         if self._session_expired(request):
             auth.logout(request)

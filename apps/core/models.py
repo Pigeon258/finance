@@ -92,3 +92,52 @@ class LoginAttempt(models.Model):
     def __str__(self) -> str:
         result = "成功" if self.succeeded else "失败"
         return f"登录{result}（{self.occurred_at:%Y-%m-%d %H:%M:%S}）"
+
+
+class BackupRun(models.Model):
+    class BackupType(models.TextChoices):
+        USER_EXPORT = "USER_EXPORT", "用户业务备份"
+        PRE_RESTORE = "PRE_RESTORE", "恢复前自动备份"
+        RESTORE = "RESTORE", "用户业务恢复"
+
+    class Status(models.TextChoices):
+        RUNNING = "RUNNING", "执行中"
+        SUCCEEDED = "SUCCEEDED", "成功"
+        FAILED = "FAILED", "失败"
+
+    backup_type = models.CharField(max_length=20, choices=BackupType.choices)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RUNNING)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    file_name = models.CharField(max_length=255, blank=True)
+    file_size = models.PositiveBigIntegerField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True)
+    app_version = models.CharField(max_length=30)
+    schema_version = models.PositiveSmallIntegerField()
+    error_summary = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ["-started_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.get_backup_type_display()}：{self.get_status_display()}"
+
+
+class MaintenanceState(models.Model):
+    SINGLETON_ID = 1
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=SINGLETON_ID, editable=False)
+    enabled = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(id=1), name="core_single_maintenance_state")
+        ]
+
+    def __str__(self) -> str:
+        return "维护中" if self.enabled else "正常运行"
+
+    def save(self, *args, **kwargs):
+        self.pk = self.SINGLETON_ID
+        return super().save(*args, **kwargs)
