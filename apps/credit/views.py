@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from apps.analytics import services as analytics_services
 from apps.ledger.models import Transaction
 
 from . import selectors, services
@@ -67,6 +68,7 @@ def overview(request: HttpRequest):
             "next_remaining": (
                 selectors.cycle_remaining_due(cycle=next_cycle) if next_cycle else None
             ),
+            "repayment_capacity": analytics_services.repayment_capacity(as_of=today),
         },
     )
 

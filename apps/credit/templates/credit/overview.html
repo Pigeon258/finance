@@ -19,6 +19,7 @@
       <dt>系统估算未出账</dt><dd>{{ unbilled }}</dd>
       <dt>溢缴款</dt><dd>{{ overpayment }}</dd>
       <dt>下一还款日</dt><dd>{% if next_cycle %}{{ next_cycle.due_date }}，剩余 {{ next_remaining }}{% else %}—{% endif %}</dd>
+      <dt>偿还能力</dt><dd>{{ repayment_capacity.status }}（常规 {{ repayment_capacity.regular_available }}，最终 {{ repayment_capacity.final_available }}）</dd>
     </dl>
 
     <h2>账期</h2>

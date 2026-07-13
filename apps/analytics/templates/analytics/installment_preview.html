@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}新增分期风险预览 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>新增分期风险预览</h1>
+  <p>本预览只进行只读计算，不会创建分期计划、交易或预算记录，也不会阻止用户继续录入。</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">计算预览</button>
+  </form>
+  {% if preview %}
+    <dl>
+      <dt>新增前整体状态</dt><dd>{{ preview.baseline.overall_status }}</dd>
+      <dt>新增后整体状态</dt><dd>{{ preview.simulated.overall_status }}</dd>
+    </dl>
+    <table>
+      <thead><tr><th>月份</th><th>确定承诺（含新增）</th><th>预计支出</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
+      <tbody>
+        {% for row in preview.simulated.months %}
+          <tr><td>{{ row.month }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td>{{ row.status }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

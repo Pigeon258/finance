@@ -41,6 +41,19 @@ def future_month_summary():
     )
 
 
+def planned_commitment_between(
+    *, date_from: date, date_to: date, necessary_only: bool = False
+) -> Decimal:
+    queryset = InstallmentItem.objects.filter(
+        status=InstallmentItem.Status.PLANNED,
+        due_date__gte=date_from,
+        due_date__lte=date_to,
+    )
+    if necessary_only:
+        queryset = queryset.filter(plan__category__necessity="NECESSARY")
+    return queryset.aggregate(total=Sum("planned_amount"))["total"] or Decimal("0.00")
+
+
 def monthly_occupancy(*, month: date, category_id: int | None = None) -> dict[str, Decimal]:
     month = month.replace(day=1)
     planned = InstallmentItem.objects.filter(status=InstallmentItem.Status.PLANNED, due_month=month)

@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 
 from apps.ledger import selectors as ledger_selectors
 from apps.ledger.models import Transaction
@@ -100,6 +100,23 @@ def next_unpaid_cycle(*, profile: CreditCardProfile) -> BillingCycle | None:
         if cycle_remaining_due(cycle=cycle) > 0:
             return cycle
     return None
+
+
+def unpaid_cycles(*, profile: CreditCardProfile) -> QuerySet[BillingCycle]:
+    return (
+        profile.billing_cycles.exclude(status=BillingCycle.Status.OPEN)
+        .exclude(status=BillingCycle.Status.PAID)
+        .order_by("due_date", "id")
+    )
+
+
+def monthly_purchase_amount(*, profile: CreditCardProfile, month: date) -> Decimal:
+    return profile.account.transaction_entries.filter(
+        transaction__status=Transaction.Status.ACTIVE,
+        transaction__transaction_type=Transaction.TransactionType.EXPENSE,
+        transaction__occurred_at__year=month.year,
+        transaction__occurred_at__month=month.month,
+    ).aggregate(total=Sum("transaction__amount"))["total"] or Decimal("0.00")
 
 
 def effective_cycle_status(*, cycle: BillingCycle, as_of: date) -> str:

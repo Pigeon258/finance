@@ -84,9 +84,7 @@ def monthly_net_expense(*, month: date, category: Category | None = None) -> Dec
         expenses=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.EXPENSE)),
         refunds=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.REFUND)),
     )
-    return (totals["expenses"] or Decimal("0.00")) - (
-        totals["refunds"] or Decimal("0.00")
-    )
+    return (totals["expenses"] or Decimal("0.00")) - (totals["refunds"] or Decimal("0.00"))
 
 
 def transaction_list(*, filters: dict | None = None) -> QuerySet[Transaction]:
@@ -128,14 +126,11 @@ def transaction_detail(*, transaction_id: int) -> Transaction:
 
 
 def refunded_amount(*, original_transaction: Transaction) -> Decimal:
-    return (
-        Transaction.objects.filter(
-            related_transaction=original_transaction,
-            transaction_type=Transaction.TransactionType.REFUND,
-            status=Transaction.Status.ACTIVE,
-        ).aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
-    )
+    return Transaction.objects.filter(
+        related_transaction=original_transaction,
+        transaction_type=Transaction.TransactionType.REFUND,
+        status=Transaction.Status.ACTIVE,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
 
 def refundable_remaining(*, original_transaction: Transaction) -> Decimal:
@@ -147,4 +142,19 @@ def refundable_remaining(*, original_transaction: Transaction) -> Decimal:
     return max(
         original_transaction.amount - refunded_amount(original_transaction=original_transaction),
         Decimal("0.00"),
+    )
+
+
+def large_flexible_expenses(*, month: date, threshold: Decimal) -> QuerySet[Transaction]:
+    month = month.replace(day=1)
+    return (
+        active_transactions()
+        .filter(
+            transaction_type=Transaction.TransactionType.EXPENSE,
+            occurred_at__year=month.year,
+            occurred_at__month=month.month,
+            category__necessity=Category.Necessity.FLEXIBLE,
+            amount__gt=threshold,
+        )
+        .order_by("occurred_at", "id")
     )

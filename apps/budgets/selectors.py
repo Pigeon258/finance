@@ -80,7 +80,23 @@ def planned_expense_commitment(*, month: date, category: Category | None = None)
     return queryset.aggregate(total=Sum("planned_amount"))["total"] or Decimal("0.00")
 
 
-def planned_income(*, month: date, reliability: str | None = None) -> Decimal:
+def planned_expense_commitment_between(
+    *, date_from: date, date_to: date, necessary_only: bool = False
+) -> Decimal:
+    queryset = PlannedCashFlowOccurrence.objects.filter(
+        plan__direction=PlannedCashFlow.Direction.EXPENSE,
+        status=PlannedCashFlowOccurrence.Status.PLANNED,
+        due_date__gte=date_from,
+        due_date__lte=date_to,
+    )
+    if necessary_only:
+        queryset = queryset.filter(plan__category__necessity=Category.Necessity.NECESSARY)
+    return queryset.aggregate(total=Sum("planned_amount"))["total"] or Decimal("0.00")
+
+
+def planned_income(
+    *, month: date, reliability: str | None = None, due_on_or_after: date | None = None
+) -> Decimal:
     month = month.replace(day=1)
     queryset = PlannedCashFlowOccurrence.objects.filter(
         plan__direction=PlannedCashFlow.Direction.INCOME,
@@ -90,6 +106,8 @@ def planned_income(*, month: date, reliability: str | None = None) -> Decimal:
     )
     if reliability is not None:
         queryset = queryset.filter(plan__reliability=reliability)
+    if due_on_or_after is not None:
+        queryset = queryset.filter(due_date__gte=due_on_or_after)
     return queryset.aggregate(total=Sum("planned_amount"))["total"] or Decimal("0.00")
 
 

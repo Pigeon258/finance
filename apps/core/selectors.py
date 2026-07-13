@@ -11,3 +11,12 @@ def budget_thresholds() -> tuple[Decimal, Decimal]:
         return preference.category_warning_threshold, preference.category_over_budget_threshold
     except (SystemPreference.DoesNotExist, DatabaseError):
         return Decimal("80.00"), Decimal("100.00")
+
+
+def large_expense_threshold() -> Decimal:
+    try:
+        return SystemPreference.objects.values_list("large_expense_threshold", flat=True).get(
+            pk=SystemPreference.SINGLETON_ID
+        )
+    except (SystemPreference.DoesNotExist, DatabaseError):
+        return Decimal("500.00")

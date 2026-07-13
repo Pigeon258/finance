@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}风险与未来预测 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>风险与未来预测</h1>
+  <form method="get">
+    {{ form.as_div }}
+    <button type="submit">重新计算</button>
+  </form>
+  <p><a href="{% url 'analytics:installment-preview' %}">预览新增分期</a></p>
+
+  {% if capacity %}
+    <h2>信用卡偿还能力</h2>
+    <dl>
+      <dt>状态</dt><dd>{{ capacity.status }}</dd>
+      <dt>本期剩余应还</dt><dd>{{ capacity.required_due }}</dd>
+      <dt>流动资产</dt><dd>{{ capacity.liquid_assets }}</dd>
+      <dt>累计储备</dt><dd>{{ capacity.reserve_balance }}</dd>
+      <dt>必要保护资金</dt><dd>{{ capacity.necessary_protection }}</dd>
+      <dt>常规可还款资金</dt><dd>{{ capacity.regular_available }}</dd>
+      <dt>最终可还款资金</dt><dd>{{ capacity.final_available }}</dd>
+    </dl>
+  {% endif %}
+
+  {% if forecast %}
+    <h2>逐月预测：{{ forecast.overall_status }}</h2>
+    <table>
+      <thead><tr><th>月份</th><th>确定收入</th><th>确定承诺</th><th>预计支出</th><th>储蓄目标</th><th>安全余量</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
+      <tbody>
+        {% for row in forecast.months %}
+          <tr><td>{{ row.month }}</td><td>{{ row.certain_income }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.savings_target }}</td><td>{{ row.safety_buffer }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td>{{ row.status }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h2>内部预警</h2>
+  <ul>
+    {% for alert in alerts %}<li><strong>{{ alert.level }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
+    {% empty %}<li>当前没有触发预警。</li>{% endfor %}
+  </ul>
+{% endblock %}
