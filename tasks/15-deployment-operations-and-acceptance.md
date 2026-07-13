@@ -61,4 +61,5 @@
 - 已实现 PostgreSQL custom-format 转储的流式 AES-256-GCM 加密、认证文件头、SHA-256/大小/`pg_restore --list` 验证、每日 7 份与每周 4 份轮换，以及部署前、手工和恢复命令。
 - 自动调度按 `APP_TIME_ZONE` 运行，同时清理过期会话、登录尝试、导入文件和恢复前业务备份；升级、回滚、恢复及故障恢复步骤见 `docs/deployment.md`。
 - 完整性检查补齐分期期次和计划现金流正式关联的状态校验，异常测试只报告类别，不输出财务明细。
-- 开发工作站的自动化验收记录见 `docs/acceptance.md`。因工作站没有 Docker Engine、`pg_dump` 和 `pg_restore`，真实容器启动、服务器重启及临时 PostgreSQL 恢复演练必须按该记录在目标 Linux 服务器补做；未将其误记为已通过。
+- 开发工作站自动化检查和 WSL 2 本地容器验收记录见 `docs/acceptance.md`。系统所有者已在 Ubuntu 22.04 / WSL 2 中确认四服务健康、端口隔离、安全检查、真实 `pg_dump` 加密备份、隔离 PostgreSQL 恢复、业务备份恢复、日志脱敏和 Docker Engine 重启恢复全部通过。
+- 本任务实现与本地验收已完成；公网域名、真实 ACME 证书、防火墙和目标服务器整机重启仍属于生产部署验收，不以 WSL 结果替代。

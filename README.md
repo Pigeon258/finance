@@ -8,7 +8,7 @@
 
 ## 当前进度
 
-已完成任务 00～15 的代码实现，包括：
+已完成任务 00～15 的代码实现和本地容器验收，包括：
 
 - 单用户登录、会话与系统设置；
 - 账户、分类和 Decimal 核心账本；
@@ -24,7 +24,7 @@
 - UTF-8 CSV 导出、Scrypt + AES-256-GCM 加密业务备份、事务恢复和财务完整性检查。
 - 固定版本的四服务 Docker Compose 部署、Caddy/Gunicorn、安全配置、加密 PostgreSQL 自动备份、轮换及部署/恢复 runbook。
 
-当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复。生产部署前仍必须在目标 Linux 服务器按 `docs/deployment.md` 和 `docs/acceptance.md` 完成 Compose、HTTPS、重启及真实 PostgreSQL 恢复演练；未完成服务器验收前请勿暴露到公网。
+当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。生产部署前仍必须在目标 Linux 服务器按 `docs/deployment.md` 和 `docs/acceptance.md` 验证公网 HTTPS、防火墙和整机重启；未完成生产验收前请勿暴露到公网。
 
 ## 技术要求
 
@@ -101,6 +101,8 @@ uv run --env-file .env python manage.py runserver
 
 - `docs/deployment.md`
 - `docs/acceptance.md`
+
+2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；该记录不替代目标服务器生产验收。
 
 ## 质量检查
 

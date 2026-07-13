@@ -120,3 +120,9 @@ docker compose run --rm web python manage.py maintenance_mode disable
 ```
 
 不要在仍有恢复任务运行时强制关闭维护模式。
+
+## 10. 已完成的本地容器基线
+
+2026-07-13，系统所有者在 Ubuntu 22.04 / WSL 2 中对提交 `b91668c` 完成了本地容器验收。四服务健康、端口隔离、本地 HTTPS 与安全头、真实运维备份、隔离数据库恢复、业务备份恢复、日志脱敏和 Docker Engine 重启恢复均通过，详细记录见 `docs/acceptance.md`。
+
+该结果可作为目标服务器部署前的已验证基线，但不能证明公网 DNS/ACME、防火墙、磁盘权限、服务器重启和异地密钥保存已经在生产主机完成。生产部署仍需重新执行本 runbook 第 2～9 节。
