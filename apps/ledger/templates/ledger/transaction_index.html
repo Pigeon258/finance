@@ -7,9 +7,9 @@
   <nav aria-label="交易快捷操作">
     <a href="{% url 'ledger:transaction-create' 'income' %}">记收入</a>
     <a href="{% url 'ledger:transaction-create' 'expense' %}">记支出</a>
-    <a href="{% url 'ledger:transaction-create' 'credit-card-expense' %}">记信用卡消费</a>
+    <a href="{% url 'credit:purchase-create' %}">记信用卡消费</a>
     <a href="{% url 'ledger:transaction-create' 'transfer' %}">账户转账</a>
-    <a href="{% url 'ledger:transaction-create' 'credit-card-repayment' %}">信用卡还款</a>
+    <a href="{% url 'credit:repayment-create' %}">信用卡还款</a>
     <a href="{% url 'ledger:transaction-create' 'balance-adjustment' %}">余额调整</a>
   </nav>
 

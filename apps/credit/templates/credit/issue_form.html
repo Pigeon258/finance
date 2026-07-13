@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}确认信用卡出账 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>确认信用卡出账</h1>
+  <p>账期：{{ cycle.cycle_start }} 至 {{ cycle.cycle_end }}。银行正式金额优先于系统计算金额。</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="submission_token" value="{{ submission_token }}">
+    {{ form.as_div }}
+    <button type="submit">确认出账并锁定账期交易</button>
+  </form>
+{% endblock %}

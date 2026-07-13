@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}信用卡账期 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>账期 {{ cycle.cycle_start }} 至 {{ cycle.cycle_end }}</h1>
+  <dl>
+    <dt>状态</dt><dd>{{ cycle.get_status_display }}</dd>
+    <dt>系统计算账单金额</dt><dd>{{ calculated }}</dd>
+    <dt>银行正式账单金额</dt><dd>{{ cycle.official_statement_amount|default:"—" }}</dd>
+    <dt>本期应还基准</dt><dd>{{ due_base }}</dd>
+    <dt>本期已还</dt><dd>{{ repaid }}</dd>
+    <dt>已确认退款冲抵</dt><dd>{{ credited }}</dd>
+    <dt>本期剩余应还</dt><dd>{{ remaining }}</dd>
+    <dt>还款日</dt><dd>{{ cycle.due_date }}</dd>
+  </dl>
+  {% if cycle.status == "OPEN" %}<p><a href="{% url 'credit:cycle-issue' cycle.id %}">确认银行正式账单并出账</a></p>{% endif %}
+
+  <h2>账期项目</h2>
+  <table>
+    <thead><tr><th>类型</th><th>交易</th><th>分配金额</th></tr></thead>
+    <tbody>
+      {% for item in cycle.items.all %}
+        <tr><td>{{ item.get_item_type_display }}</td><td><a href="{% url 'ledger:transaction-detail' item.transaction.id %}">#{{ item.transaction.id }}</a></td><td>{{ item.allocated_amount }}</td></tr>
+      {% empty %}<tr><td colspan="3">暂无项目。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  {% if refund_candidates %}
+    <h2>待确认退款冲抵</h2>
+    {% for refund in refund_candidates %}
+      <form method="post" action="{% url 'credit:confirm-refund' cycle.id refund.id %}">
+        {% csrf_token %}
+        <span>退款 #{{ refund.id }}，{{ refund.amount }}</span>
+        <button type="submit">确认银行已冲抵本账期</button>
+      </form>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

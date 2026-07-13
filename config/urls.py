@@ -4,4 +4,5 @@ urlpatterns = [
     path("", include("apps.core.urls")),
     path("accounts/", include("apps.accounts.urls")),
     path("ledger/", include("apps.ledger.urls")),
+    path("credit/", include("apps.credit.urls")),
 ]

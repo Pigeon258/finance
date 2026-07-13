@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}信用卡与账期 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>信用卡与账期</h1>
+  {% if not profile %}
+    <p>尚未配置信用卡。</p>
+    <p><a href="{% url 'credit:profile-settings' %}">配置信用卡</a></p>
+  {% else %}
+    <p>
+      <a href="{% url 'credit:purchase-create' %}">记录信用卡消费</a>
+      <a href="{% url 'credit:repayment-create' %}">记录信用卡还款</a>
+      <a href="{% url 'credit:profile-settings' %}">修改设置</a>
+    </p>
+    <dl>
+      <dt>当前信用卡负债</dt><dd>{{ liability }}</dd>
+      <dt>已出账未还</dt><dd>{{ issued_unpaid }}</dd>
+      <dt>系统估算未出账</dt><dd>{{ unbilled }}</dd>
+      <dt>溢缴款</dt><dd>{{ overpayment }}</dd>
+      <dt>下一还款日</dt><dd>{% if next_cycle %}{{ next_cycle.due_date }}，剩余 {{ next_remaining }}{% else %}—{% endif %}</dd>
+    </dl>
+
+    <h2>账期</h2>
+    <table>
+      <thead><tr><th>账期</th><th>状态</th><th>系统计算账单</th><th>正式应还</th><th>剩余应还</th><th>还款日</th></tr></thead>
+      <tbody>
+        {% for row in cycle_rows %}
+          <tr>
+            <td><a href="{% url 'credit:cycle-detail' row.cycle.id %}">{{ row.cycle.cycle_start }} 至 {{ row.cycle.cycle_end }}</a></td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.calculated }}</td>
+            <td>{{ row.cycle.official_due_amount|default:"—" }}</td>
+            <td>{{ row.remaining }}</td>
+            <td>{{ row.cycle.due_date }}</td>
+          </tr>
+        {% empty %}<tr><td colspan="6">尚无账期。记录第一笔信用卡消费后自动创建。</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

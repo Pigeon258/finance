@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}信用卡设置 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>信用卡设置</h1>
+  <p>还款日按账期结束后的下一个自然月计算；当月不存在指定日期时取月末。</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">保存设置</button>
+  </form>
+{% endblock %}

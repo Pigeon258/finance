@@ -14,7 +14,8 @@
           <a href="{% url 'core:home' %}">首页</a>
           <a href="{% url 'ledger:transaction-index' %}">交易记录</a>
           <span aria-disabled="true">预算管理</span>
-          <span aria-disabled="true">信用卡与分期</span>
+          <a href="{% url 'credit:overview' %}">信用卡</a>
+          <span aria-disabled="true">分期</span>
           <a href="{% url 'core:settings' %}">系统设置</a>
           <a href="{% url 'accounts:index' %}">账户</a>
           <a href="{% url 'ledger:category-index' %}">分类</a>
