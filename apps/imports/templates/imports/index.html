@@ -4,8 +4,8 @@
 
 {% block content %}
   <h1>账单导入</h1>
-  <p><a href="{% url 'imports:upload' %}">上传支付宝或微信账单</a></p>
-  <p>本阶段只解析并保存脱敏的待确认记录，不会创建正式交易。</p>
+  <p><a href="{% url 'imports:upload' %}">上传支付宝或微信账单</a> · <a href="{% url 'imports:rules' %}">映射与分类规则</a></p>
+  <p>账单先进入隔离区，只有人工确认后才会写入正式账本。</p>
   <div class="table-scroll"><table>
     <thead><tr><th>上传时间</th><th>文件</th><th>来源</th><th>状态</th><th>总数</th><th>失败</th><th>原文件删除时间</th></tr></thead>
     <tbody>{% for batch in batches %}<tr><td>{{ batch.uploaded_at }}</td><td><a href="{% url 'imports:detail' batch.id %}">{{ batch.original_filename }}</a></td><td>{{ batch.get_source_display }}</td><td>{{ batch.get_status_display }}</td><td>{{ batch.total_count }}</td><td>{{ batch.failed_count }}</td><td>{{ batch.file_deleted_at|default:"—" }}</td></tr>{% empty %}<tr><td colspan="7">尚无导入历史。</td></tr>{% endfor %}</tbody>

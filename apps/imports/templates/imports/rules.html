@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}导入规则 · 个人财务{% endblock %}
+{% block content %}
+  <h1>导入规则</h1><p>优先级数字越小越先匹配；停用规则不会参与推荐。</p>
+  <h2>分类推荐</h2><p><a href="{% url 'imports:category-rule-create' %}">新增分类规则</a></p>
+  <div class="table-scroll"><table><thead><tr><th>名称</th><th>目标</th><th>方式</th><th>内容</th><th>分类</th><th>优先级</th><th>启用</th><th></th></tr></thead><tbody>{% for rule in category_rules %}<tr><td>{{ rule.name }}</td><td>{{ rule.get_match_target_display }}</td><td>{{ rule.get_match_kind_display }}</td><td>{{ rule.pattern }}</td><td>{{ rule.category }}</td><td>{{ rule.priority }}</td><td>{{ rule.is_active|yesno:"是,否" }}</td><td><a href="{% url 'imports:category-rule-edit' rule.id %}">编辑</a></td></tr>{% empty %}<tr><td colspan="8">暂无规则。</td></tr>{% endfor %}</tbody></table></div>
+  <h2>账户映射</h2><p><a href="{% url 'imports:account-rule-create' %}">新增账户规则</a></p>
+  <div class="table-scroll"><table><thead><tr><th>名称</th><th>来源</th><th>方式</th><th>内容</th><th>账户</th><th>优先级</th><th>启用</th><th></th></tr></thead><tbody>{% for rule in account_rules %}<tr><td>{{ rule.name }}</td><td>{{ rule.get_source_display }}</td><td>{{ rule.get_match_kind_display }}</td><td>{{ rule.pattern }}</td><td>{{ rule.account }}</td><td>{{ rule.priority }}</td><td>{{ rule.is_active|yesno:"是,否" }}</td><td><a href="{% url 'imports:account-rule-edit' rule.id %}">编辑</a></td></tr>{% empty %}<tr><td colspan="8">暂无规则。</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

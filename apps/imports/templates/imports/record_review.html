@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}复核导入记录 · 个人财务{% endblock %}
+{% block content %}
+  <h1>复核第 {{ record.row_number }} 行</h1>
+  <p>{{ record.occurred_at }} · {{ record.get_candidate_transaction_type_display }} · {{ record.amount }} · {{ record.counterparty_raw }}</p>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">保存复核结果</button></form>
+  <h2>候选交易</h2>
+  <div class="table-scroll"><table><thead><tr><th>类型</th><th>分数</th><th>交易</th><th>原因</th></tr></thead><tbody>{% for candidate in record.duplicate_candidates.all %}<tr><td>{{ candidate.get_match_kind_display }}</td><td>{{ candidate.score }}</td><td>{{ candidate.transaction.occurred_at }} {{ candidate.transaction.amount }} {{ candidate.transaction.counterparty }}</td><td>{{ candidate.reasons|join:", " }}</td></tr>{% empty %}<tr><td colspan="4">没有候选交易。</td></tr>{% endfor %}</tbody></table></div>
+  <p><a href="{% url 'imports:detail' batch.id %}">返回批次</a></p>
+{% endblock %}

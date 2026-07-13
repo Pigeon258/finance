@@ -53,6 +53,12 @@ class ImportBatch(models.Model):
 
 
 class ImportRecord(models.Model):
+    class DuplicateResolution(models.TextChoices):
+        KEEP_MANUAL = "KEEP_MANUAL", "保留现有记录"
+        REPLACE_MANUAL = "REPLACE_MANUAL", "使用导入记录替换"
+        KEEP_BOTH = "KEEP_BOTH", "两条都保留"
+        MERGE = "MERGE", "合并信息"
+
     class CandidateTransactionType(models.TextChoices):
         INCOME = "INCOME", "收入"
         EXPENSE = "EXPENSE", "支出"
@@ -116,6 +122,9 @@ class ImportRecord(models.Model):
     )
     sanitized_raw_data = models.JSONField(default=dict, blank=True)
     error_message = models.CharField(max_length=500, blank=True)
+    duplicate_resolution = models.CharField(
+        max_length=20, choices=DuplicateResolution.choices, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -137,3 +146,112 @@ class ImportRecord(models.Model):
 
     def __str__(self) -> str:
         return f"{self.batch_id}:{self.row_number} {self.get_status_display()}"
+
+
+class ImportDuplicateCandidate(models.Model):
+    class MatchKind(models.TextChoices):
+        EXACT_EXTERNAL_ID = "EXACT_EXTERNAL_ID", "外部流水号一致"
+        EXACT_FINGERPRINT = "EXACT_FINGERPRINT", "标准指纹一致"
+        FUZZY = "FUZZY", "疑似手工重复"
+        REFUND_CANDIDATE = "REFUND_CANDIDATE", "退款原交易候选"
+
+    import_record = models.ForeignKey(
+        ImportRecord, on_delete=models.CASCADE, related_name="duplicate_candidates"
+    )
+    transaction = models.ForeignKey(
+        "ledger.Transaction", on_delete=models.PROTECT, related_name="import_candidates"
+    )
+    match_kind = models.CharField(max_length=24, choices=MatchKind.choices)
+    score = models.PositiveSmallIntegerField(default=0)
+    reasons = models.JSONField(default=list, blank=True)
+    is_selected = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-score", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["import_record", "transaction", "match_kind"],
+                name="imports_unique_duplicate_candidate",
+            ),
+            models.UniqueConstraint(
+                fields=["import_record"],
+                condition=models.Q(is_selected=True),
+                name="imports_one_selected_candidate",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(score__lte=100), name="imports_candidate_score_lte_100"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.import_record_id}: {self.get_match_kind_display()} {self.score}"
+
+
+class MerchantCategoryRule(models.Model):
+    class MatchTarget(models.TextChoices):
+        MERCHANT = "MERCHANT", "交易对方"
+        ITEM = "ITEM", "商品名称"
+        BUSINESS_TYPE = "BUSINESS_TYPE", "平台业务类型"
+
+    class MatchKind(models.TextChoices):
+        EXACT = "EXACT", "精确匹配"
+        CONTAINS = "CONTAINS", "包含匹配"
+
+    name = models.CharField(max_length=100)
+    match_target = models.CharField(max_length=20, choices=MatchTarget.choices)
+    match_kind = models.CharField(max_length=10, choices=MatchKind.choices)
+    pattern = models.CharField(max_length=200)
+    category = models.ForeignKey(
+        "ledger.Category", on_delete=models.PROTECT, related_name="merchant_category_rules"
+    )
+    priority = models.PositiveIntegerField(default=100)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["priority", "id"]
+        indexes = [models.Index(fields=["is_active", "priority"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["match_target", "match_kind", "pattern"],
+                name="imports_unique_category_rule_pattern",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class ImportAccountRule(models.Model):
+    class MatchKind(models.TextChoices):
+        EXACT = "EXACT", "精确匹配"
+        CONTAINS = "CONTAINS", "包含匹配"
+
+    name = models.CharField(max_length=100)
+    source = models.CharField(
+        max_length=10, choices=ImportBatch.Source.choices, default=ImportBatch.Source.UNKNOWN
+    )
+    match_kind = models.CharField(max_length=10, choices=MatchKind.choices)
+    pattern = models.CharField(max_length=200)
+    account = models.ForeignKey(
+        "accounts.Account", on_delete=models.PROTECT, related_name="import_account_rules"
+    )
+    priority = models.PositiveIntegerField(default=100)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["priority", "id"]
+        indexes = [models.Index(fields=["is_active", "priority"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["source", "match_kind", "pattern"],
+                name="imports_unique_account_rule_pattern",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name

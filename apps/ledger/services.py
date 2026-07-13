@@ -371,6 +371,26 @@ def create_refund(
 
 
 @db_transaction.atomic
+def merge_import_information(
+    *, ledger_transaction: Transaction, channel: str, counterparty: str
+) -> Transaction:
+    """Fill non-financial gaps on a manual transaction from a reviewed import row."""
+    target = Transaction.objects.select_for_update().get(pk=ledger_transaction.pk)
+    if target.source != Transaction.Source.MANUAL or target.status != Transaction.Status.ACTIVE:
+        raise ValidationError("只能向有效的手工交易合并导入信息。")
+    update_fields = ["updated_at"]
+    if not target.counterparty and counterparty:
+        target.counterparty = counterparty
+        update_fields.append("counterparty")
+    if target.channel in {Transaction.Channel.DIRECT, Transaction.Channel.OTHER}:
+        target.channel = channel
+        update_fields.append("channel")
+    target.full_clean()
+    target.save(update_fields=update_fields)
+    return target
+
+
+@db_transaction.atomic
 def create_balance_adjustment(
     *,
     account: Account,

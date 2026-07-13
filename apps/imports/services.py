@@ -19,6 +19,7 @@ from .models import ImportBatch, ImportRecord
 from .normalization import normalize_record
 from .parsers import detect_parser
 from .parsers.base import BillParseError, InvalidRecordError
+from .review import prepare_batch_for_review
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ RECORD_TRANSITIONS = {
     },
     ImportRecord.Status.DUPLICATE_SUSPECTED: {
         ImportRecord.Status.READY,
+        ImportRecord.Status.IMPORTED,
         ImportRecord.Status.IGNORED,
     },
     ImportRecord.Status.READY: {
@@ -202,6 +204,8 @@ def process_uploaded_bill(uploaded_file) -> ProcessUploadResult:
                     "status",
                 ]
             )
+            if valid_count:
+                prepare_batch_for_review(batch=locked)
         batch.refresh_from_db()
         logger.info(
             "Import batch %s parsed: source=%s total=%s failed=%s",
