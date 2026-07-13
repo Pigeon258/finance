@@ -1,7 +1,8 @@
-from datetime import date
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from django.db.models import Q, QuerySet, Sum
+from django.utils import timezone
 
 from apps.accounts.models import Account
 
@@ -158,3 +159,74 @@ def large_flexible_expenses(*, month: date, threshold: Decimal) -> QuerySet[Tran
         )
         .order_by("occurred_at", "id")
     )
+
+
+def reporting_transactions(
+    *,
+    date_from: date,
+    date_to: date,
+    transaction_type: str | None = None,
+    account_id: int | None = None,
+    category_id: int | None = None,
+) -> QuerySet[Transaction]:
+    queryset = active_transactions().filter(
+        occurred_at__date__gte=date_from,
+        occurred_at__date__lte=date_to,
+    )
+    if transaction_type:
+        queryset = queryset.filter(transaction_type=transaction_type)
+    if account_id:
+        queryset = queryset.filter(entries__account_id=account_id)
+    if category_id:
+        queryset = queryset.filter(category_id=category_id)
+    return queryset
+
+
+def net_funds_series(*, dates: list[date]) -> tuple[tuple[date, Decimal], ...]:
+    """Return end-of-day net funds with two bounded queries, regardless of date count."""
+    if not dates:
+        return ()
+    ordered_dates = sorted(set(dates))
+    accounts = list(Account.objects.all())
+    balances = {account.id: account.initial_balance for account in accounts}
+    last_end = timezone.make_aware(
+        datetime.combine(ordered_dates[-1], time.max), timezone.get_current_timezone()
+    )
+    entries = list(
+        TransactionEntry.objects.filter(
+            transaction__status__in=[Transaction.Status.ACTIVE, Transaction.Status.REVERSED],
+            transaction__occurred_at__lte=last_end,
+        )
+        .select_related("transaction")
+        .order_by("transaction__occurred_at", "id")
+    )
+    result: list[tuple[date, Decimal]] = []
+    entry_index = 0
+    for point_date in ordered_dates:
+        point_end = timezone.make_aware(
+            datetime.combine(point_date, time.max), timezone.get_current_timezone()
+        )
+        while (
+            entry_index < len(entries) and entries[entry_index].transaction.occurred_at <= point_end
+        ):
+            entry = entries[entry_index]
+            balances[entry.account_id] += entry.balance_delta
+            entry_index += 1
+        assets = sum(
+            (
+                balances[account.id]
+                for account in accounts
+                if account.balance_nature == Account.BalanceNature.ASSET
+            ),
+            Decimal("0.00"),
+        )
+        liabilities = sum(
+            (
+                max(balances[account.id], Decimal("0.00"))
+                for account in accounts
+                if account.balance_nature == Account.BalanceNature.LIABILITY
+            ),
+            Decimal("0.00"),
+        )
+        result.append((point_date, assets - liabilities))
+    return tuple(result)

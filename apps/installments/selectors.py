@@ -54,6 +54,59 @@ def planned_commitment_between(
     return queryset.aggregate(total=Sum("planned_amount"))["total"] or Decimal("0.00")
 
 
+def upcoming_items(*, date_from: date, date_to: date):
+    return InstallmentItem.objects.filter(
+        status__in=[InstallmentItem.Status.PLANNED, InstallmentItem.Status.POSTED],
+        due_date__gte=date_from,
+        due_date__lte=date_to,
+    ).select_related("plan__category", "billing_cycle")
+
+
+def burden_rows(*, month_from: date, month_to: date):
+    planned = (
+        InstallmentItem.objects.filter(
+            status=InstallmentItem.Status.PLANNED,
+            due_month__gte=month_from.replace(day=1),
+            due_month__lte=month_to.replace(day=1),
+        )
+        .values("due_month")
+        .annotate(total=Sum("planned_amount"))
+    )
+    posted = (
+        InstallmentItem.objects.filter(
+            status=InstallmentItem.Status.POSTED,
+            ledger_transaction__status=Transaction.Status.ACTIVE,
+            ledger_transaction__budget_month__gte=month_from.replace(day=1),
+            ledger_transaction__budget_month__lte=month_to.replace(day=1),
+        )
+        .values("ledger_transaction__budget_month")
+        .annotate(total=Sum("ledger_transaction__amount"))
+    )
+    refunds = (
+        Transaction.objects.filter(
+            transaction_type=Transaction.TransactionType.REFUND,
+            status=Transaction.Status.ACTIVE,
+            related_transaction__installment_item__isnull=False,
+            budget_month__gte=month_from.replace(day=1),
+            budget_month__lte=month_to.replace(day=1),
+        )
+        .values("budget_month")
+        .annotate(total=Sum("amount"))
+    )
+    return planned, posted, refunds
+
+
+def planned_by_category(*, month: date):
+    return (
+        InstallmentItem.objects.filter(
+            status=InstallmentItem.Status.PLANNED,
+            due_month=month.replace(day=1),
+        )
+        .values("plan__category_id")
+        .annotate(total=Sum("planned_amount"))
+    )
+
+
 def monthly_occupancy(*, month: date, category_id: int | None = None) -> dict[str, Decimal]:
     month = month.replace(day=1)
     planned = InstallmentItem.objects.filter(status=InstallmentItem.Status.PLANNED, due_month=month)

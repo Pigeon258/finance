@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.db.models import QuerySet, Sum
+from django.db.models.functions import TruncMonth
 
 from apps.ledger import selectors as ledger_selectors
 from apps.ledger.models import Transaction
@@ -102,12 +103,19 @@ def next_unpaid_cycle(*, profile: CreditCardProfile) -> BillingCycle | None:
     return None
 
 
-def unpaid_cycles(*, profile: CreditCardProfile) -> QuerySet[BillingCycle]:
-    return (
+def unpaid_cycles(
+    *, profile: CreditCardProfile, date_from: date | None = None, date_to: date | None = None
+) -> QuerySet[BillingCycle]:
+    queryset = (
         profile.billing_cycles.exclude(status=BillingCycle.Status.OPEN)
         .exclude(status=BillingCycle.Status.PAID)
         .order_by("due_date", "id")
     )
+    if date_from is not None:
+        queryset = queryset.filter(due_date__gte=date_from)
+    if date_to is not None:
+        queryset = queryset.filter(due_date__lte=date_to)
+    return queryset
 
 
 def monthly_purchase_amount(*, profile: CreditCardProfile, month: date) -> Decimal:
@@ -117,6 +125,21 @@ def monthly_purchase_amount(*, profile: CreditCardProfile, month: date) -> Decim
         transaction__occurred_at__year=month.year,
         transaction__occurred_at__month=month.month,
     ).aggregate(total=Sum("transaction__amount"))["total"] or Decimal("0.00")
+
+
+def monthly_purchase_rows(*, profile: CreditCardProfile, date_from: date, date_to: date):
+    return (
+        profile.account.transaction_entries.filter(
+            transaction__status=Transaction.Status.ACTIVE,
+            transaction__transaction_type=Transaction.TransactionType.EXPENSE,
+            transaction__occurred_at__date__gte=date_from,
+            transaction__occurred_at__date__lte=date_to,
+        )
+        .annotate(month=TruncMonth("transaction__occurred_at"))
+        .values("month")
+        .annotate(total=Sum("transaction__amount"))
+        .order_by("month")
+    )
 
 
 def effective_cycle_status(*, cycle: BillingCycle, as_of: date) -> str:

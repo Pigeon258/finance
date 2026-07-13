@@ -70,3 +70,102 @@ dt {
 dd {
   margin: 0 0 0.75rem;
 }
+
+.page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.compact-form,
+.quick-actions,
+.summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+}
+
+.compact-form > div {
+  margin: 0;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metric-grid-small {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-card {
+  padding: 1rem;
+  border: 1px solid #d9dee8;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.metric-card h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+  color: #58647a;
+}
+
+.metric-card strong {
+  font-size: 1.25rem;
+}
+
+.quick-actions a,
+.quick-actions span {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #b9c2d0;
+  border-radius: 0.4rem;
+  background: #fff;
+}
+
+.report-filter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.chart {
+  width: 100%;
+  min-height: 22rem;
+  margin-block: 1rem;
+  background: #fff;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.help-text {
+  color: #58647a;
+  font-size: 0.9rem;
+}
+
+section + section {
+  margin-top: 2rem;
+}
+
+@media (max-width: 48rem) {
+  nav,
+  .page-heading {
+    flex-wrap: wrap;
+  }
+
+  .metric-grid,
+  .metric-grid-small,
+  .report-filter {
+    grid-template-columns: 1fr;
+  }
+
+  header,
+  main {
+    padding: 0.75rem;
+  }
+}

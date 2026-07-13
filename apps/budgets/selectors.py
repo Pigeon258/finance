@@ -67,6 +67,21 @@ def occurrence_list(*, month: date | None = None):
     return queryset
 
 
+def upcoming_occurrences(*, date_from: date, date_to: date):
+    return PlannedCashFlowOccurrence.objects.filter(
+        status=PlannedCashFlowOccurrence.Status.PLANNED,
+        due_date__gte=date_from,
+        due_date__lte=date_to,
+    ).select_related("plan__category")
+
+
+def budget_range(*, month_from: date, month_to: date):
+    return MonthlyBudget.objects.filter(
+        month__gte=month_from.replace(day=1),
+        month__lte=month_to.replace(day=1),
+    ).order_by("month")
+
+
 def planned_expense_commitment(*, month: date, category: Category | None = None) -> Decimal:
     month = month.replace(day=1)
     queryset = PlannedCashFlowOccurrence.objects.filter(
@@ -203,7 +218,67 @@ def category_budget_status(*, category_budget: CategoryBudget) -> dict[str, Deci
 
 
 def category_budget_rows(*, budget: MonthlyBudget):
-    return [
-        {"category_budget": item, **category_budget_status(category_budget=item)}
-        for item in budget.category_budgets.select_related("category")
-    ]
+    month = budget.month
+    actual_rows = (
+        ledger_selectors.active_transactions()
+        .filter(
+            transaction_type__in=[
+                Transaction.TransactionType.EXPENSE,
+                Transaction.TransactionType.REFUND,
+            ],
+            budget_month=month,
+        )
+        .values("category_id")
+        .annotate(
+            expenses=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.EXPENSE)),
+            refunds=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.REFUND)),
+        )
+    )
+    actual_by_category = {
+        row["category_id"]: (row["expenses"] or Decimal("0.00"))
+        - (row["refunds"] or Decimal("0.00"))
+        for row in actual_rows
+    }
+    fixed_by_category = {
+        row["plan__category_id"]: row["total"] or Decimal("0.00")
+        for row in PlannedCashFlowOccurrence.objects.filter(
+            plan__direction=PlannedCashFlow.Direction.EXPENSE,
+            status=PlannedCashFlowOccurrence.Status.PLANNED,
+            due_date__year=month.year,
+            due_date__month=month.month,
+        )
+        .values("plan__category_id")
+        .annotate(total=Sum("planned_amount"))
+    }
+    installment_by_category = {
+        row["plan__category_id"]: row["total"] or Decimal("0.00")
+        for row in installment_selectors.planned_by_category(month=month)
+    }
+    _, over_threshold = core_selectors.budget_thresholds()
+    rows = []
+    for item in budget.category_budgets.select_related("category"):
+        occupancy = (
+            actual_by_category.get(item.category_id, Decimal("0.00"))
+            + fixed_by_category.get(item.category_id, Decimal("0.00"))
+            + installment_by_category.get(item.category_id, Decimal("0.00"))
+        )
+        if item.budget_amount == 0:
+            usage = None
+            status = "OVER" if occupancy > 0 else "OK"
+        else:
+            usage = (occupancy / item.budget_amount * Decimal("100.00")).quantize(Decimal("0.01"))
+            if occupancy * Decimal("100.00") >= item.budget_amount * over_threshold:
+                status = "OVER"
+            elif occupancy * Decimal("100.00") >= item.budget_amount * item.warning_threshold:
+                status = "WARNING"
+            else:
+                status = "OK"
+        rows.append(
+            {
+                "category_budget": item,
+                "occupancy": occupancy,
+                "usage_percentage": usage,
+                "status": status,
+            }
+        )
+    return rows
