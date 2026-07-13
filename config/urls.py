@@ -6,4 +6,5 @@ urlpatterns = [
     path("ledger/", include("apps.ledger.urls")),
     path("credit/", include("apps.credit.urls")),
     path("installments/", include("apps.installments.urls")),
+    path("budgets/", include("apps.budgets.urls")),
 ]

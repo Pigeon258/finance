@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}固定支出与预计收入 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>固定支出与预计收入</h1>
+  <p><a href="{% url 'budgets:index' %}">返回预算</a> <a href="{% url 'budgets:cash-flow-create' %}">创建计划</a></p>
+  <h2>计划</h2>
+  <table>
+    <thead><tr><th>名称</th><th>方向</th><th>金额</th><th>周期</th><th>可靠程度</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for plan in plans %}
+        <tr>
+          <td>{{ plan.name }}</td><td>{{ plan.get_direction_display }}</td><td>{{ plan.amount }}</td><td>{{ plan.get_recurrence_type_display }}</td><td>{{ plan.get_reliability_display }}</td><td>{% if plan.is_active %}启用{% else %}停用{% endif %}</td>
+          <td>
+            <a href="{% url 'budgets:generate' plan.id %}">扩展事项</a>
+            <form class="inline-form" method="post" action="{% url 'budgets:plan-toggle' plan.id %}">{% csrf_token %}<button type="submit">{% if plan.is_active %}停用{% else %}启用{% endif %}</button></form>
+          </td>
+        </tr>
+      {% empty %}<tr><td colspan="7">尚无计划。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>事项</h2>
+  <table>
+    <thead><tr><th>预计日期</th><th>名称</th><th>金额</th><th>状态</th><th>正式交易</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for occurrence in occurrences %}
+        <tr>
+          <td>{{ occurrence.due_date }}</td><td>{{ occurrence.plan.name }}</td><td>{{ occurrence.planned_amount }}</td><td>{{ occurrence.get_status_display }}</td>
+          <td>{% if occurrence.linked_transaction_id %}<a href="{% url 'ledger:transaction-detail' occurrence.linked_transaction_id %}">查看</a>{% else %}—{% endif %}</td>
+          <td>{% if occurrence.status == "PLANNED" %}<a href="{% url 'budgets:occurrence-confirm' occurrence.id %}">确认入账</a> <form class="inline-form" method="post" action="{% url 'budgets:occurrence-skip' occurrence.id %}">{% csrf_token %}<button type="submit">跳过</button></form>{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6">尚无计划事项。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

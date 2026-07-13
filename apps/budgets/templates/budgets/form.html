@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {% if submission_token %}<input type="hidden" name="submission_token" value="{{ submission_token }}">{% endif %}
+    {{ form.as_div }}
+    <button type="submit">保存</button>
+  </form>
+{% endblock %}

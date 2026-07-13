@@ -1,0 +1,360 @@
+from datetime import date, datetime
+from decimal import Decimal
+from zoneinfo import ZoneInfo
+
+import pytest
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
+from django.urls import reverse
+
+from apps.accounts.models import Account
+from apps.budgets import selectors, services
+from apps.budgets.models import (
+    CategoryBudget,
+    MonthlyBudget,
+    PlannedCashFlow,
+    PlannedCashFlowOccurrence,
+    ReserveMovement,
+)
+from apps.core.models import SystemPreference
+from apps.installments import services as installment_services
+from apps.installments.models import InstallmentPlan
+from apps.ledger import selectors as ledger_selectors
+from apps.ledger import services as ledger_services
+from apps.ledger.models import Category, Transaction
+
+TZ = ZoneInfo("Asia/Shanghai")
+
+
+@pytest.fixture
+def owner(django_user_model):
+    return django_user_model.objects.create_superuser(
+        username="owner", password="correct horse battery staple"
+    )
+
+
+@pytest.fixture
+def authenticated_client(client, owner):
+    client.force_login(owner)
+    return client
+
+
+@pytest.fixture
+def bank():
+    account = Account.objects.get(account_type=Account.AccountType.BANK)
+    account.initial_balance = Decimal("2000.00")
+    account.save(update_fields=["initial_balance"])
+    return account
+
+
+@pytest.fixture
+def expense_category():
+    return Category.objects.get(name="固定订阅")
+
+
+@pytest.fixture
+def income_category():
+    return Category.objects.get(name="其他收入")
+
+
+def _occurred(year, month, day):
+    return datetime(year, month, day, 12, 0, tzinfo=TZ)
+
+
+def _expense_plan(*, category, bank, amount=Decimal("500.00"), **overrides):
+    data = {
+        "name": "云服务器",
+        "direction": PlannedCashFlow.Direction.EXPENSE,
+        "amount": amount,
+        "category": category,
+        "default_account": bank,
+        "reliability": PlannedCashFlow.Reliability.CERTAIN,
+        "recurrence_type": PlannedCashFlow.RecurrenceType.ONE_TIME,
+        "start_date": date(2026, 7, 15),
+    }
+    data.update(overrides)
+    return services.create_planned_cash_flow(**data)
+
+
+@pytest.mark.django_db
+def test_month_budget_unique_and_copy_is_idempotent(expense_category):
+    source = services.save_monthly_budget(
+        month=date(2026, 6, 18),
+        total_expense_budget=Decimal("1000.01"),
+        savings_target=Decimal("100.00"),
+        minimum_safety_buffer=Decimal("50.00"),
+    )
+    services.save_category_budget(
+        monthly_budget=source,
+        category=expense_category,
+        budget_amount=Decimal("300.03"),
+        warning_threshold=Decimal("80.00"),
+    )
+    first = services.copy_monthly_budget(
+        source_month=date(2026, 6, 1), target_month=date(2026, 7, 20)
+    )
+    second = services.copy_monthly_budget(
+        source_month=date(2026, 6, 1), target_month=date(2026, 7, 1)
+    )
+
+    assert first.pk == second.pk
+    assert first.month == date(2026, 7, 1)
+    assert first.total_expense_budget == Decimal("1000.01")
+    assert CategoryBudget.objects.filter(monthly_budget=first).count() == 1
+    with pytest.raises(IntegrityError), transaction.atomic():
+        MonthlyBudget.objects.create(month=date(2026, 7, 1), total_expense_budget=Decimal("1.00"))
+
+
+@pytest.mark.django_db
+def test_category_warning_boundaries_use_decimal(expense_category, bank):
+    budget = services.save_monthly_budget(
+        month=date(2026, 7, 1), total_expense_budget=Decimal("1000.00")
+    )
+    category_budget = services.save_category_budget(
+        monthly_budget=budget,
+        category=expense_category,
+        budget_amount=Decimal("100.00"),
+        warning_threshold=Decimal("80.00"),
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("80.00"),
+        occurred_at=_occurred(2026, 7, 1),
+        channel=Transaction.Channel.OTHER,
+    )
+    assert selectors.category_budget_status(category_budget=category_budget)["status"] == "WARNING"
+    preference = SystemPreference.objects.get()
+    preference.category_over_budget_threshold = Decimal("90.00")
+    preference.save(update_fields=["category_over_budget_threshold", "updated_at"])
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("10.00"),
+        occurred_at=_occurred(2026, 7, 2),
+        channel=Transaction.Channel.OTHER,
+    )
+    status = selectors.category_budget_status(category_budget=category_budget)
+    assert status["status"] == "OVER"
+    assert status["usage_percentage"] == Decimal("90.00")
+
+
+@pytest.mark.django_db
+def test_reserve_is_virtual_and_cannot_become_negative(bank):
+    before = ledger_selectors.account_balance(account=bank)
+    services.record_reserve_movement(
+        movement_type=ReserveMovement.MovementType.CONTRIBUTION,
+        amount=Decimal("300.00"),
+        occurred_on=date(2026, 7, 1),
+    )
+    services.record_reserve_movement(
+        movement_type=ReserveMovement.MovementType.CORRECTION,
+        amount=Decimal("-20.00"),
+        occurred_on=date(2026, 7, 2),
+    )
+    services.record_reserve_movement(
+        movement_type=ReserveMovement.MovementType.WITHDRAWAL,
+        amount=Decimal("80.00"),
+        occurred_on=date(2026, 7, 3),
+    )
+
+    assert selectors.reserve_balance() == Decimal("200.00")
+    assert Transaction.objects.count() == 0
+    assert ledger_selectors.account_balance(account=bank) == before
+    with pytest.raises(ValidationError):
+        services.record_reserve_movement(
+            movement_type=ReserveMovement.MovementType.WITHDRAWAL,
+            amount=Decimal("201.00"),
+            occurred_on=date(2026, 7, 4),
+        )
+
+
+@pytest.mark.django_db
+def test_monthly_occurrence_generation_clamps_and_is_idempotent(expense_category, bank):
+    plan = _expense_plan(
+        category=expense_category,
+        bank=bank,
+        recurrence_type=PlannedCashFlow.RecurrenceType.MONTHLY,
+        start_date=date(2026, 1, 31),
+        day_of_month=31,
+        end_date=date(2026, 3, 31),
+    )
+    assert list(plan.occurrences.values_list("due_date", flat=True)) == [
+        date(2026, 1, 31),
+        date(2026, 2, 28),
+        date(2026, 3, 31),
+    ]
+    assert services.generate_occurrences(plan=plan, through_date=date(2026, 12, 31)) == []
+    assert plan.occurrences.count() == 3
+
+
+@pytest.mark.django_db
+def test_yearly_generation_handles_leap_day_and_skip_removes_commitment(expense_category, bank):
+    plan = _expense_plan(
+        category=expense_category,
+        bank=bank,
+        recurrence_type=PlannedCashFlow.RecurrenceType.YEARLY,
+        start_date=date(2024, 2, 29),
+        day_of_month=29,
+    )
+    services.generate_occurrences(plan=plan, through_date=date(2028, 12, 31))
+    assert list(plan.occurrences.values_list("due_date", flat=True)) == [
+        date(2024, 2, 29),
+        date(2025, 2, 28),
+        date(2026, 2, 28),
+        date(2027, 2, 28),
+        date(2028, 2, 29),
+    ]
+    occurrence = plan.occurrences.get(due_date=date(2026, 2, 28))
+    assert selectors.planned_expense_commitment(month=date(2026, 2, 1)) == Decimal("500.00")
+    services.set_occurrence_status(
+        occurrence=occurrence, status=PlannedCashFlowOccurrence.Status.SKIPPED
+    )
+    assert selectors.planned_expense_commitment(month=date(2026, 2, 1)) == Decimal("0.00")
+    assert Transaction.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_fixed_expense_confirmation_keeps_total_occupancy_constant(expense_category, bank):
+    services.save_monthly_budget(
+        month=date(2026, 7, 1),
+        total_expense_budget=Decimal("1000.00"),
+        savings_target=Decimal("100.00"),
+    )
+    plan = _expense_plan(category=expense_category, bank=bank)
+    occurrence = plan.occurrences.get()
+    before_balance = ledger_selectors.account_balance(account=bank)
+    before = selectors.monthly_snapshot(month=date(2026, 7, 1))
+    assert before["fixed_planned"] == Decimal("500.00")
+    assert before["total_occupancy"] == Decimal("600.00")
+    assert ledger_selectors.account_balance(account=bank) == before_balance
+
+    services.confirm_occurrence(
+        occurrence=occurrence,
+        account=bank,
+        actual_amount=Decimal("500.00"),
+        occurred_at=_occurred(2026, 7, 20),
+    )
+    after = selectors.monthly_snapshot(month=date(2026, 7, 1))
+    assert after["fixed_planned"] == Decimal("0.00")
+    assert after["fixed_actual"] == Decimal("500.00")
+    assert after["total_occupancy"] == before["total_occupancy"]
+    assert ledger_selectors.account_balance(account=bank) == before_balance - Decimal("500.00")
+    with pytest.raises(ValidationError):
+        services.confirm_occurrence(
+            occurrence=occurrence,
+            account=bank,
+            actual_amount=Decimal("500.00"),
+            occurred_at=_occurred(2026, 7, 20),
+        )
+
+
+@pytest.mark.django_db
+def test_budget_aggregates_ordinary_fixed_installment_refund_and_savings(expense_category, bank):
+    services.save_monthly_budget(
+        month=date(2026, 7, 1),
+        total_expense_budget=Decimal("1200.00"),
+        savings_target=Decimal("100.00"),
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("100.00"),
+        occurred_at=_occurred(2026, 7, 2),
+        channel=Transaction.Channel.OTHER,
+    )
+    _expense_plan(category=expense_category, bank=bank, amount=Decimal("300.00"))
+    installment_services.create_plan(
+        product_name="年度服务",
+        purchase_date=date(2026, 6, 1),
+        original_price=Decimal("200.00"),
+        category=expense_category,
+        source_type=InstallmentPlan.SourceType.PLATFORM,
+        installment_count=1,
+        default_installment_amount=Decimal("200.00"),
+        first_due_date=date(2026, 7, 31),
+    )
+
+    snapshot = selectors.monthly_snapshot(month=date(2026, 7, 1))
+    assert snapshot["ordinary_expense"] == Decimal("100.00")
+    assert snapshot["fixed_expense"] == Decimal("300.00")
+    assert snapshot["installment"] == Decimal("200.00")
+    assert snapshot["total_occupancy"] == Decimal("700.00")
+    assert snapshot["remaining"] == Decimal("500.00")
+
+
+@pytest.mark.django_db
+def test_confirmed_fixed_refund_reduces_original_budget_month(expense_category, bank):
+    plan = _expense_plan(category=expense_category, bank=bank)
+    occurrence = services.confirm_occurrence(
+        occurrence=plan.occurrences.get(),
+        account=bank,
+        actual_amount=Decimal("500.00"),
+        occurred_at=_occurred(2026, 8, 1),
+    )
+    ledger_services.create_refund(
+        original_transaction=occurrence.linked_transaction,
+        amount=Decimal("100.00"),
+        occurred_at=_occurred(2026, 8, 5),
+        account=bank,
+    )
+    breakdown = selectors.monthly_breakdown(month=date(2026, 7, 1))
+    assert breakdown["fixed_actual"] == Decimal("400.00")
+    assert breakdown["actual_expense"] == Decimal("400.00")
+
+
+@pytest.mark.django_db
+def test_expected_income_does_not_change_balance_until_confirmation(income_category, bank):
+    before = ledger_selectors.account_balance(account=bank)
+    plan = services.create_planned_cash_flow(
+        name="生活费",
+        direction=PlannedCashFlow.Direction.INCOME,
+        amount=Decimal("1000.00"),
+        category=income_category,
+        default_account=bank,
+        reliability=PlannedCashFlow.Reliability.CERTAIN,
+        recurrence_type=PlannedCashFlow.RecurrenceType.ONE_TIME,
+        start_date=date(2026, 7, 10),
+    )
+    assert selectors.planned_income(
+        month=date(2026, 7, 1), reliability=PlannedCashFlow.Reliability.CERTAIN
+    ) == Decimal("1000.00")
+    assert ledger_selectors.account_balance(account=bank) == before
+
+    services.confirm_occurrence(
+        occurrence=plan.occurrences.get(),
+        account=bank,
+        actual_amount=Decimal("1000.00"),
+        occurred_at=_occurred(2026, 7, 10),
+    )
+    assert selectors.planned_income(month=date(2026, 7, 1)) == Decimal("0.00")
+    assert ledger_selectors.account_balance(account=bank) == before + Decimal("1000.00")
+
+
+@pytest.mark.django_db
+def test_budget_pages_and_cash_flow_duplicate_submission(
+    authenticated_client, expense_category, bank
+):
+    assert authenticated_client.get(reverse("budgets:index")).status_code == 200
+    create_page = authenticated_client.get(reverse("budgets:cash-flow-create"))
+    token = create_page.context["submission_token"]
+    data = {
+        "submission_token": token,
+        "name": "会员订阅",
+        "direction": PlannedCashFlow.Direction.EXPENSE,
+        "amount": "20.00",
+        "category": expense_category.id,
+        "default_account": bank.id,
+        "reliability": PlannedCashFlow.Reliability.CERTAIN,
+        "recurrence_type": PlannedCashFlow.RecurrenceType.MONTHLY,
+        "start_date": "2026-07-31",
+        "day_of_month": "31",
+        "is_active": "on",
+        "note": "",
+    }
+    response = authenticated_client.post(reverse("budgets:cash-flow-create"), data)
+    assert response.status_code == 302
+    assert PlannedCashFlow.objects.filter(name="会员订阅").count() == 1
+    response = authenticated_client.post(reverse("budgets:cash-flow-create"), data)
+    assert response.status_code == 302
+    assert PlannedCashFlow.objects.filter(name="会员订阅").count() == 1
