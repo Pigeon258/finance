@@ -58,7 +58,7 @@
         <a href="{% url 'ledger:transaction-create' 'expense' %}">记支出</a>
         <a href="{% url 'credit:purchase-create' %}">记信用卡消费</a>
         <a href="{% url 'credit:repayment-create' %}">信用卡还款</a>
-        <span aria-disabled="true" title="将在任务 11～12 实现">导入账单（待实现）</span>
+        <a href="{% url 'imports:upload' %}">导入账单</a>
         <a href="{% url 'analytics:reports' %}">查看统计报表</a>
       </div>
     </section>

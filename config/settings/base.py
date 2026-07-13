@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -107,3 +108,11 @@ LOGIN_FAILURE_IP_LIMIT = 5
 LOGIN_FAILURE_GLOBAL_LIMIT = 20
 SESSION_IDLE_TIMEOUT_MINUTES = 60
 SESSION_ABSOLUTE_TIMEOUT_HOURS = 24
+
+IMPORT_TMP_DIR = os.environ.get(
+    "IMPORT_TMP_DIR", str(Path(tempfile.gettempdir()) / "personal-finance-imports")
+)
+IMPORT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+IMPORT_MAX_EXTRACTED_BYTES = 100 * 1024 * 1024
+IMPORT_MAX_ZIP_FILES = 20
+IMPORT_MAX_RECORDS = 100000

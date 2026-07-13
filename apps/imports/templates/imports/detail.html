@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}导入批次 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>导入批次：{{ batch.original_filename }}</h1>
+  <dl class="summary-list">
+    <dt>来源</dt><dd>{{ batch.get_source_display }}</dd>
+    <dt>状态</dt><dd>{{ batch.get_status_display }}</dd>
+    <dt>解析器</dt><dd>{{ batch.parser_name|default:"—" }} {{ batch.parser_version }}</dd>
+    <dt>记录总数</dt><dd>{{ batch.total_count }}</dd>
+    <dt>解析失败</dt><dd>{{ batch.failed_count }}</dd>
+    <dt>原文件删除</dt><dd>{{ batch.file_deleted_at|default:"—" }}</dd>
+  </dl>
+  {% if batch.error_summary %}<p class="errorlist">{{ batch.error_summary }}</p>{% endif %}
+  <p>以下记录仍与正式账本隔离；账户映射、分类、去重和确认入账将在下一任务实现。</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th>行号</th><th>时间</th><th>候选类型</th><th>金额</th><th>交易对方</th><th>支付方式</th><th>状态</th><th>复核标记</th><th>错误</th></tr></thead>
+    <tbody>{% for record in page %}<tr><td>{{ record.row_number }}</td><td>{{ record.occurred_at|default:"—" }}</td><td>{{ record.get_candidate_transaction_type_display }}</td><td>{{ record.amount|default:"—" }}</td><td>{{ record.counterparty_raw|default:"—" }}</td><td>{{ record.payment_method_raw|default:"—" }}</td><td>{{ record.get_status_display }}</td><td>{{ record.review_flags|join:", "|default:"—" }}</td><td>{{ record.error_message|default:"—" }}</td></tr>{% empty %}<tr><td colspan="9">该批次没有可显示记录。</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if page.paginator.num_pages > 1 %}<nav aria-label="分页">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">上一页</a>{% endif %}<span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页</span>{% if page.has_next %}<a href="?page={{ page.next_page_number }}">下一页</a>{% endif %}</nav>{% endif %}
+{% endblock %}

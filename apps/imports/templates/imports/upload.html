@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}上传账单 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>上传账单</h1>
+  <p>支持支付宝和微信导出的 CSV、XLSX，以及只包含一个受支持账单的单层 ZIP。不要上传银行卡或信用卡账单。</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">安全解析</button>
+  </form>
+  <p>原文件在成功或失败后都会立即删除；数据库仅保存脱敏后的待确认数据。</p>
+{% endblock %}
