@@ -1,0 +1,11 @@
+bind = "0.0.0.0:8000"
+workers = 2
+threads = 2
+timeout = 60
+graceful_timeout = 30
+keepalive = 5
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"
+access_log_format = '%(h)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(L)s'
+capture_output = True

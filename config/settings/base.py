@@ -2,6 +2,17 @@ import os
 import tempfile
 from pathlib import Path
 
+
+def environment_or_file(value_name: str, file_name: str, default: str = "") -> str:
+    value = os.environ.get(value_name)
+    if value is not None:
+        return value
+    path = os.environ.get(file_name)
+    if path:
+        return Path(path).read_text(encoding="utf-8").strip()
+    return default
+
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsafe-development-key")
@@ -61,7 +72,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "personal_finance"),
         "USER": os.environ.get("POSTGRES_USER", "finance"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        "PASSWORD": environment_or_file("POSTGRES_PASSWORD", "POSTGRES_PASSWORD_FILE"),
         "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
@@ -120,3 +131,10 @@ IMPORT_MAX_RECORDS = 100000
 BUSINESS_BACKUP_DIR = os.environ.get("BUSINESS_BACKUP_DIR", str(BASE_DIR / "backups"))
 BUSINESS_BACKUP_MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 BUSINESS_BACKUP_MAX_PLAINTEXT_BYTES = 100 * 1024 * 1024
+
+DATABASE_BACKUP_DIR = os.environ.get("DATABASE_BACKUP_DIR", str(BASE_DIR / "backups" / "database"))
+DATABASE_BACKUP_TMP_DIR = os.environ.get(
+    "DATABASE_BACKUP_TMP_DIR", str(Path(tempfile.gettempdir()) / "personal-finance-db-backup")
+)
+DATABASE_BACKUP_DAILY_KEEP = 7
+DATABASE_BACKUP_WEEKLY_KEEP = 4
