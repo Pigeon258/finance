@@ -99,6 +99,11 @@ class BackupRun(models.Model):
         USER_EXPORT = "USER_EXPORT", "用户业务备份"
         PRE_RESTORE = "PRE_RESTORE", "恢复前自动备份"
         RESTORE = "RESTORE", "用户业务恢复"
+        DATABASE_DAILY = "DB_DAILY", "每日数据库备份"
+        DATABASE_WEEKLY = "DB_WEEKLY", "每周数据库备份"
+        DATABASE_DEPLOYMENT = "DB_DEPLOYMENT", "部署前数据库备份"
+        DATABASE_MANUAL = "DB_MANUAL", "手工数据库备份"
+        DATABASE_RESTORE = "DB_RESTORE", "数据库恢复"
 
     class Status(models.TextChoices):
         RUNNING = "RUNNING", "执行中"

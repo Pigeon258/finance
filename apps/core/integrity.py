@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, connection
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 
 from apps.accounts.models import Account, AccountReconciliation
 from apps.budgets.models import MonthlyBudget, PlannedCashFlowOccurrence
@@ -136,13 +136,17 @@ def financial_integrity_issues() -> tuple[IntegrityIssue, ...]:
                 )
             )
 
-    invalid_posted = InstallmentItem.objects.filter(status=InstallmentItem.Status.POSTED).filter(
-        ledger_transaction__isnull=True
-    ) | InstallmentItem.objects.filter(status=InstallmentItem.Status.POSTED).filter(
-        actual_amount__isnull=True
+    invalid_posted = InstallmentItem.objects.filter(
+        Q(ledger_transaction__isnull=True)
+        | Q(actual_amount__isnull=True)
+        | Q(posted_at__isnull=True),
+        status=InstallmentItem.Status.POSTED,
     )
     invalid_unposted = InstallmentItem.objects.exclude(status=InstallmentItem.Status.POSTED).filter(
-        ledger_transaction__isnull=False
+        Q(ledger_transaction__isnull=False)
+        | Q(actual_amount__isnull=False)
+        | Q(billing_cycle__isnull=False)
+        | Q(posted_at__isnull=False)
     )
     if invalid_posted.exists() or invalid_unposted.exists():
         issues.append(IntegrityIssue("INSTALLMENT_LINK", "分期期次状态与正式交易关联不一致。"))
@@ -151,11 +155,11 @@ def financial_integrity_issues() -> tuple[IntegrityIssue, ...]:
         issues.append(IntegrityIssue("BUDGET_MONTH", "存在不是月首日的预算月份。"))
 
     invalid_occurrences = PlannedCashFlowOccurrence.objects.filter(
+        Q(linked_transaction__isnull=True) | Q(confirmed_at__isnull=True),
         status=PlannedCashFlowOccurrence.Status.CONFIRMED,
-        linked_transaction__isnull=True,
     ) | PlannedCashFlowOccurrence.objects.exclude(
         status=PlannedCashFlowOccurrence.Status.CONFIRMED
-    ).filter(linked_transaction__isnull=False)
+    ).filter(Q(linked_transaction__isnull=False) | Q(confirmed_at__isnull=False))
     if invalid_occurrences.exists():
         issues.append(
             IntegrityIssue("PLANNED_CASH_FLOW_LINK", "计划现金流状态与正式交易关联不一致。")
