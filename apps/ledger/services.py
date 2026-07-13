@@ -229,6 +229,7 @@ def create_expense(
     source: str = Transaction.Source.MANUAL,
     merchant: Merchant | None = None,
     tags: list[Tag] | tuple[Tag, ...] = (),
+    budget_month=None,
 ) -> Transaction:
     _validate_account(account)
     _validate_category(category, category_type=Category.CategoryType.EXPENSE)
@@ -236,7 +237,7 @@ def create_expense(
         transaction_type=Transaction.TransactionType.EXPENSE,
         amount=amount,
         occurred_at=occurred_at,
-        budget_month=_budget_month(occurred_at),
+        budget_month=budget_month or _budget_month(occurred_at),
         category=category,
         channel=channel,
         counterparty=counterparty,

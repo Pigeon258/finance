@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}商品分期 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>商品分期</h1>
+  <p><a href="{% url 'installments:create' %}">创建分期计划</a></p>
+  <dl>
+    <dt>剩余长期消费承诺</dt><dd>{{ remaining }}</dd>
+  </dl>
+
+  <h2>计划</h2>
+  <table>
+    <thead><tr><th>商品</th><th>来源</th><th>原价</th><th>总还款</th><th>状态</th><th>首期月份</th></tr></thead>
+    <tbody>
+      {% for plan in plans %}
+        <tr>
+          <td><a href="{% url 'installments:detail' plan.id %}">{{ plan.product_name }}</a></td>
+          <td>{{ plan.get_source_type_display }}</td>
+          <td>{{ plan.original_price }}</td>
+          <td>{{ plan.total_repayment_amount }}</td>
+          <td>{{ plan.get_status_display }}</td>
+          <td>{{ plan.first_due_month }}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6">尚无分期计划。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>未来月份预占</h2>
+  <table>
+    <thead><tr><th>月份</th><th>待发生金额</th></tr></thead>
+    <tbody>
+      {% for row in month_rows %}<tr><td>{{ row.due_month }}</td><td>{{ row.total }}</td></tr>
+      {% empty %}<tr><td colspan="2">没有待发生期次。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

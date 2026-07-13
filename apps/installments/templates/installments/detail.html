@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plan.product_name }} · 商品分期{% endblock %}
+
+{% block content %}
+  <h1>{{ plan.product_name }}</h1>
+  <p><a href="{% url 'installments:index' %}">返回分期列表</a></p>
+  <dl>
+    <dt>状态</dt><dd>{{ plan.get_status_display }}</dd>
+    <dt>来源</dt><dd>{{ plan.get_source_type_display }}</dd>
+    <dt>购买日期</dt><dd>{{ plan.purchase_date }}</dd>
+    <dt>分类</dt><dd>{{ plan.category }}</dd>
+    <dt>商品原价</dt><dd>{{ plan.original_price }}</dd>
+    <dt>当前总还款金额</dt><dd>{{ plan.total_repayment_amount }}</dd>
+    <dt>剩余长期消费承诺</dt><dd>{{ remaining }}</dd>
+    <dt>备注</dt><dd>{{ plan.note|default:"—" }}</dd>
+  </dl>
+
+  {% if plan.status == "ACTIVE" %}
+    <p><a href="{% url 'installments:early-settlement' plan.id %}">提前结清</a></p>
+    <form class="inline-form" method="post" action="{% url 'installments:refund-start' plan.id %}">
+      {% csrf_token %}<button type="submit">开始退款处理</button>
+    </form>
+    <form class="inline-form" method="post" action="{% url 'installments:cancel' plan.id %}">
+      {% csrf_token %}<button type="submit">取消未生效计划</button>
+    </form>
+  {% elif plan.status == "COMPLETED" %}
+    <form method="post" action="{% url 'installments:refund-start' plan.id %}">
+      {% csrf_token %}<button type="submit">开始退款处理</button>
+    </form>
+  {% elif plan.status == "REFUND_PROCESSING" %}
+    <p>退款处理中：禁止新期次入账和提前结清。请完成已入账退款及未来期次调整。</p>
+    <form method="post" action="{% url 'installments:refund-finish' plan.id %}">
+      {% csrf_token %}<button type="submit">结束退款处理</button>
+    </form>
+  {% endif %}
+
+  <h2>期次</h2>
+  <table>
+    <thead><tr><th>期次</th><th>预计到期日</th><th>预算月份</th><th>计划金额</th><th>实际金额</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for row in item_rows %}
+        {% with item=row.item %}
+          <tr>
+            <td>{{ item.sequence_number }}</td>
+            <td>{{ item.due_date }}</td>
+            <td>{{ item.due_month }}</td>
+            <td>{{ item.planned_amount }}</td>
+            <td>{{ item.actual_amount|default:"—" }}</td>
+            <td>{{ item.get_status_display }}</td>
+            <td>
+              {% if item.status == "PLANNED" %}
+                {% if plan.status == "ACTIVE" %}<a href="{% url 'installments:item-post' item.id %}">入账</a>{% endif %}
+                <a href="{% url 'installments:item-adjust' item.id %}">{% if plan.status == "REFUND_PROCESSING" %}退款调整{% else %}调整{% endif %}</a>
+              {% elif item.status == "POSTED" %}
+                {% if item.ledger_transaction_id %}<a href="{% url 'ledger:transaction-detail' item.ledger_transaction_id %}">查看交易</a>{% endif %}
+                {% if plan.status == "REFUND_PROCESSING" and row.refundable > 0 %}<a href="{% url 'installments:item-refund' item.id %}">登记退款</a>{% endif %}
+                {% if row.refundable != None %}可退 {{ row.refundable }}{% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>调整记录</h2>
+  <table>
+    <thead><tr><th>日期</th><th>类型</th><th>期次</th><th>金额变化</th><th>说明</th></tr></thead>
+    <tbody>
+      {% for adjustment in plan.adjustments.all %}
+        <tr><td>{{ adjustment.effective_date }}</td><td>{{ adjustment.get_adjustment_type_display }}</td><td>{{ adjustment.installment_item.sequence_number|default:"—" }}</td><td>{{ adjustment.amount_delta }}</td><td>{{ adjustment.note|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="5">暂无调整记录。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -46,6 +46,41 @@ def cycle_dates_for(*, profile: CreditCardProfile, occurred_on: date) -> tuple[d
     return cycle_start, cycle_end, due_date
 
 
+def expected_due_date_for_month(*, profile: CreditCardProfile, due_month: date) -> date:
+    if due_month.day != 1:
+        raise ValidationError("预计还款月份必须使用该月第一天。")
+    return _clamped_date(due_month.year, due_month.month, profile.due_day)
+
+
+def _get_or_create_open_cycle_for_due_month(
+    *, profile: CreditCardProfile, due_month: date
+) -> BillingCycle:
+    if due_month.day != 1:
+        raise ValidationError("分期预算月份必须使用该月第一天。")
+    existing = profile.billing_cycles.filter(
+        due_date__year=due_month.year, due_date__month=due_month.month
+    ).first()
+    if existing is not None:
+        if existing.status != BillingCycle.Status.OPEN:
+            raise ValidationError("该分期期次对应的信用卡账期已经出账，不能直接加入。")
+        return existing
+    cycle_end_year, cycle_end_month = _shift_month(due_month.year, due_month.month, -1)
+    cycle_end = _clamped_date(cycle_end_year, cycle_end_month, profile.statement_day)
+    previous_year, previous_month = _shift_month(cycle_end.year, cycle_end.month, -1)
+    cycle_start = _clamped_date(previous_year, previous_month, profile.statement_day) + timedelta(
+        days=1
+    )
+    cycle, _ = BillingCycle.objects.get_or_create(
+        credit_card_profile=profile,
+        cycle_start=cycle_start,
+        cycle_end=cycle_end,
+        defaults={"due_date": expected_due_date_for_month(profile=profile, due_month=due_month)},
+    )
+    if cycle.status != BillingCycle.Status.OPEN or cycle.due_date.replace(day=1) != due_month:
+        raise ValidationError("无法为该分期期次建立有效的未出账账期。")
+    return cycle
+
+
 @db_transaction.atomic
 def save_profile(
     *,
@@ -109,6 +144,27 @@ def create_credit_card_purchase(*, profile: CreditCardProfile, **ledger_data) ->
         allocated_amount=ledger_transaction.amount,
     )
     return ledger_transaction
+
+
+@db_transaction.atomic
+def create_installment_purchase(
+    *, profile: CreditCardProfile, due_month: date, **ledger_data
+) -> tuple[Transaction, BillingCycle]:
+    locked_profile = CreditCardProfile.objects.select_for_update().get(pk=profile.pk)
+    account = ledger_data.get("account")
+    if account is None or account.pk != locked_profile.account_id:
+        raise ValidationError("分期期次必须使用当前信用卡账户。")
+    cycle = _get_or_create_open_cycle_for_due_month(profile=locked_profile, due_month=due_month)
+    ledger_transaction = ledger_services.create_expense(
+        **ledger_data, budget_month=cycle.due_date.replace(day=1)
+    )
+    BillingCycleItem.objects.create(
+        billing_cycle=cycle,
+        transaction=ledger_transaction,
+        item_type=BillingCycleItem.ItemType.INSTALLMENT,
+        allocated_amount=ledger_transaction.amount,
+    )
+    return ledger_transaction, cycle
 
 
 def _eligible_cycles_for_repayment(profile: CreditCardProfile):
