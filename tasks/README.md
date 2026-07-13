@@ -1,18 +1,18 @@
 # 第一版开发路线图
 
-本目录严格依据 `docs/requirements.md` v1.0 与 `docs/system-design.md` v1.0 拆分。计划先建立可运行骨架和账本事实，再逐层增加信用卡、预算、分期、分析、导入与运维能力。
+本目录严格依据 `docs/requirements.md` v1.1 与 `docs/system-design.md` v1.1 拆分。计划先建立可运行骨架和账本事实，再逐层增加信用卡、预算、分期、分析、导入与运维能力。
 
 ## 文档一致性检查
 
-### 阻塞开发
+### 已解决的基线问题
 
-以下问题不阻塞骨架或核心账本，但会阻塞标注的后续任务；不得由实现者擅自改基线。
+以下问题已经由需求/设计负责人确认并写入 v1.1 基线；实现任务必须遵守结论，不得自行更改口径。
 
-| 编号 | 问题 | 影响任务 | 需要的最小结论 |
+| 编号 | 原问题 | 影响任务 | 已批准结论 |
 |---|---|---|---|
-| B-01 | “未来 30 天事项”要求展示分期应付款，但 `InstallmentItem` 只有 `due_month`，没有可判断 30 天窗口的具体日期。 | 07、10 | 明确分期到期日的来源，或确认第一版该项按月份近似展示。 |
-| B-02 | 需求要求“JSON 完整备份/从 JSON 恢复”，设计规定用户文件为加密 `.pfbackup`，内部载荷含 JSON。是否还必须提供明文 JSON 下载未明确；明文方案又会削弱安全目标。 | 14 | 确认验收对象是“内部 JSON 的加密容器”，还是同时要求明文 JSON。 |
-| B-03 | 需求要求分期消费记录“原始消费”并支持关联退款，设计规定创建分期时不创建全价交易、仅每期入账。尚未明确“原消费”在未入账/多期入账时具体关联计划、期次还是某笔交易。 | 07 | 明确分期退款的正式关联对象和累计退款上限口径。 |
+| B-01 | 分期期次缺少可判断未来 30 天窗口的具体日期。 | 07、10 | 新增 `due_date`，保留 `due_month` 并保持月份一致；按来源生成预计日期，未来 30 天包含起止边界，已进入信用卡账单的期次不得重复累计。 |
+| B-02 | 明文 JSON 与加密 `.pfbackup` 的验收对象不明确。 | 14 | 只提供加密 `.pfbackup`，内部载荷为 JSON；不提供生产环境明文 JSON 完整备份下载。 |
+| B-03 | 分期没有唯一全价原消费交易，退款关联和上限不明确。 | 07 | 以计划为根；已入账退款逐期关联原支出且一笔退款只对应一期；未入账部分只调整未来期次；Adjustment 不替代账本退款统计。 |
 
 ### 可以在具体任务中决定
 
@@ -73,14 +73,14 @@ flowchart LR
 | [04](04-manual-transactions.md) | 手动交易主流程 | 01、03 | `feat: add manual transaction flows` | 已完成 |
 | [05](05-refunds-reconciliation-corrections.md) | 退款、余额核对与修正 | 04 | `feat: add ledger correction flows` | 已完成 |
 | [06](06-credit-card-billing.md) | 信用卡账期与还款分配 | 04 | `feat: add credit card billing` | 已完成 |
-| [07](07-installments.md) | 商品分期与预算承诺 | 04；B-01/B-03 | `feat: add installment plans` | 阻塞于决策 |
+| [07](07-installments.md) | 商品分期与预算承诺 | 04 | `feat: add installment plans` | 待开始 |
 | [08](08-budgets-and-planned-cashflows.md) | 预算、储备与计划现金流 | 03 | `feat: add budgets and planned cash flows` | 待开始 |
 | [09](09-risk-and-forecasting.md) | 偿还能力与未来预测 | 06、07、08 | `feat: add financial risk calculations` | 待开始 |
 | [10](10-dashboard-and-reports.md) | 仪表盘与统计报表 | 09 | `feat: add dashboard and reports` | 待开始 |
 | [11](11-import-foundation-and-parsers.md) | 导入隔离区与平台解析器 | 03 | `feat: parse alipay and wechat bills` | 待开始 |
 | [12](12-import-review-and-confirmation.md) | 映射、去重与幂等确认 | 05、11 | `feat: add bill import review flow` | 待开始 |
 | [13](13-usability-and-p1-closure.md) | 模板、复制、会话和阈值收口 | 10、12 | 一组紧密相关提交 | 待开始 |
-| [14](14-export-backup-and-restore.md) | CSV、业务备份与恢复 | 13；B-02 | `feat: add encrypted backup and restore` | 阻塞于决策 |
+| [14](14-export-backup-and-restore.md) | CSV、业务备份与恢复 | 13 | `feat: add encrypted backup and restore` | 待开始 |
 | [15](15-deployment-operations-and-acceptance.md) | Compose、自动备份、完整性与验收 | 14 | 一组运维提交 | 待开始 |
 
 ## 每个任务的共同完成门槛

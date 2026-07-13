@@ -1,7 +1,7 @@
 # 个人财务管理系统轻量系统设计
 
 > 文件路径：`docs/system-design.md`  
-> 文档版本：v1.0  
+> 文档版本：v1.1
 > 文档状态：系统设计基线  
 > 对应需求：`docs/requirements.md`  
 > 适用范围：第一版（MVP）  
@@ -221,7 +221,7 @@ apps/
 - 修改和重置系统密码；
 - 系统时区；
 - 全局预警阈值；
-- JSON 业务备份与恢复；
+- 加密 `.pfbackup` 业务备份与恢复；
 - CSV 导出入口；
 - 通用模型基类；
 - 通用异常与工具；
@@ -1202,6 +1202,7 @@ InstallmentItem
 ├── id
 ├── plan_id
 ├── sequence_number
+├── due_date
 ├── due_month
 ├── planned_amount
 ├── actual_amount
@@ -1212,6 +1213,12 @@ InstallmentItem
 ├── note
 ├── created_at
 └── updated_at
+```
+
+`due_date` 是预计到期日，用于提醒和未来事项；实际付款时间由关联正式交易的 `occurred_at` 表示。`due_month` 是预算归属月份，并始终满足：
+
+```text
+due_month = due_date 所在月份的第一天
 ```
 
 状态：
@@ -1319,13 +1326,49 @@ MANUAL_CORRECTION
 ## 19.5 分期退款
 
 ```text
-创建实际退款
-→ 关联原分期或期次
-→ 用户按实际账单调整剩余期次
-→ 创建调整记录
+选择分期计划
+→ 计划进入 REFUND_PROCESSING
+→ 已入账部分逐期创建实际退款
+→ 未入账部分按实际账单调整未来期次
+→ 创建 InstallmentAdjustment 审计记录
+→ 根据剩余期次结束退款处理
 ```
 
-系统不推断手续费和银行冲抵顺序。
+关联和统计规则：
+
+- `InstallmentPlan` 是退款流程的根关联对象；
+- 已入账退款必须选择一个 `POSTED InstallmentItem`，其 `ledger_transaction` 是退款交易的原支出；
+- 一笔 `REFUND Transaction` 只冲减一个已入账期次，分类和 `budget_month` 继承该期原支出；银行一次退款涉及多期时，由用户拆分为多笔退款交易；
+- 单个已入账期次的累计退款不得超过该期实际支出金额；
+- 未入账期次不创建 `REFUND Transaction`，只通过 `InstallmentAdjustment` 减少金额或将期次改为 `CANCELLED`、`WAIVED`；
+- 未来义务的累计减少不得超过对应期次尚未发生的计划金额；
+- `InstallmentAdjustment` 记录计划和期次调整，不取代 `Transaction` 成为实际消费或退款的统计来源；
+- 系统不推断手续费是否退款、退款优先冲抵哪一期或银行冲抵已出账账期的顺序；信用卡账期只有在用户确认后才按既有退款冲抵流程处理。
+
+`REFUND_PROCESSING` 期间允许继续录入当前流程的实际退款和期次调整，禁止新期次入账、提前结清、删除计划或启动第二个退款流程。结束时：仍有有效未来期次则回到 `ACTIVE`；已有期次发生且以后无应付款则为 `COMPLETED`；从未发生期次且全部取消则为 `CANCELLED`。
+
+## 19.6 到期日生成和未来 30 天事项
+
+信用卡分期：
+
+```text
+首期月份
+→ 按当前 CreditCardProfile 找到 due_date 落在该首期月份的预计 BillingCycle
+→ 使用预计 BillingCycle.due_date
+→ 后续月份按各自预计账期生成 due_date
+```
+
+期次正式关联 `BillingCycle` 时，若仍为 `PLANNED`，在同一事务中先以正式账期 `due_date` 修正期次的 `due_date` 和 `due_month`，再完成入账并转为 `POSTED`。信用卡账单日或还款日配置修改不自动重算已有期次；新计划使用新配置，旧计划的未入账期次可由用户手动调整。
+
+平台分期由用户输入首期具体到期日，后续期次沿用相同日号；目标月份不存在该日时取目标月份最后一天。
+
+未来 30 天分期事项使用包含边界的日期范围：
+
+```text
+today <= due_date <= today + 30 天
+```
+
+平台分期作为独立应付款展示。尚未进入正式账单的信用卡分期显示为预计分期；已经 `POSTED` 并计入信用卡账单的期次可以标注来源，但不得再作为独立应付款累计，避免与信用卡本期应还重复计算。
 
 ---
 
@@ -2404,6 +2447,8 @@ db-YYYYMMDDTHHMMSSZ.dump.enc
 personal-finance-YYYYMMDD.pfbackup
 ```
 
+该文件是用户完整业务备份的唯一生产下载格式。容器内部载荷采用 JSON；第一版不提供明文 JSON 完整备份下载。CSV 仅用于查看和分析，不承担完整恢复职责。
+
 包含：
 
 - 账户；
@@ -2971,6 +3016,7 @@ Transaction(category, budget_month)
 TransactionEntry(account, transaction)
 BillingCycle(status, due_date)
 InstallmentItem(status, due_month)
+InstallmentItem(status, due_date)
 PlannedCashFlowOccurrence(status, due_date)
 ImportRecord(batch, status)
 ImportRecord(external_transaction_id)
