@@ -1,12 +1,12 @@
 from datetime import date, datetime, time
 from decimal import Decimal
 
-from django.db.models import Q, QuerySet, Sum
+from django.db.models import Max, Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.accounts.models import Account
 
-from .models import Category, Transaction, TransactionEntry
+from .models import Category, Transaction, TransactionEntry, TransactionTemplate
 
 
 def category_list(*, include_inactive: bool = True) -> QuerySet[Category]:
@@ -124,6 +124,27 @@ def transaction_detail(*, transaction_id: int) -> Transaction:
         .prefetch_related("entries__account", "tags", "related_transactions")
         .get(pk=transaction_id)
     )
+
+
+def recent_accounts(*, balance_nature: str, limit: int = 5) -> QuerySet[Account]:
+    return (
+        Account.objects.filter(
+            is_active=True,
+            balance_nature=balance_nature,
+            transaction_entries__transaction__status=Transaction.Status.ACTIVE,
+        )
+        .annotate(last_used=Max("transaction_entries__transaction__occurred_at"))
+        .order_by("-last_used", "sort_order", "id")[:limit]
+    )
+
+
+def transaction_template_list(*, include_inactive: bool = True) -> QuerySet[TransactionTemplate]:
+    queryset = TransactionTemplate.objects.select_related(
+        "primary_account", "secondary_account", "category"
+    )
+    if not include_inactive:
+        queryset = queryset.filter(is_active=True)
+    return queryset.order_by("sort_order", "id")
 
 
 def refunded_amount(*, original_transaction: Transaction) -> Decimal:

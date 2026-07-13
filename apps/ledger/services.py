@@ -8,7 +8,15 @@ from django.utils import timezone
 
 from apps.accounts.models import Account, AccountReconciliation
 
-from .models import Category, Merchant, Tag, Transaction, TransactionEntry, TransactionTag
+from .models import (
+    Category,
+    Merchant,
+    Tag,
+    Transaction,
+    TransactionEntry,
+    TransactionTag,
+    TransactionTemplate,
+)
 
 CENT = Decimal("0.01")
 MAX_MONEY = Decimal("999999999999.99")
@@ -82,6 +90,13 @@ def deactivate_category(*, category: Category) -> Category:
     category.full_clean()
     category.save(update_fields=["is_active", "updated_at"])
     return category
+
+
+@db_transaction.atomic
+def save_transaction_template(*, template: TransactionTemplate) -> TransactionTemplate:
+    template.full_clean()
+    template.save()
+    return template
 
 
 def _validate_decimal(value: Decimal, *, allow_negative: bool = False) -> Decimal:

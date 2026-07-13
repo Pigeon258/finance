@@ -152,10 +152,7 @@ class Transaction(models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(amount__gt=0), name="ledger_amount_positive"),
             models.CheckConstraint(
-                condition=(
-                    models.Q(budget_month__isnull=True)
-                    | models.Q(budget_month__day=1)
-                ),
+                condition=(models.Q(budget_month__isnull=True) | models.Q(budget_month__day=1)),
                 name="ledger_budget_month_first_day",
             ),
         ]
@@ -240,3 +237,92 @@ class TransactionTag(models.Model):
 
     def __str__(self) -> str:
         return f"{self.transaction_id}:{self.tag_id}"
+
+
+class TransactionTemplate(models.Model):
+    class Operation(models.TextChoices):
+        INCOME = "income", "收入"
+        EXPENSE = "expense", "普通支出"
+        CREDIT_CARD_EXPENSE = "credit-card-expense", "信用卡消费"
+        TRANSFER = "transfer", "账户转账"
+        CREDIT_CARD_REPAYMENT = "credit-card-repayment", "信用卡还款"
+
+    name = models.CharField("模板名称", max_length=100)
+    operation = models.CharField("操作类型", max_length=30, choices=Operation.choices)
+    amount = models.DecimalField("金额", max_digits=14, decimal_places=2)
+    primary_account = models.ForeignKey(
+        "accounts.Account",
+        verbose_name="主要账户",
+        on_delete=models.PROTECT,
+        related_name="primary_transaction_templates",
+    )
+    secondary_account = models.ForeignKey(
+        "accounts.Account",
+        verbose_name="目标账户或信用卡",
+        on_delete=models.PROTECT,
+        related_name="secondary_transaction_templates",
+        null=True,
+        blank=True,
+    )
+    category = models.ForeignKey(
+        Category,
+        verbose_name="分类",
+        on_delete=models.PROTECT,
+        related_name="transaction_templates",
+        null=True,
+        blank=True,
+    )
+    channel = models.CharField("支付渠道", max_length=10, choices=Transaction.Channel.choices)
+    counterparty = models.CharField("商家或交易对象", max_length=200, blank=True)
+    note = models.TextField("备注", blank=True)
+    is_active = models.BooleanField("启用", default=True)
+    sort_order = models.PositiveIntegerField("显示顺序", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0), name="ledger_tpl_amount_positive"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def clean(self) -> None:
+        super().clean()
+        expense_operations = {
+            self.Operation.EXPENSE,
+            self.Operation.CREDIT_CARD_EXPENSE,
+        }
+        if self.operation == self.Operation.INCOME:
+            if not self.category_id or self.category.category_type != Category.CategoryType.INCOME:
+                raise ValidationError({"category": "收入模板必须选择收入分类。"})
+        elif self.operation in expense_operations:
+            if not self.category_id or self.category.category_type != Category.CategoryType.EXPENSE:
+                raise ValidationError({"category": "支出模板必须选择支出分类。"})
+        elif self.category_id is not None:
+            raise ValidationError({"category": "转账和还款模板不能设置分类。"})
+
+        if self.operation in {self.Operation.TRANSFER, self.Operation.CREDIT_CARD_REPAYMENT}:
+            if self.secondary_account_id is None:
+                raise ValidationError({"secondary_account": "该模板必须选择目标账户。"})
+            if self.primary_account_id == self.secondary_account_id:
+                raise ValidationError({"secondary_account": "两个账户不能相同。"})
+        elif self.secondary_account_id is not None:
+            raise ValidationError({"secondary_account": "该模板不需要第二个账户。"})
+
+        if self.primary_account_id:
+            expected = (
+                "LIABILITY" if self.operation == self.Operation.CREDIT_CARD_EXPENSE else "ASSET"
+            )
+            if self.primary_account.balance_nature != expected:
+                raise ValidationError({"primary_account": "主要账户性质与模板类型不匹配。"})
+        if self.secondary_account_id:
+            expected = (
+                "LIABILITY" if self.operation == self.Operation.CREDIT_CARD_REPAYMENT else "ASSET"
+            )
+            if self.secondary_account.balance_nature != expected:
+                raise ValidationError({"secondary_account": "目标账户性质与模板类型不匹配。"})

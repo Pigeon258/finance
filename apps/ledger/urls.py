@@ -6,9 +6,7 @@ app_name = "ledger"
 
 urlpatterns = [
     path("transactions/", views.transaction_index, name="transaction-index"),
-    path(
-        "transactions/new/<str:operation>/", views.transaction_create, name="transaction-create"
-    ),
+    path("transactions/new/<str:operation>/", views.transaction_create, name="transaction-create"),
     path(
         "transactions/<int:transaction_id>/",
         views.transaction_detail,
@@ -18,6 +16,11 @@ urlpatterns = [
         "transactions/<int:transaction_id>/edit/",
         views.transaction_edit,
         name="transaction-edit",
+    ),
+    path(
+        "transactions/<int:transaction_id>/copy/",
+        views.transaction_copy,
+        name="transaction-copy",
     ),
     path(
         "transactions/<int:transaction_id>/void/",
@@ -46,5 +49,12 @@ urlpatterns = [
         "categories/<int:category_id>/deactivate/",
         views.category_deactivate,
         name="category-deactivate",
+    ),
+    path("templates/", views.transaction_template_index, name="transaction-template-index"),
+    path("templates/new/", views.transaction_template_edit, name="transaction-template-create"),
+    path(
+        "templates/<int:template_id>/edit/",
+        views.transaction_template_edit,
+        name="transaction-template-edit",
     ),
 ]

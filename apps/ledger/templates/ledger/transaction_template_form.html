@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}常用交易模板 · 个人财务{% endblock %}
+{% block content %}<h1>常用交易模板</h1><p>模板只保存表单默认值，不会创建交易。</p><form method="post">{% csrf_token %}{{ form.as_div }}<button type="submit">保存模板</button></form><p><a href="{% url 'ledger:transaction-template-index' %}">返回模板列表</a></p>{% endblock %}

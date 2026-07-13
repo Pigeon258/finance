@@ -38,6 +38,9 @@
   {% if can_edit %}
     <p><a href="{% url 'ledger:transaction-edit' transaction.id %}">编辑交易</a></p>
   {% endif %}
+  {% if can_copy %}
+    <p><a href="{% url 'ledger:transaction-copy' transaction.id %}">复制为新交易</a> · <a href="{% url 'ledger:transaction-template-create' %}?transaction={{ transaction.id }}">保存为常用模板</a></p>
+  {% endif %}
   {% if can_correct %}
     <p><a href="{% url 'ledger:transaction-correct' transaction.id %}">通过反向交易进行修正</a></p>
   {% endif %}

@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -23,10 +24,11 @@ from .forms import (
     IncomeForm,
     RefundForm,
     TransactionFilterForm,
+    TransactionTemplateForm,
     TransferForm,
     VoidTransactionForm,
 )
-from .models import Category, Transaction
+from .models import Category, Transaction, TransactionTemplate
 
 SUBMISSION_TOKEN_SESSION_KEY = "manual_transaction_submission_tokens"
 
@@ -132,13 +134,92 @@ def _create_manual_transaction(operation: str, cleaned_data: dict) -> Transactio
     raise ValueError(f"Unsupported manual operation: {operation}")
 
 
+def _preferred_account(*, nature: str) -> Account | None:
+    recent = selectors.recent_accounts(balance_nature=nature).first()
+    if recent is not None:
+        return recent
+    return (
+        Account.objects.filter(is_active=True, balance_nature=nature)
+        .order_by("sort_order", "id")
+        .first()
+    )
+
+
+def _recent_initial(operation: str) -> dict:
+    asset = _preferred_account(nature=Account.BalanceNature.ASSET)
+    liability = _preferred_account(nature=Account.BalanceNature.LIABILITY)
+    if operation in {"income", "expense"}:
+        return {"account": asset}
+    if operation == "credit-card-expense":
+        return {"account": liability}
+    if operation == "transfer":
+        destination = (
+            Account.objects.filter(is_active=True, balance_nature=Account.BalanceNature.ASSET)
+            .exclude(pk=asset.pk if asset else None)
+            .order_by("sort_order", "id")
+            .first()
+        )
+        return {"source_account": asset, "destination_account": destination}
+    if operation == "credit-card-repayment":
+        return {"source_account": asset, "credit_card_account": liability}
+    if operation == "balance-adjustment":
+        return {"account": asset}
+    return {}
+
+
+def _template_form_initial(template: TransactionTemplate) -> dict:
+    common = {
+        "amount": template.amount,
+        "occurred_at": timezone.now(),
+        "channel": template.channel,
+        "counterparty": template.counterparty,
+        "note": template.note,
+    }
+    if template.operation in {"income", "expense", "credit-card-expense"}:
+        return {
+            **common,
+            "account": template.primary_account,
+            "category": template.category,
+        }
+    if template.operation == "transfer":
+        return {
+            **common,
+            "source_account": template.primary_account,
+            "destination_account": template.secondary_account,
+        }
+    return {
+        "amount": template.amount,
+        "occurred_at": timezone.now(),
+        "source_account": template.primary_account,
+        "credit_card_account": template.secondary_account,
+        "channel": template.channel,
+        "note": template.note,
+    }
+
+
 @require_http_methods(["GET", "POST"])
 def transaction_create(request: HttpRequest, operation: str):
     form_config = MANUAL_CREATE_FORMS.get(operation)
     if form_config is None:
         return redirect("ledger:transaction-index")
     title, form_class = form_config
-    form = form_class(request.POST or None)
+    initial = _recent_initial(operation)
+    template_id = request.GET.get("template")
+    copy_id = request.GET.get("copy")
+    if request.method == "GET" and template_id:
+        template = get_object_or_404(TransactionTemplate, pk=template_id, is_active=True)
+        if template.operation != operation:
+            messages.error(request, "模板类型与当前操作不匹配。")
+            return redirect("ledger:transaction-create", operation=template.operation)
+        initial = _template_form_initial(template)
+    elif request.method == "GET" and copy_id:
+        source = get_object_or_404(Transaction, pk=copy_id)
+        copied = _copy_initial(source)
+        if copied is None or copied[0] != operation:
+            messages.error(request, "该交易类型不能复制。")
+            return redirect("ledger:transaction-index")
+        initial = copied[1]
+    form = form_class(request.POST or None, initial=initial)
     if request.method == "POST":
         if not _consume_submission_token(request):
             messages.warning(request, "该提交已处理或已失效。")
@@ -208,8 +289,105 @@ def transaction_detail(request: HttpRequest, transaction_id: int):
             "can_correct": can_correct,
             "remaining_refund": remaining_refund,
             "void_form": VoidTransactionForm(),
+            "can_copy": _copy_initial(ledger_transaction) is not None,
         },
     )
+
+
+def _operation_for_transaction(ledger_transaction: Transaction) -> str | None:
+    if ledger_transaction.transaction_type == Transaction.TransactionType.INCOME:
+        return "income"
+    if ledger_transaction.transaction_type == Transaction.TransactionType.EXPENSE:
+        entry = ledger_transaction.entries.select_related("account").first()
+        if entry and entry.account.balance_nature == Account.BalanceNature.LIABILITY:
+            return "credit-card-expense"
+        return "expense"
+    if ledger_transaction.transaction_type == Transaction.TransactionType.TRANSFER:
+        if ledger_transaction.entries.filter(
+            account__balance_nature=Account.BalanceNature.LIABILITY
+        ).exists():
+            return "credit-card-repayment"
+        return "transfer"
+    if ledger_transaction.transaction_type == Transaction.TransactionType.BALANCE_ADJUSTMENT:
+        return "balance-adjustment"
+    return None
+
+
+def _copy_initial(ledger_transaction: Transaction) -> tuple[str, dict] | None:
+    operation = _operation_for_transaction(ledger_transaction)
+    config = _edit_form_config(ledger_transaction)
+    if operation is None or config is None:
+        return None
+    initial = dict(config[2])
+    initial["occurred_at"] = timezone.now()
+    return operation, initial
+
+
+@require_GET
+def transaction_copy(request: HttpRequest, transaction_id: int):
+    ledger_transaction = get_object_or_404(Transaction, pk=transaction_id)
+    copied = _copy_initial(ledger_transaction)
+    if copied is None:
+        messages.error(request, "退款等关联交易不能复制。")
+        return redirect("ledger:transaction-detail", transaction_id=transaction_id)
+    return redirect(
+        f"{reverse('ledger:transaction-create', args=[copied[0]])}?copy={ledger_transaction.pk}"
+    )
+
+
+def _template_initial_from_transaction(ledger_transaction: Transaction) -> dict | None:
+    copied = _copy_initial(ledger_transaction)
+    if copied is None or copied[0] == "balance-adjustment":
+        return None
+    operation, initial = copied
+    result = {
+        "name": ledger_transaction.counterparty
+        or ledger_transaction.get_transaction_type_display(),
+        "operation": operation,
+        "amount": ledger_transaction.amount,
+        "category": ledger_transaction.category,
+        "channel": ledger_transaction.channel,
+        "counterparty": ledger_transaction.counterparty,
+        "note": ledger_transaction.note,
+    }
+    result["primary_account"] = initial.get("account") or initial.get("source_account")
+    result["secondary_account"] = initial.get("destination_account") or initial.get(
+        "credit_card_account"
+    )
+    return result
+
+
+@require_GET
+def transaction_template_index(request: HttpRequest):
+    return render(
+        request,
+        "ledger/transaction_template_index.html",
+        {"templates": selectors.transaction_template_list()},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def transaction_template_edit(request: HttpRequest, template_id: int | None = None):
+    template = get_object_or_404(TransactionTemplate, pk=template_id) if template_id else None
+    initial = None
+    source_id = request.GET.get("transaction")
+    if template is None and source_id:
+        source = get_object_or_404(Transaction, pk=source_id)
+        initial = _template_initial_from_transaction(source)
+        if initial is None:
+            messages.error(request, "该交易不能保存为常用模板。")
+            return redirect("ledger:transaction-detail", transaction_id=source.pk)
+    form = TransactionTemplateForm(request.POST or None, instance=template, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        candidate = form.save(commit=False)
+        try:
+            services.save_transaction_template(template=candidate)
+        except ValidationError as error:
+            _add_service_error(form, error)
+        else:
+            messages.success(request, "常用交易模板已保存。")
+            return redirect("ledger:transaction-template-index")
+    return render(request, "ledger/transaction_template_form.html", {"form": form})
 
 
 def _can_edit_transaction(ledger_transaction: Transaction) -> bool:

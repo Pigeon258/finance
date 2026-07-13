@@ -2,7 +2,7 @@ from django import forms
 
 from apps.accounts.models import Account
 
-from .models import Category, Tag, Transaction
+from .models import Category, Tag, Transaction, TransactionTemplate
 
 
 class CategoryForm(forms.ModelForm):
@@ -185,6 +185,30 @@ class TransactionFilterForm(forms.Form):
 
 class VoidTransactionForm(forms.Form):
     reason = forms.CharField(label="作废原因", max_length=500)
+
+
+class TransactionTemplateForm(forms.ModelForm):
+    class Meta:
+        model = TransactionTemplate
+        fields = [
+            "name",
+            "operation",
+            "amount",
+            "primary_account",
+            "secondary_account",
+            "category",
+            "channel",
+            "counterparty",
+            "note",
+            "is_active",
+            "sort_order",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["primary_account"].queryset = Account.objects.filter(is_active=True)
+        self.fields["secondary_account"].queryset = Account.objects.filter(is_active=True)
+        self.fields["category"].queryset = Category.objects.filter(is_active=True)
 
 
 class RefundForm(forms.Form):
