@@ -7,7 +7,9 @@
   encode zstd gzip
 
   @health path /health/*
-  respond @health 404
+  handle @health {
+    respond 404
+  }
 
   handle_path /static/* {
     root * /srv/static

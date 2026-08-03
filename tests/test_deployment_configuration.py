@@ -44,6 +44,17 @@ def test_compose_uses_secrets_read_only_tmpfs_and_log_rotation():
     assert services["backup"]["cap_drop"] == ["ALL"]
 
 
+def test_web_receives_explicit_https_security_environment():
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    environment = compose["services"]["web"]["environment"]
+
+    assert "env_file" not in compose["services"]["web"]
+    assert environment["DJANGO_SECURE_SSL_REDIRECT"] == "${DJANGO_SECURE_SSL_REDIRECT:-True}"
+    assert environment["DJANGO_CSRF_COOKIE_SECURE"] == "${DJANGO_CSRF_COOKIE_SECURE:-True}"
+    assert environment["DJANGO_SESSION_COOKIE_SECURE"] == "${DJANGO_SESSION_COOKIE_SECURE:-True}"
+    assert environment["DJANGO_CSRF_TRUSTED_ORIGINS"] == "https://${APP_DOMAIN:?set APP_DOMAIN}"
+
+
 def test_container_images_are_pinned_and_web_runs_non_root():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     compose_text = (ROOT / "compose.yaml").read_text(encoding="utf-8")
@@ -73,10 +84,21 @@ def test_caddy_blocks_health_routes_and_sets_security_headers_without_request_lo
     ]:
         assert header in caddyfile
     assert "@health path /health/*" in caddyfile
-    assert "respond @health 404" in caddyfile
+    assert "handle @health {" in caddyfile
+    assert "respond 404" in caddyfile
     assert "\n  log" not in caddyfile
     assert "%(q)s" not in gunicorn
     assert "%(m)s %(U)s" in gunicorn
+
+
+def test_deployment_verifier_checks_actual_docker_port_bindings():
+    verifier = (ROOT / "deploy" / "verify-deployment.sh").read_text(encoding="utf-8")
+
+    assert "docker compose port db 5432" not in verifier
+    assert 'index .NetworkSettings.Ports "5432/tcp"' in verifier
+    assert 'index .NetworkSettings.Ports "8000/tcp"' in verifier
+    assert 'test "$db_bindings" = "null"' in verifier
+    assert 'test "$web_bindings" = "null"' in verifier
 
 
 def test_backup_scheduler_uses_application_timezone_and_expected_boundaries():

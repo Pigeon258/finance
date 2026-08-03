@@ -1,15 +1,19 @@
-# syntax=docker/dockerfile:1.7
-
 ARG PYTHON_IMAGE=python:3.13.9-slim-bookworm
 ARG POSTGRES_IMAGE=postgres:17.6-bookworm
 ARG CADDY_IMAGE=caddy:2.10.2-alpine
 
 FROM ${PYTHON_IMAGE} AS builder
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
+
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 WORKDIR /app
-RUN pip install --no-cache-dir uv==0.8.22
+COPY docker-wheels/uv-0.8.22-*.whl /tmp/
+
+RUN pip install --no-cache-dir /tmp/uv-0.8.22-*.whl \
+    && rm -f /tmp/uv-0.8.22-*.whl
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 

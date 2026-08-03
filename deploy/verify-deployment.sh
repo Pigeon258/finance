@@ -7,8 +7,13 @@ docker compose ps --status running
 docker compose exec -T web python manage.py check --deploy --settings=config.settings.production
 docker compose exec -T web python manage.py check_financial_integrity
 
-test -z "$(docker compose port db 5432)" || { echo "Database port is published." >&2; exit 1; }
-test -z "$(docker compose port web 8000)" || { echo "Web port is published." >&2; exit 1; }
+db_container=$(docker compose ps -q db)
+web_container=$(docker compose ps -q web)
+db_bindings=$(docker inspect --format '{{json (index .NetworkSettings.Ports "5432/tcp")}}' "$db_container")
+web_bindings=$(docker inspect --format '{{json (index .NetworkSettings.Ports "8000/tcp")}}' "$web_container")
+
+test "$db_bindings" = "null" || { echo "Database port is published." >&2; exit 1; }
+test "$web_bindings" = "null" || { echo "Web port is published." >&2; exit 1; }
 
 headers=$(curl --fail --silent --show-error --head "https://$domain/")
 echo "$headers" | grep -qi '^strict-transport-security:'

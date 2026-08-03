@@ -2,6 +2,12 @@
 
 本目录严格依据 `docs/requirements.md` v1.1 与 `docs/system-design.md` v1.1 拆分。计划先建立可运行骨架和账本事实，再逐层增加信用卡、预算、分期、分析、导入与运维能力。
 
+## 持续体验与需求输入
+
+- [`experience_and_demand.md`](experience_and_demand.md) 持续记录系统所有者的实际体验、问题和需求。
+- 该文件是后续规划输入，不替代具体任务文档；只有在系统所有者明确要求规划或实施后，才转换为有范围、依赖和验收标准的任务。
+- 系统所有者临时直接提出的需求同样有效，按影响范围创建或更新对应任务后实施。
+
 ## 文档一致性检查
 
 ### 已解决的基线问题
@@ -81,7 +87,8 @@ flowchart LR
 | [12](12-import-review-and-confirmation.md) | 映射、去重与幂等确认 | 05、11 | `feat: add bill import review flow` | 已完成 |
 | [13](13-usability-and-p1-closure.md) | 模板、复制、会话和阈值收口 | 10、12 | 一组紧密相关提交 | 已完成 |
 | [14](14-export-backup-and-restore.md) | CSV、业务备份与恢复 | 13 | `feat: add encrypted backup and restore` | 已完成 |
-| [15](15-deployment-operations-and-acceptance.md) | Compose、自动备份、完整性与验收 | 14 | 一组运维提交 | 已完成；生产部署验收待执行 |
+| [15](15-deployment-operations-and-acceptance.md) | Compose、自动备份、完整性与验收 | 14 | 一组运维提交 | 已完成；生产上线验收通过 |
+| [16](16-production-baseline.md) | 生产上线基线固化 | 15 | `chore: freeze production baseline` | 已完成 |
 
 ## 每个任务的共同完成门槛
 
