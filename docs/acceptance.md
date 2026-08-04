@@ -128,3 +128,24 @@
 | 发布后错误日志筛查 | 通过；Web、Caddy、backup 近 20 分钟未匹配异常或 5xx |
 
 生产发布结论：**通过**。本次升级没有改变财务事实来源或统计口径。生产环境隔离恢复和整机重启演练仍按 `docs/deployment.md` 安排维护窗口执行，不以本次在线升级验收替代。
+
+## QUICK-ITERATION-01 生产快速发布验收
+
+- 发布确认日期：2026-08-05
+- 已部署提交：`cb3b0c5a1eb0d9b1bb780a4aa5f124f0ee10afd5`
+- 发布方式：`deploy/quick-upgrade.sh`，只重建并热替换 Web/Caddy，无迁移、无维护模式
+- 部署前加密数据库备份：`db-deployment-20260804T175534Z-30.dump.enc`
+- 回滚镜像标签：`quick-rollback-20260804T175518Z`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；Ruff、`324 passed`、Windows PowerShell 窄测试 `16 passed`、Django 普通/生产检查、迁移检查、Compose 配置与 shell 语法检查 |
+| 快速发布身份与工作区 | 通过；完整 SHA 匹配，生产跟踪文件发布前后均干净 |
+| 备份与回滚 | 通过；加密部署备份完成内置验证，旧 Web/Caddy/maintenance 镜像均可由统一时间标签解析 |
+| Web/Caddy 热替换 | 通过；收集 146 个静态文件，Web 与 Caddy healthy，数据库与 backup 服务未替换 |
+| 应用完整性 | 通过；Django deploy check、财务完整性和严格主题完整性检查通过 |
+| 修复产物 | 通过；运行中 Web 模板包含移动导航 `hidden`，Caddy `app.css` 包含窄屏恢复规则 |
+| 公网与静态资源 | 通过；HTTP 308、未登录 HTTPS 302、`app.css` 200 且为 `text/css`、`/health/live` 404 |
+| `deploy/verify-deployment.sh` | 通过；四服务 healthy，端口、主题卷和安全响应头符合生产基线 |
+
+生产快速发布结论：**通过**。本任务未改变财务事实、统计口径、数据库结构、凭据、网络暴露、备份格式或安全边界；若页面壳层出现回归，使用上述三组同时间标签镜像执行 `deploy/rollback.sh`。

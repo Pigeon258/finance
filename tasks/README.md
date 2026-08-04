@@ -139,7 +139,7 @@ flowchart LR
 
 | 任务 | 名称 | 依赖 | 建议提交 | 状态 |
 |---|---|---|---|---|
-| [QUICK-ITERATION-01](quick-iteration-01-navigation-fallback.md) | 导航重复显示修复 | v0.2.0 | `fix: prevent duplicate navigation fallback` | 实施完成；待发布 |
+| [QUICK-ITERATION-01](quick-iteration-01-navigation-fallback.md) | 导航重复显示修复 | v0.2.0 | `fix: prevent duplicate navigation fallback` | 已完成；生产快速发布验收通过 |
 
 ## 每个任务的共同完成门槛
 
