@@ -25,6 +25,10 @@ def _preference_data(**overrides):
         "login_failure_global_limit": 10000,
         "session_idle_timeout_minutes": 10080,
         "session_absolute_timeout_hours": 8760,
+        "active_theme_id": "safe-default",
+        "appearance_mode": SystemPreference.AppearanceMode.AUTO,
+        "reduce_motion": False,
+        "show_theme_background": True,
     }
     data.update(overrides)
     return data

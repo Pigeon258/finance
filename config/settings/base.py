@@ -59,6 +59,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.core.context_processors.theme_context",
             ],
         },
     },
@@ -98,6 +99,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+THEME_BUILTIN_DIR = BASE_DIR / "static" / "themes"
+THEME_RUNTIME_DIR = BASE_DIR / "var" / "themes"
+THEME_RUNTIME_URL = "/themes/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

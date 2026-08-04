@@ -11,22 +11,22 @@
   {% if report %}
     <p>统计范围：{{ report.date_from }} 至 {{ report.date_to }}；符合筛选条件的有效交易 {{ report.transaction_count }} 笔。</p>
 
-    <section><h2>月度收入与支出</h2><div id="chart-monthly" class="chart" aria-label="月度收入与支出图表"></div>
+    <section><h2>月度收入与支出</h2><div id="chart-monthly" class="chart" data-pf-part="chart-panel" aria-label="月度收入与支出图表"></div>
       <div class="table-scroll"><table><thead><tr><th>月份</th><th>收入</th><th>支出（退款冲减）</th><th>收支结余</th></tr></thead><tbody>
         {% for row in report.monthly %}<tr><td>{{ row.period|date:"Y-m" }}</td><td>{{ row.income }}</td><td>{{ row.expense }}</td><td>{{ row.surplus }}</td></tr>{% endfor %}
       </tbody></table></div>
       <p class="help-text">结余的精确 Decimal 结果见下方“储蓄目标完成情况”；此表避免在模板中执行金额运算。</p>
     </section>
 
-    <section><h2>分类支出</h2><div id="chart-categories" class="chart" aria-label="分类支出图表"></div>
+    <section><h2>分类支出</h2><div id="chart-categories" class="chart" data-pf-part="chart-panel" aria-label="分类支出图表"></div>
       <div class="table-scroll"><table><thead><tr><th>分类</th><th>净支出</th></tr></thead><tbody>{% for row in report.categories %}<tr><td>{{ row.label }}</td><td>{{ row.amount }}</td></tr>{% empty %}<tr><td colspan="2">无分类支出。</td></tr>{% endfor %}</tbody></table></div>
     </section>
 
-    <section><h2>每日支出趋势</h2><div id="chart-daily" class="chart" aria-label="每日支出趋势图表"></div>
+    <section><h2>每日支出趋势</h2><div id="chart-daily" class="chart" data-pf-part="chart-panel" aria-label="每日支出趋势图表"></div>
       <details><summary>查看每日数据表</summary><div class="table-scroll"><table><thead><tr><th>日期</th><th>净支出</th></tr></thead><tbody>{% for row in report.daily %}<tr><td>{{ row.period }}</td><td>{{ row.amount }}</td></tr>{% endfor %}</tbody></table></div></details>
     </section>
 
-    <section><h2>当前净资金变化</h2><div id="chart-net-funds" class="chart" aria-label="净资金变化图表"></div>
+    <section><h2>当前净资金变化</h2><div id="chart-net-funds" class="chart" data-pf-part="chart-panel" aria-label="净资金变化图表"></div>
       <details><summary>查看每日净资金表</summary><div class="table-scroll"><table><thead><tr><th>日期</th><th>流动资产减信用卡负债</th></tr></thead><tbody>{% for row in report.net_funds %}<tr><td>{{ row.period }}</td><td>{{ row.amount }}</td></tr>{% endfor %}</tbody></table></div></details>
     </section>
 
@@ -37,19 +37,20 @@
 
     <section><h2>信用卡使用情况</h2>{% if report.credit.configured %}
       <dl class="summary-list"><dt>信用额度</dt><dd>{{ report.credit.credit_limit }}</dd><dt>个人月度上限</dt><dd>{{ report.credit.personal_limit }}</dd><dt>当前负债</dt><dd>{{ report.credit.current_liability }}</dd><dt>已出账未还</dt><dd>{{ report.credit.issued_unpaid }}</dd><dt>未出账</dt><dd>{{ report.credit.unbilled }}</dd></dl>
-      <div id="chart-credit" class="chart" aria-label="信用卡月度消费图表"></div>
+      <div id="chart-credit" class="chart" data-pf-part="chart-panel" aria-label="信用卡月度消费图表"></div>
       <table><thead><tr><th>月份</th><th>信用卡消费</th></tr></thead><tbody>{% for row in report.credit.monthly_purchases %}<tr><td>{{ row.label }}</td><td>{{ row.amount }}</td></tr>{% endfor %}</tbody></table>
     {% else %}<p>尚未配置信用卡。</p>{% endif %}</section>
 
-    <section><h2>分期负担</h2><div id="chart-installments" class="chart" aria-label="分期负担图表"></div>
+    <section><h2>分期负担</h2><div id="chart-installments" class="chart" data-pf-part="chart-panel" aria-label="分期负担图表"></div>
       <table><thead><tr><th>月份</th><th>已入账净额</th><th>未来承诺</th><th>合计占用</th></tr></thead><tbody>{% for row in report.installments %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.actual }}</td><td>{{ row.planned }}</td><td>{{ row.total }}</td></tr>{% endfor %}</tbody></table>
     </section>
 
-    <section><h2>储蓄目标完成情况</h2><p>第一版以“实际收入 − 退款冲减后的实际消费支出”作为可用于比较储蓄目标的月度收支结余；储蓄目标本身不创建交易。</p><div id="chart-savings" class="chart" aria-label="储蓄目标完成情况图表"></div>
+    <section><h2>储蓄目标完成情况</h2><p>第一版以“实际收入 − 退款冲减后的实际消费支出”作为可用于比较储蓄目标的月度收支结余；储蓄目标本身不创建交易。</p><div id="chart-savings" class="chart" data-pf-part="chart-panel" aria-label="储蓄目标完成情况图表"></div>
       <table><thead><tr><th>月份</th><th>储蓄目标</th><th>月度收支结余</th><th>完成比例</th></tr></thead><tbody>{% for row in report.savings %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.target }}</td><td>{{ row.income_expense_surplus }}</td><td>{{ row.completion_percentage|default_if_none:"未设置目标" }}</td></tr>{% empty %}<tr><td colspan="4">统计范围内没有月度预算。</td></tr>{% endfor %}</tbody></table>
     </section>
 
     {{ chart_data|json_script:"report-chart-data" }}
+    {{ active_theme.chart_theme|json_script:"report-chart-theme" }}
     <script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
     <script src="{% static 'js/reports.js' %}"></script>
   {% endif %}

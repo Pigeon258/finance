@@ -1,6 +1,5 @@
 /* Safe Default is the non-removable, low-risk visual fallback. */
-:root,
-[data-theme-id="safe-default"] {
+[data-pf-part="app-shell"] {
   --pf-font-sans: Inter, "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
   --pf-canvas: #eef2f7;
   --pf-sidebar: #ffffff;

@@ -4,12 +4,16 @@
   const dataElement = document.getElementById("report-chart-data");
   if (!dataElement || typeof echarts === "undefined") return;
   const data = JSON.parse(dataElement.textContent);
+  const themeElement = document.getElementById("report-chart-theme");
+  if (themeElement) {
+    echarts.registerTheme("pf-active", JSON.parse(themeElement.textContent));
+  }
   const charts = [];
 
   function chart(id, option) {
     const element = document.getElementById(id);
     if (!element) return;
-    const instance = echarts.init(element);
+    const instance = echarts.init(element, themeElement ? "pf-active" : null);
     instance.setOption(option);
     charts.push(instance);
   }

@@ -1,0 +1,65 @@
+{
+  "appearance": "light",
+  "tokens": {
+    "--pf-accent": "#3157d5",
+    "--pf-canvas": "#eef2f7",
+    "--pf-surface": "#ffffff",
+    "--pf-text": "#1d2939"
+  },
+  "art": {
+    "asset": null,
+    "focus": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "mode": "off",
+    "overlay": "transparent",
+    "safe_area": "none"
+  },
+  "components": {},
+  "charts": {
+    "backgroundColor": "transparent",
+    "color": [
+      "#3157d5",
+      "#16885b",
+      "#bb7a08",
+      "#7052d9",
+      "#c23a3a"
+    ],
+    "categoryAxis": {
+      "axisLine": {
+        "lineStyle": {
+          "color": "#d8e0eb"
+        }
+      },
+      "axisLabel": {
+        "color": "#667085"
+      }
+    },
+    "valueAxis": {
+      "axisLabel": {
+        "color": "#667085"
+      },
+      "splitLine": {
+        "lineStyle": {
+          "color": "#e8edf4"
+        }
+      }
+    },
+    "textStyle": {
+      "color": "#1d2939",
+      "fontFamily": "Inter, Segoe UI, Microsoft YaHei UI, sans-serif"
+    },
+    "tooltip": {
+      "backgroundColor": "#ffffff",
+      "borderColor": "#d8e0eb",
+      "textStyle": {
+        "color": "#1d2939"
+      }
+    }
+  },
+  "accessibility": {
+    "high_contrast": true,
+    "reduce_motion": "disable"
+  }
+}

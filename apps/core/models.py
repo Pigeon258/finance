@@ -7,6 +7,11 @@ from django.db import models
 class SystemPreference(models.Model):
     SINGLETON_ID = 1
 
+    class AppearanceMode(models.TextChoices):
+        AUTO = "AUTO", "跟随主题"
+        LIGHT = "LIGHT", "浅色"
+        DARK = "DARK", "深色"
+
     id = models.PositiveSmallIntegerField(primary_key=True, default=SINGLETON_ID, editable=False)
     time_zone = models.CharField(max_length=64, default="Asia/Shanghai")
     category_warning_threshold = models.DecimalField(
@@ -42,6 +47,13 @@ class SystemPreference(models.Model):
     session_absolute_timeout_hours = models.PositiveSmallIntegerField(
         default=24, validators=[MinValueValidator(1), MaxValueValidator(8760)]
     )
+    active_theme_id = models.CharField(max_length=80, default="safe-default")
+    last_known_good_theme_id = models.CharField(max_length=80, default="safe-default")
+    appearance_mode = models.CharField(
+        max_length=8, choices=AppearanceMode.choices, default=AppearanceMode.AUTO
+    )
+    reduce_motion = models.BooleanField(default=False)
+    show_theme_background = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

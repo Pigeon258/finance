@@ -123,7 +123,7 @@ flowchart LR
 | [VISUAL-THEME-01](visual-theme-01-requirements.md) | 视觉主题需求基线 | 16 | `docs: define visual theme requirements` | 已完成 |
 | [VISUAL-THEME-02](visual-theme-02-architecture.md) | 主题架构与安全设计 | VISUAL-THEME-01 | `docs: design secure visual theme architecture` | 已完成 |
 | [VISUAL-THEME-03](visual-theme-03-component-system.md) | 视觉设计系统与组件契约 | VISUAL-THEME-02 | `feat: establish themeable ui component system` | 已完成 |
-| [VISUAL-THEME-04](visual-theme-04-theme-runtime.md) | 主题运行时与包格式 | VISUAL-THEME-03 | `feat: add secure theme runtime and package contract` | 待实施 |
+| [VISUAL-THEME-04](visual-theme-04-theme-runtime.md) | 主题运行时与包格式 | VISUAL-THEME-03 | `feat: add secure theme runtime and package contract` | 已完成 |
 | [VISUAL-THEME-05](visual-theme-05-immersive-default.md) | 沉浸式内置主题 | VISUAL-THEME-04 | `feat: add immersive built-in finance theme` | 待实施 |
 | [VISUAL-THEME-06](visual-theme-06-theme-library.md) | 主题库、安全导入与回滚 | VISUAL-THEME-04、05 | `feat: add secure theme library management` | 待实施 |
 | [VISUAL-THEME-07](visual-theme-07-quality.md) | 响应式、无障碍、动效与性能收口 | VISUAL-THEME-05、06 | `test: close visual theme quality gaps` | 待实施 |

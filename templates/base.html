@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="zh-Hans" data-bs-theme="light" data-theme-id="safe-default">
+<html lang="zh-Hans" data-bs-theme="{{ active_theme.resolved_appearance }}" data-theme-id="{{ active_theme.id }}" data-appearance-mode="{{ theme_preferences.appearance_mode|lower }}" data-reduce-motion="{{ theme_preferences.reduce_motion|yesno:'true,false' }}" data-theme-background="{{ theme_preferences.show_background|yesno:'true,false' }}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
     <title>{% block title %}个人财务{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="stylesheet" href="{% static 'themes/safe-default/theme.css' %}">
+    {% if active_theme.stylesheet_url %}<link rel="stylesheet" href="{{ active_theme.stylesheet_url }}?v={{ active_theme.revision }}">{% endif %}
     {% block extra_head %}{% endblock %}
   </head>
   <body class="app-body{% if request.user.is_authenticated %} is-authenticated{% else %} is-anonymous{% endif %}" data-pf-part="app-shell">

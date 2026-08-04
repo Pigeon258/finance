@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "safe-default",
+  "name": "安全默认主题",
+  "version": "1.0.0",
+  "min_app_version": "0.1.0",
+  "capabilities": [
+    "tokens",
+    "safe-css",
+    "charts"
+  ],
+  "files": [
+    {
+      "path": "theme.css",
+      "size": 2013,
+      "sha256": "ae10ea95fe390ce1a074e6ce4acbd14101ada852d4b97d1149897eb78037c4a0"
+    },
+    {
+      "path": "theme.json",
+      "size": 1212,
+      "sha256": "44e368c1e98e08f783e19f659c3beb8a8f3101987939d92aa7355cfcbb25c4ca"
+    }
+  ]
+}
