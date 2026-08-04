@@ -1,0 +1,83 @@
+{
+  "appearance": "dark",
+  "tokens": {
+    "--pf-accent": "#65e6cf",
+    "--pf-canvas": "#080d21",
+    "--pf-heading": "#f7fbff",
+    "--pf-surface": "rgb(14 24 52 / 94%)",
+    "--pf-text": "#dce9fb"
+  },
+  "art": {
+    "asset": "assets/background.webp",
+    "focus": {
+      "x": 0.82,
+      "y": 0.24
+    },
+    "mode": "full",
+    "overlay": "linear-gradient(90deg, rgb(5 9 25 / 42%), rgb(6 12 31 / 12%))",
+    "safe_area": "left"
+  },
+  "components": {
+    "content-panel": {
+      "border-radius": "1.65rem"
+    },
+    "metric-card": {
+      "border-radius": "1.2rem"
+    }
+  },
+  "charts": {
+    "backgroundColor": "transparent",
+    "color": [
+      "#65e6cf",
+      "#7fcfff",
+      "#9b82ff",
+      "#f0c56a",
+      "#ff8398"
+    ],
+    "categoryAxis": {
+      "axisLine": {
+        "lineStyle": {
+          "color": "rgba(147, 181, 239, 0.28)"
+        }
+      },
+      "axisLabel": {
+        "color": "#a9b9d6"
+      }
+    },
+    "valueAxis": {
+      "axisLabel": {
+        "color": "#a9b9d6"
+      },
+      "splitLine": {
+        "lineStyle": {
+          "color": "rgba(147, 181, 239, 0.14)"
+        }
+      }
+    },
+    "legend": {
+      "textStyle": {
+        "color": "#c8d7ed"
+      }
+    },
+    "textStyle": {
+      "color": "#dce9fb",
+      "fontFamily": "Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, sans-serif"
+    },
+    "title": {
+      "textStyle": {
+        "color": "#f7fbff"
+      }
+    },
+    "tooltip": {
+      "backgroundColor": "rgba(8, 15, 36, 0.96)",
+      "borderColor": "rgba(127, 207, 255, 0.38)",
+      "textStyle": {
+        "color": "#e8f2ff"
+      }
+    }
+  },
+  "accessibility": {
+    "high_contrast": true,
+    "reduce_motion": "disable"
+  }
+}

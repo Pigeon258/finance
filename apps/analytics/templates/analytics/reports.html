@@ -38,15 +38,15 @@
     <section><h2>信用卡使用情况</h2>{% if report.credit.configured %}
       <dl class="summary-list"><dt>信用额度</dt><dd>{{ report.credit.credit_limit }}</dd><dt>个人月度上限</dt><dd>{{ report.credit.personal_limit }}</dd><dt>当前负债</dt><dd>{{ report.credit.current_liability }}</dd><dt>已出账未还</dt><dd>{{ report.credit.issued_unpaid }}</dd><dt>未出账</dt><dd>{{ report.credit.unbilled }}</dd></dl>
       <div id="chart-credit" class="chart" data-pf-part="chart-panel" aria-label="信用卡月度消费图表"></div>
-      <table><thead><tr><th>月份</th><th>信用卡消费</th></tr></thead><tbody>{% for row in report.credit.monthly_purchases %}<tr><td>{{ row.label }}</td><td>{{ row.amount }}</td></tr>{% endfor %}</tbody></table>
+      <div class="table-scroll"><table data-pf-part="data-table"><thead><tr><th>月份</th><th>信用卡消费</th></tr></thead><tbody>{% for row in report.credit.monthly_purchases %}<tr><td>{{ row.label }}</td><td>{{ row.amount }}</td></tr>{% endfor %}</tbody></table></div>
     {% else %}<p>尚未配置信用卡。</p>{% endif %}</section>
 
     <section><h2>分期负担</h2><div id="chart-installments" class="chart" data-pf-part="chart-panel" aria-label="分期负担图表"></div>
-      <table><thead><tr><th>月份</th><th>已入账净额</th><th>未来承诺</th><th>合计占用</th></tr></thead><tbody>{% for row in report.installments %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.actual }}</td><td>{{ row.planned }}</td><td>{{ row.total }}</td></tr>{% endfor %}</tbody></table>
+      <div class="table-scroll"><table data-pf-part="data-table"><thead><tr><th>月份</th><th>已入账净额</th><th>未来承诺</th><th>合计占用</th></tr></thead><tbody>{% for row in report.installments %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.actual }}</td><td>{{ row.planned }}</td><td>{{ row.total }}</td></tr>{% endfor %}</tbody></table></div>
     </section>
 
     <section><h2>储蓄目标完成情况</h2><p>第一版以“实际收入 − 退款冲减后的实际消费支出”作为可用于比较储蓄目标的月度收支结余；储蓄目标本身不创建交易。</p><div id="chart-savings" class="chart" data-pf-part="chart-panel" aria-label="储蓄目标完成情况图表"></div>
-      <table><thead><tr><th>月份</th><th>储蓄目标</th><th>月度收支结余</th><th>完成比例</th></tr></thead><tbody>{% for row in report.savings %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.target }}</td><td>{{ row.income_expense_surplus }}</td><td>{{ row.completion_percentage|default_if_none:"未设置目标" }}</td></tr>{% empty %}<tr><td colspan="4">统计范围内没有月度预算。</td></tr>{% endfor %}</tbody></table>
+      <div class="table-scroll"><table data-pf-part="data-table"><thead><tr><th>月份</th><th>储蓄目标</th><th>月度收支结余</th><th>完成比例</th></tr></thead><tbody>{% for row in report.savings %}<tr><td>{{ row.month|date:"Y-m" }}</td><td>{{ row.target }}</td><td>{{ row.income_expense_surplus }}</td><td>{{ row.completion_percentage|default_if_none:"未设置目标" }}</td></tr>{% empty %}<tr><td colspan="4">统计范围内没有月度预算。</td></tr>{% endfor %}</tbody></table></div>
     </section>
 
     {{ chart_data|json_script:"report-chart-data" }}

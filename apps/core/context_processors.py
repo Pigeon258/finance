@@ -13,11 +13,7 @@ def theme_context(request):
         "reduce_motion": False,
         "show_theme_background": True,
     }
-    user = getattr(request, "user", None)
-    should_load_preference = request is None or getattr(user, "is_authenticated", False)
     try:
-        if not should_load_preference:
-            raise SystemPreference.DoesNotExist
         preference = SystemPreference.objects.only(*defaults).get(pk=SystemPreference.SINGLETON_ID)
         values = {name: getattr(preference, name) for name in defaults}
     except (DatabaseError, SystemPreference.DoesNotExist):

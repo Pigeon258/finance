@@ -244,6 +244,18 @@ a:hover {
   border-radius: 50%;
   background: var(--pf-success, #16885b);
   box-shadow: 0 0 0 0.2rem var(--pf-success-soft, #dff5ea);
+  animation: var(--pf-status-animation, none);
+}
+
+@keyframes pf-status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0.2rem var(--pf-success-soft, #dff5ea);
+  }
+
+  50% {
+    box-shadow: 0 0 0 0.42rem transparent;
+  }
 }
 
 .app-workspace {
@@ -915,4 +927,13 @@ details:not(.nav-menu, .mobile-navigation) > summary {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
 }

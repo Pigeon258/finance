@@ -49,3 +49,14 @@ Bootstrap 5.3.8 基础层
 - `components/messages.html`：统一 Django 消息语义与视觉。
 
 新增跨页面组件时优先增加 partial，并在本文件登记部件名称和稳定状态属性。
+
+## 登记状态属性
+
+状态属性必须与注册部件位于同一节点，主题不得使用祖先或全局选择器猜测状态：
+
+- `data-appearance-mode="auto|light|dark"`：应用壳明暗偏好；
+- `data-reduce-motion="true|false"`：应用壳减少动效偏好；
+- `data-theme-background="true|false"`：应用壳背景显示偏好；
+- `data-status="neutral|info|success|warning|danger"`：状态徽章视觉级别。
+
+状态徽章必须同时保留可理解的文字；颜色只能作为增强信息。

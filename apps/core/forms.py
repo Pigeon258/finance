@@ -39,6 +39,15 @@ class SystemPreferenceForm(forms.ModelForm):
         ]
 
         labels = {
+            "time_zone": "系统时区",
+            "category_warning_threshold": "分类预算提醒阈值（%）",
+            "category_over_budget_threshold": "分类预算超支阈值（%）",
+            "large_expense_threshold": "大额支出阈值",
+            "login_failure_window_minutes": "登录失败统计窗口（分钟）",
+            "login_failure_ip_limit": "单个来源登录失败上限",
+            "login_failure_global_limit": "全局登录失败上限",
+            "session_idle_timeout_minutes": "会话空闲超时（分钟）",
+            "session_absolute_timeout_hours": "会话最长时间（小时）",
             "active_theme_id": "界面主题",
             "appearance_mode": "明暗外观",
             "reduce_motion": "减少界面动效",

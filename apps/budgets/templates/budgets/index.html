@@ -32,34 +32,34 @@
     </dl>
     <p><a href="{% url 'budgets:category-edit' snapshot.budget.id %}">新增或更新分类预算</a></p>
     <h2>分类预算</h2>
-    <table>
+    <div class="table-scroll"><table data-pf-part="data-table">
       <thead><tr><th>分类</th><th>预算</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in category_rows %}
           <tr><td>{{ row.category_budget.category }}</td><td>{{ row.category_budget.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{{ row.usage_percentage|default:"—" }}</td><td>{{ row.status }}</td></tr>
         {% empty %}<tr><td colspan="5">尚未设置分类预算。</td></tr>{% endfor %}
       </tbody>
-    </table>
+    </table></div>
   {% else %}
     <p>本月尚未设置预算。</p>
   {% endif %}
 
   <h2>累计储备</h2>
   <p>{{ reserve_balance }}</p>
-  <table>
+  <div class="table-scroll"><table data-pf-part="data-table">
     <thead><tr><th>日期</th><th>类型</th><th>金额</th><th>说明</th></tr></thead>
     <tbody>
       {% for movement in reserve_movements %}<tr><td>{{ movement.occurred_on }}</td><td>{{ movement.get_movement_type_display }}</td><td>{{ movement.amount }}</td><td>{{ movement.note|default:"—" }}</td></tr>
       {% empty %}<tr><td colspan="4">尚无储备变动。</td></tr>{% endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h2>本月计划事项</h2>
-  <table>
+  <div class="table-scroll"><table data-pf-part="data-table">
     <thead><tr><th>日期</th><th>名称</th><th>方向</th><th>金额</th><th>状态</th></tr></thead>
     <tbody>
       {% for occurrence in occurrences %}<tr><td>{{ occurrence.due_date }}</td><td>{{ occurrence.plan.name }}</td><td>{{ occurrence.plan.get_direction_display }}</td><td>{{ occurrence.planned_amount }}</td><td>{{ occurrence.get_status_display }}</td></tr>
       {% empty %}<tr><td colspan="5">本月没有计划事项。</td></tr>{% endfor %}
     </tbody>
-  </table>
+  </table></div>
 {% endblock %}

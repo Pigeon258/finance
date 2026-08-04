@@ -26,9 +26,9 @@
     <section aria-labelledby="risk-status">
       <h2 id="risk-status">风险状态</h2>
       <div class="metric-grid metric-grid-small">
-        <article class="metric-card" data-pf-part="metric-card"><h3>信用卡还款</h3><strong data-pf-part="status-badge">{{ snapshot.credit_status_label }}</strong></article>
-        <article class="metric-card" data-pf-part="metric-card"><h3>月度预算</h3><strong data-pf-part="status-badge">{{ snapshot.budget_status_label }}</strong></article>
-        <article class="metric-card" data-pf-part="metric-card"><h3>未来分期与现金流</h3><strong data-pf-part="status-badge">{{ snapshot.installment_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>信用卡还款</h3><strong data-pf-part="status-badge" data-status="{{ snapshot.credit_status_tone }}">{{ snapshot.credit_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>月度预算</h3><strong data-pf-part="status-badge" data-status="{{ snapshot.budget_status_tone }}">{{ snapshot.budget_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>未来分期与现金流</h3><strong data-pf-part="status-badge" data-status="{{ snapshot.installment_status_tone }}">{{ snapshot.installment_status_label }}</strong></article>
       </div>
       <ul>
         {% for alert in snapshot.alerts %}<li><strong>{{ alert.level }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>

@@ -25,14 +25,14 @@
 
   {% if forecast %}
     <h2>逐月预测：{{ forecast.overall_status }}</h2>
-    <table>
+    <div class="table-scroll"><table data-pf-part="data-table">
       <thead><tr><th>月份</th><th>确定收入</th><th>确定承诺</th><th>预计支出</th><th>储蓄目标</th><th>安全余量</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in forecast.months %}
           <tr><td>{{ row.month }}</td><td>{{ row.certain_income }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.savings_target }}</td><td>{{ row.safety_buffer }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td>{{ row.status }}</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   {% endif %}
 
   <h2>内部预警</h2>

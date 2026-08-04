@@ -57,6 +57,15 @@ class DashboardSnapshot:
         }[self.credit_status]
 
     @property
+    def credit_status_tone(self) -> str:
+        # 视觉状态与既有风险枚举一一对应，文字标签仍是主要信息载体。
+        return {
+            services.CreditRiskStatus.SAFE: "success",
+            services.CreditRiskStatus.USE_RESERVE: "warning",
+            services.CreditRiskStatus.DANGER: "danger",
+        }[self.credit_status]
+
+    @property
     def budget_status_label(self) -> str:
         return {
             "NOT_SET": "未设置预算",
@@ -66,12 +75,30 @@ class DashboardSnapshot:
         }[self.budget_status]
 
     @property
+    def budget_status_tone(self) -> str:
+        return {
+            "NOT_SET": "neutral",
+            "OK": "success",
+            "WARNING": "warning",
+            "OVER": "danger",
+        }[self.budget_status]
+
+    @property
     def installment_status_label(self) -> str:
         return {
             services.ForecastRiskStatus.SAFE: "安全",
             services.ForecastRiskStatus.AFFORDABLE: "可承担",
             services.ForecastRiskStatus.USE_RESERVE: "需要动用储备",
             services.ForecastRiskStatus.HIGH_RISK: "高风险",
+        }[self.installment_status]
+
+    @property
+    def installment_status_tone(self) -> str:
+        return {
+            services.ForecastRiskStatus.SAFE: "success",
+            services.ForecastRiskStatus.AFFORDABLE: "success",
+            services.ForecastRiskStatus.USE_RESERVE: "warning",
+            services.ForecastRiskStatus.HIGH_RISK: "danger",
         }[self.installment_status]
 
 

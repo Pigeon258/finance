@@ -118,8 +118,18 @@ _SEMVER_RE = re.compile(
 _TOKEN_NAME_RE = re.compile(r"^--pf-[a-z0-9-]{1,60}$")
 _PART_SELECTOR_RE = re.compile(
     r"^\[data-pf-part=(?:\"(?P<double>[a-z0-9-]+)\"|'(?P<single>[a-z0-9-]+)')\]"
+    r"(?P<states>(?:\[data-[a-z-]+=(?:\"[a-z0-9-]+\"|'[a-z0-9-]+')\])*)"
     r"(?:(?::(?:active|checked|disabled|focus|focus-visible|hover))|(?:::(?:after|before)))*$"
 )
+_STATE_ATTRIBUTE_RE = re.compile(
+    r"\[data-(?P<name>[a-z-]+)=(?:\"(?P<double>[a-z0-9-]+)\"|'(?P<single>[a-z0-9-]+)')\]"
+)
+DOCUMENTED_STATE_VALUES = {
+    "appearance-mode": frozenset({"auto", "dark", "light"}),
+    "reduce-motion": frozenset({"false", "true"}),
+    "status": frozenset({"danger", "info", "neutral", "success", "warning"}),
+    "theme-background": frozenset({"false", "true"}),
+}
 
 
 class ThemeValidationError(ValueError):
@@ -239,6 +249,14 @@ def _validate_selector(tokens) -> None:
     part = (match.group("double") or match.group("single")) if match else None
     if part not in REGISTERED_PARTS:
         raise ThemeValidationError("Safe CSS 选择器必须且只能作用于已注册 data-pf-part。")
+    states = match.group("states")
+    seen_states: set[str] = set()
+    for state in _STATE_ATTRIBUTE_RE.finditer(states):
+        name = state.group("name")
+        value = state.group("double") or state.group("single")
+        if name in seen_states or value not in DOCUMENTED_STATE_VALUES.get(name, frozenset()):
+            raise ThemeValidationError("Safe CSS 选择器包含未登记或重复的状态属性。")
+        seen_states.add(name)
 
 
 def _validate_css_value(tokens, *, asset_paths: frozenset[str]) -> None:

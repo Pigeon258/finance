@@ -412,6 +412,10 @@ def test_dashboard_and_report_pages_are_read_only_and_use_local_charts(authentic
     assert "首页仪表盘" in response.content.decode()
     response = authenticated_client.get(reverse("analytics:dashboard"), {"month": "2026-07"})
     assert response.status_code == 200
+    dashboard_content = response.content.decode()
+    assert 'data-theme-id="aurora-ledger"' in dashboard_content
+    assert "/static/themes/aurora-ledger/theme.css?v=" in dashboard_content
+    assert dashboard_content.count('data-pf-part="status-badge" data-status=') == 3
     response = authenticated_client.get(
         reverse("analytics:reports"),
         {
@@ -424,6 +428,8 @@ def test_dashboard_and_report_pages_are_read_only_and_use_local_charts(authentic
     assert response.context["report"] is not None
     content = response.content.decode()
     assert "/static/vendor/echarts/echarts.min.js" in content
+    assert 'id="report-chart-theme"' in content
+    assert "#65e6cf" in content
     assert "cdn.jsdelivr.net" not in content
     assert Transaction.objects.count() == before
 

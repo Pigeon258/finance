@@ -62,11 +62,12 @@ def test_authenticated_shell_exposes_stable_theme_parts(client, owner):
     assert 'data-pf-part="content-panel"' in body
     assert "/static/vendor/bootstrap/bootstrap.min.css" in body
     assert "/static/vendor/bootstrap/bootstrap.bundle.min.js" in body
-    assert "/static/themes/safe-default/theme.css" in body
+    assert "/static/themes/aurora-ledger/theme.css" in body
     assert reverse("ledger:transaction-index") in body
     assert reverse("core:settings") in body
 
 
+@pytest.mark.django_db
 def test_login_uses_auth_component_without_script_dependency(client):
     response = client.get(reverse("core:login"))
     body = response.content.decode()
@@ -77,6 +78,7 @@ def test_login_uses_auth_component_without_script_dependency(client):
     assert 'class="skip-link"' in body
     assert "onclick=" not in body
     assert "安全登录" in body
+    assert "/static/themes/aurora-ledger/theme.css" in body
 
 
 def test_safe_default_defines_required_fallback_tokens():

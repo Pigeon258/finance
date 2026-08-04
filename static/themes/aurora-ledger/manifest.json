@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "aurora-ledger",
+  "name": "Aurora Ledger 极光账境",
+  "version": "1.0.0",
+  "min_app_version": "0.1.0",
+  "capabilities": [
+    "tokens",
+    "background",
+    "safe-css",
+    "charts"
+  ],
+  "files": [
+    {
+      "path": "ASSET-SOURCES.txt",
+      "size": 713,
+      "sha256": "fea62050dd1cfc7ed72d5eaa7364b1014237469a958c384937bee1011a1e4221"
+    },
+    {
+      "path": "assets/background.webp",
+      "size": 33312,
+      "sha256": "d85dd7ec7d05e0430eb7cd7fbd9f7ade08a150bb7812808b80169668ce12795f"
+    },
+    {
+      "path": "LICENSE.txt",
+      "size": 657,
+      "sha256": "34fcf1f1eb85129b1ce95876b3cc8680e4ba731d2118af215339140ccaf035a5"
+    },
+    {
+      "path": "preview.webp",
+      "size": 8558,
+      "sha256": "9e16567622c52277b7f0aef9e7b4c6af22de6dbf4e576254eb0de9d2b060fe66"
+    },
+    {
+      "path": "theme.css",
+      "size": 9466,
+      "sha256": "c969242e5bc8071f0d49da091b1c6643a1e8ffba2ab1339da5f02e52f2c4e293"
+    },
+    {
+      "path": "theme.json",
+      "size": 1694,
+      "sha256": "81adccca995d1ef54052b16260fd90df60c9e060473d73cd67dfc35035abf24c"
+    }
+  ]
+}

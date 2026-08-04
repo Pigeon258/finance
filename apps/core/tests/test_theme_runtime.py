@@ -153,6 +153,9 @@ def test_safe_css_accepts_registered_parts_and_registered_relative_asset():
           border-color: rgb(111 140 255 / 60%);
           opacity: 0.9;
         }
+        [data-pf-part="app-shell"][data-theme-background="false"] {
+          background-image: linear-gradient(#080d21, #151d48);
+        }
         """,
         asset_paths=frozenset({"assets/background.webp"}),
     )
@@ -170,6 +173,7 @@ def test_safe_css_accepts_registered_parts_and_registered_relative_asset():
         '[data-pf-part="metric-card"] { background: url("https://example.com/a.webp"); }',
         '[data-pf-part="metric-card"] { background: url("assets/missing.webp"); }',
         '[data-pf-part="metric-card"], body { color: red; }',
+        '[data-pf-part="app-shell"][data-theme-mode="cinema"] { color: red; }',
         '[data-pf-part="metric-card"] { color: red; }} body { color: transparent; }',
     ],
 )

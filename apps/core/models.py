@@ -47,7 +47,7 @@ class SystemPreference(models.Model):
     session_absolute_timeout_hours = models.PositiveSmallIntegerField(
         default=24, validators=[MinValueValidator(1), MaxValueValidator(8760)]
     )
-    active_theme_id = models.CharField(max_length=80, default="safe-default")
+    active_theme_id = models.CharField(max_length=80, default="aurora-ledger")
     last_known_good_theme_id = models.CharField(max_length=80, default="safe-default")
     appearance_mode = models.CharField(
         max_length=8, choices=AppearanceMode.choices, default=AppearanceMode.AUTO

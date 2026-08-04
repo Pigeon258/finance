@@ -28,6 +28,7 @@ def test_financial_pages_require_login(client):
     assert response.url.startswith(reverse("core:login"))
 
 
+@pytest.mark.django_db
 def test_health_checks_and_login_are_public(client):
     assert client.get(reverse("core:health-live")).status_code == 200
     assert client.get(reverse("core:login")).status_code == 200

@@ -1,0 +1,258 @@
+/* Aurora Ledger: an original immersive dark theme for Personal Finance. */
+[data-pf-part="app-shell"] {
+  --pf-font-sans: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+  --pf-canvas: #080d21;
+  --pf-sidebar: rgb(8 13 33 / 88%);
+  --pf-topbar: rgb(10 18 43 / 82%);
+  --pf-surface: rgb(14 24 52 / 94%);
+  --pf-surface-muted: rgb(22 34 68 / 92%);
+  --pf-chart: rgb(11 20 46 / 88%);
+  --pf-text: #dce9fb;
+  --pf-heading: #f7fbff;
+  --pf-text-muted: #a9b9d6;
+  --pf-text-subtle: #8497ba;
+  --pf-link: #8fe9da;
+  --pf-link-hover: #c3fff5;
+  --pf-accent: #65e6cf;
+  --pf-accent-soft: rgb(101 230 207 / 14%);
+  --pf-accent-border: rgb(101 230 207 / 40%);
+  --pf-accent-gradient: linear-gradient(135deg, #4fd9c5 0%, #778cff 52%, #a17cff 100%);
+  --pf-on-accent: #071526;
+  --pf-focus: #9eeeff;
+  --pf-focus-soft: rgb(126 216 255 / 24%);
+  --pf-border: rgb(147 181 239 / 24%);
+  --pf-border-soft: rgb(147 181 239 / 14%);
+  --pf-nav-text: #b8c8e4;
+  --pf-nav-icon: #7fcfff;
+  --pf-nav-hover: rgb(104 226 211 / 12%);
+  --pf-nav-active-text: #b8fff3;
+  --pf-input: rgb(7 15 36 / 88%);
+  --pf-input-border: rgb(151 186 240 / 34%);
+  --pf-button: rgb(23 38 74 / 92%);
+  --pf-button-border: rgb(142 179 235 / 32%);
+  --pf-button-text: #e4efff;
+  --pf-disabled: rgb(35 47 73 / 92%);
+  --pf-disabled-text: #7889a8;
+  --pf-table-head: rgb(25 40 78 / 96%);
+  --pf-table-heading: #b4c7e5;
+  --pf-table-hover: rgb(103 229 207 / 8%);
+  --pf-success: #70e4b1;
+  --pf-success-soft: rgb(80 219 164 / 15%);
+  --pf-success-border: rgb(112 228 177 / 42%);
+  --pf-success-text: #b7f8dc;
+  --pf-warning: #f0c56a;
+  --pf-warning-soft: rgb(240 197 106 / 14%);
+  --pf-warning-border: rgb(240 197 106 / 42%);
+  --pf-warning-text: #ffe6aa;
+  --pf-danger: #ff8398;
+  --pf-danger-soft: rgb(255 111 139 / 14%);
+  --pf-danger-border: rgb(255 131 152 / 44%);
+  --pf-danger-text: #ffc0cb;
+  --pf-info-soft: rgb(104 157 255 / 14%);
+  --pf-info-border: rgb(127 191 255 / 38%);
+  --pf-info-text: #c6e4ff;
+  --pf-radius-sm: 0.78rem;
+  --pf-radius-md: 1rem;
+  --pf-radius-lg: 1.2rem;
+  --pf-radius-xl: 1.65rem;
+  --pf-shadow-xs: 0 0.18rem 0.5rem rgb(0 4 18 / 22%);
+  --pf-shadow-sm: 0 0.7rem 2.2rem rgb(0 4 20 / 24%);
+  --pf-shadow-lg: 0 1.7rem 4.5rem rgb(0 3 18 / 42%);
+  --pf-shadow-accent: 0 0.65rem 1.8rem rgb(101 230 207 / 22%);
+  --pf-shadow-sidebar: 0.55rem 0 2.8rem rgb(0 3 18 / 28%);
+  --pf-status-animation: pf-status-pulse 2.8s ease-in-out infinite;
+  --pf-theme-navigation: linear-gradient(180deg, rgb(7 12 31 / 94%), rgb(11 20 47 / 86%));
+  --pf-theme-page-header: linear-gradient(110deg, rgb(8 15 37 / 90%), rgb(26 38 80 / 74%));
+  --pf-theme-content: linear-gradient(145deg, rgb(8 14 35 / 48%), rgb(18 31 65 / 30%));
+  --pf-theme-metric: linear-gradient(145deg, rgb(20 34 70 / 96%), rgb(12 23 53 / 92%));
+  --pf-theme-form: linear-gradient(145deg, rgb(16 27 58 / 90%), rgb(9 18 43 / 88%));
+  --pf-theme-table: rgb(10 19 44 / 92%);
+  --pf-theme-message: linear-gradient(110deg, rgb(17 33 69 / 96%), rgb(11 23 54 / 94%));
+  --pf-theme-chart: linear-gradient(145deg, rgb(9 18 43 / 96%), rgb(18 31 65 / 90%));
+  --pf-theme-auth: linear-gradient(145deg, rgb(17 29 62 / 96%), rgb(7 15 38 / 96%));
+  color: var(--pf-text);
+}
+
+[data-pf-part="app-shell"][data-appearance-mode="light"] {
+  --pf-canvas: #e9f3fb;
+  --pf-sidebar: rgb(244 249 255 / 92%);
+  --pf-topbar: rgb(239 247 255 / 86%);
+  --pf-surface: rgb(250 253 255 / 94%);
+  --pf-surface-muted: rgb(236 245 252 / 94%);
+  --pf-chart: rgb(247 252 255 / 92%);
+  --pf-text: #21334d;
+  --pf-heading: #0d203a;
+  --pf-text-muted: #506985;
+  --pf-text-subtle: #7188a3;
+  --pf-link: #126f79;
+  --pf-link-hover: #07515b;
+  --pf-accent: #37cbb6;
+  --pf-accent-soft: rgb(45 190 171 / 14%);
+  --pf-accent-border: rgb(24 150 140 / 34%);
+  --pf-on-accent: #062b29;
+  --pf-focus: #176f9d;
+  --pf-focus-soft: rgb(23 111 157 / 18%);
+  --pf-border: rgb(72 117 163 / 24%);
+  --pf-border-soft: rgb(72 117 163 / 14%);
+  --pf-nav-text: #405b78;
+  --pf-nav-icon: #2779a1;
+  --pf-nav-hover: rgb(42 183 167 / 12%);
+  --pf-nav-active-text: #075d63;
+  --pf-input: rgb(255 255 255 / 92%);
+  --pf-input-border: rgb(66 111 157 / 34%);
+  --pf-button: rgb(246 251 255 / 96%);
+  --pf-button-border: rgb(62 106 152 / 28%);
+  --pf-button-text: #213b59;
+  --pf-disabled: #dce7ef;
+  --pf-disabled-text: #74879a;
+  --pf-table-head: rgb(222 239 250 / 96%);
+  --pf-table-heading: #3f5d79;
+  --pf-table-hover: rgb(48 186 169 / 8%);
+  --pf-success-soft: rgb(34 161 111 / 12%);
+  --pf-success-border: rgb(24 130 86 / 34%);
+  --pf-success-text: #116242;
+  --pf-warning-soft: rgb(194 129 20 / 12%);
+  --pf-warning-border: rgb(174 112 12 / 34%);
+  --pf-warning-text: #78500e;
+  --pf-danger-soft: rgb(201 62 83 / 11%);
+  --pf-danger-border: rgb(183 48 70 / 32%);
+  --pf-danger-text: #8b2639;
+  --pf-info-soft: rgb(59 120 203 / 10%);
+  --pf-info-border: rgb(55 111 187 / 28%);
+  --pf-info-text: #284f82;
+  --pf-shadow-xs: 0 0.18rem 0.5rem rgb(33 70 108 / 10%);
+  --pf-shadow-sm: 0 0.7rem 2.2rem rgb(33 70 108 / 12%);
+  --pf-shadow-lg: 0 1.7rem 4.5rem rgb(33 70 108 / 18%);
+  --pf-shadow-sidebar: 0.55rem 0 2.8rem rgb(33 70 108 / 12%);
+  --pf-theme-navigation: linear-gradient(180deg, rgb(246 251 255 / 96%), rgb(232 244 252 / 90%));
+  --pf-theme-page-header: linear-gradient(110deg, rgb(244 250 255 / 92%), rgb(218 238 252 / 82%));
+  --pf-theme-content: linear-gradient(145deg, rgb(245 251 255 / 64%), rgb(220 239 251 / 46%));
+  --pf-theme-metric: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(235 247 253 / 94%));
+  --pf-theme-form: linear-gradient(145deg, rgb(250 253 255 / 94%), rgb(230 243 252 / 92%));
+  --pf-theme-table: rgb(249 253 255 / 94%);
+  --pf-theme-message: linear-gradient(110deg, rgb(244 251 255 / 96%), rgb(226 241 252 / 94%));
+  --pf-theme-chart: linear-gradient(145deg, rgb(249 253 255 / 96%), rgb(230 243 252 / 92%));
+  --pf-theme-auth: linear-gradient(145deg, rgb(250 253 255 / 96%), rgb(225 240 251 / 96%));
+}
+
+[data-pf-part="app-shell"][data-theme-background="true"] {
+  background: linear-gradient(90deg, rgb(5 9 25 / 42%), rgb(6 12 31 / 12%)), url("assets/background.webp") center / cover fixed;
+}
+
+[data-pf-part="app-shell"][data-theme-background="false"] {
+  background: linear-gradient(145deg, #080d21 0%, #111a3a 52%, #14254a 100%);
+}
+
+[data-pf-part="app-shell"][data-appearance-mode="light"][data-theme-background="true"] {
+  background: linear-gradient(90deg, rgb(235 246 255 / 82%), rgb(224 241 252 / 56%)), url("assets/background.webp") center / cover fixed;
+}
+
+[data-pf-part="app-shell"][data-appearance-mode="light"][data-theme-background="false"] {
+  background: linear-gradient(145deg, #eef7fc 0%, #e1f0fa 52%, #d9ebf8 100%);
+}
+
+[data-pf-part="app-shell"][data-reduce-motion="true"] {
+  --pf-status-animation: none;
+}
+
+[data-pf-part="top-navigation"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-navigation);
+  box-shadow: var(--pf-shadow-sidebar);
+}
+
+[data-pf-part="navigation-menu"] {
+  border-radius: var(--pf-radius-md);
+}
+
+[data-pf-part="page-header"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-page-header);
+  box-shadow: 0 0.7rem 2rem rgb(0 4 20 / 18%);
+}
+
+[data-pf-part="content-panel"] {
+  border: 1px solid var(--pf-border-soft);
+  border-radius: var(--pf-radius-xl);
+  background: var(--pf-theme-content);
+  box-shadow: 0 1.2rem 4rem rgb(0 3 18 / 18%);
+}
+
+[data-pf-part="metric-card"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-metric);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 4 20 / 26%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+[data-pf-part="metric-card"]:hover {
+  border-color: rgb(101 230 207 / 58%);
+  box-shadow: 0 1rem 3rem rgb(0 5 24 / 34%);
+}
+
+[data-pf-part="metric-card"]::after {
+  background: radial-gradient(circle, rgb(101 230 207 / 28%) 0%, rgb(155 130 255 / 6%) 72%);
+  opacity: 0.85;
+}
+
+[data-pf-part="action-group"] {
+  gap: 0.9rem;
+}
+
+[data-pf-part="form-panel"] {
+  padding: 1rem;
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius-lg);
+  background: var(--pf-theme-form);
+  box-shadow: 0 0.8rem 2.5rem rgb(0 4 20 / 20%);
+}
+
+[data-pf-part="data-table"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-table);
+}
+
+[data-pf-part="status-badge"] {
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--pf-info-border);
+  border-radius: 999px;
+  color: var(--pf-info-text);
+  background: var(--pf-info-soft);
+  box-shadow: 0 0.35rem 1.1rem rgb(0 4 20 / 18%);
+}
+
+[data-pf-part="status-badge"][data-status="success"] {
+  border-color: var(--pf-success-border);
+  color: var(--pf-success-text);
+  background: var(--pf-success-soft);
+}
+
+[data-pf-part="status-badge"][data-status="warning"] {
+  border-color: var(--pf-warning-border);
+  color: var(--pf-warning-text);
+  background: var(--pf-warning-soft);
+}
+
+[data-pf-part="status-badge"][data-status="danger"] {
+  border-color: var(--pf-danger-border);
+  color: var(--pf-danger-text);
+  background: var(--pf-danger-soft);
+}
+
+[data-pf-part="message-banner"] {
+  border-color: var(--pf-info-border);
+  background: var(--pf-theme-message);
+  box-shadow: 0 0.7rem 2rem rgb(0 4 20 / 24%);
+}
+
+[data-pf-part="chart-panel"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-chart);
+  box-shadow: inset 0 0 3rem rgb(101 230 207 / 4%);
+}
+
+[data-pf-part="auth-panel"] {
+  border-color: var(--pf-border);
+  background: var(--pf-theme-auth);
+  box-shadow: 0 1.8rem 5rem rgb(0 3 18 / 48%);
+}

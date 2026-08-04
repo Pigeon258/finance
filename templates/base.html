@@ -11,7 +11,7 @@
     {% if active_theme.stylesheet_url %}<link rel="stylesheet" href="{{ active_theme.stylesheet_url }}?v={{ active_theme.revision }}">{% endif %}
     {% block extra_head %}{% endblock %}
   </head>
-  <body class="app-body{% if request.user.is_authenticated %} is-authenticated{% else %} is-anonymous{% endif %}" data-pf-part="app-shell">
+  <body class="app-body{% if request.user.is_authenticated %} is-authenticated{% else %} is-anonymous{% endif %}" data-pf-part="app-shell" data-appearance-mode="{{ theme_preferences.appearance_mode|lower }}" data-reduce-motion="{{ theme_preferences.reduce_motion|yesno:'true,false' }}" data-theme-background="{{ theme_preferences.show_background|yesno:'true,false' }}">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <div class="app-frame">
       {% if request.user.is_authenticated %}
