@@ -885,7 +885,7 @@ details:not(.nav-menu, .mobile-navigation) > summary {
     min-height: 3.75rem;
   }
 
-  .mobile-navigation {
+  .mobile-navigation[hidden] {
     position: relative;
     display: block;
   }

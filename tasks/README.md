@@ -17,6 +17,12 @@
 - 该文件是后续规划输入，不替代具体任务文档；只有在系统所有者明确要求规划或实施后，才转换为有范围、依赖和验收标准的任务。
 - 系统所有者临时直接提出的需求同样有效，按影响范围创建或更新对应任务后实施。
 
+## 快速迭代模式
+
+`QUICK-ITERATION` 用于生产基线之后的低风险、小范围修复。进入该模式必须同时满足：不改变账务或统计口径、不涉及数据迁移、不放宽安全边界、改动可独立回滚，并且能用一个轻量任务文档写清问题、范围、回归测试、人工验收、发布和回滚。
+
+工作顺序固定为：实际证据（截图或复现）→ 根因定位 → 轻量任务文档 → 最小改动 → 窄测试与完整质量门槛 → 人工页面冒烟 → 快速生产发布与观察。符合全部准入条件时使用 `deploy/quick-upgrade.sh`，只替换 Web/Caddy 并保留备份、检查和镜像回滚；任何条件不满足时退出快速模式，改走普通任务或先更新需求/设计。
+
 ## 文档一致性检查
 
 ### 已解决的基线问题
@@ -128,6 +134,12 @@ flowchart LR
 | [VISUAL-THEME-06](visual-theme-06-theme-library.md) | 主题库、安全导入与回滚 | VISUAL-THEME-04、05 | `feat: add secure theme library management` | 已完成 |
 | [VISUAL-THEME-07](visual-theme-07-quality.md) | 响应式、无障碍、动效与性能收口 | VISUAL-THEME-05、06 | `test: close visual theme quality gaps` | 已完成 |
 | [VISUAL-THEME-08](visual-theme-08-acceptance.md) | 整体验收与生产发布 | VISUAL-THEME-07 | `chore: validate and release visual theme system` | 已完成；v0.2.0 生产发布验收通过 |
+
+### QUICK-ITERATION 任务状态
+
+| 任务 | 名称 | 依赖 | 建议提交 | 状态 |
+|---|---|---|---|---|
+| [QUICK-ITERATION-01](quick-iteration-01-navigation-fallback.md) | 导航重复显示修复 | v0.2.0 | `fix: prevent duplicate navigation fallback` | 实施完成；待发布 |
 
 ## 每个任务的共同完成门槛
 

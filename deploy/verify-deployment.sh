@@ -27,6 +27,11 @@ echo "$headers" | grep -qi '^content-security-policy:'
 echo "$headers" | grep -qi '^x-content-type-options: nosniff'
 echo "$headers" | grep -qi '^x-frame-options: DENY'
 
+app_css_headers=$(curl --fail --silent --show-error --head "https://$domain/static/css/app.css")
+echo "$app_css_headers" | grep -qi '^content-type: text/css'
+echo "$app_css_headers" | grep -qi '^cache-control: public, max-age=3600, must-revalidate'
+echo "$app_css_headers" | grep -qi '^x-content-type-options: nosniff'
+
 theme_headers=$(curl --fail --silent --show-error --head "https://$domain/static/themes/aurora-ledger/theme.css")
 echo "$theme_headers" | grep -qi '^content-type: text/css'
 echo "$theme_headers" | grep -qi '^cache-control: public, max-age=31536000, immutable'

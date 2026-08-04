@@ -84,6 +84,29 @@ docker compose exec -T web python manage.py check_theme_integrity --strict
 
 并人工检查主题库、桌面/手机首页、当前账期、主题预览与一键恢复安全默认。运行时主题资源只允许固定 `/themes/` 路径中的 CSS、图片和 WOFF2；Caddy 必须返回 `nosniff` 与不可变缓存头，未知资源返回 404。
 
+### 5.2 低风险快速发布
+
+只有已经建立 `QUICK-ITERATION-NN` 任务，且确认不涉及数据库迁移、账务或统计口径、凭据、网络暴露、备份格式和安全边界时，才允许使用快速发布：
+
+```bash
+git fetch origin
+git checkout <reviewed-full-sha>
+set -a; . ./.env; set +a
+QUICK_RELEASE_TASK=QUICK-ITERATION-NN sh deploy/quick-upgrade.sh "$(git rev-parse HEAD)"
+sh deploy/verify-deployment.sh
+```
+
+快速发布会把当前 Web、Caddy 和 maintenance 镜像保存为带 UTC 时间的 `quick-rollback-*` 标签，随后只重建 Web/Caddy，创建加密部署备份并执行三项应用检查。它不运行迁移和维护模式，服务替换时可能有数秒连接中断。若任务不满足准入条件，必须使用第 5 节的完整升级。
+
+快速回滚使用脚本输出的同一时间标签：
+
+```bash
+sh deploy/rollback.sh \
+  personal-finance-web:quick-rollback-<UTC> \
+  personal-finance-caddy:quick-rollback-<UTC> \
+  personal-finance-maintenance:quick-rollback-<UTC>
+```
+
 ## 6. 回滚
 
 没有不兼容数据库迁移时，传入仓库或私有 registry 中保留的三个旧镜像：

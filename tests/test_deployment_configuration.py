@@ -136,8 +136,28 @@ def test_deployment_verifier_checks_actual_docker_port_bindings():
     assert "check_theme_integrity --strict" in verifier
     assert 'eq .Destination "/app/var/themes"' in verifier
     assert 'eq .Destination "/srv/themes"' in verifier
+    assert "/static/css/app.css" in verifier
+    assert "public, max-age=3600, must-revalidate" in verifier
     assert "/static/themes/aurora-ledger/theme.css" in verifier
     assert "/themes/not-installed/theme.css" in verifier
+
+
+def test_quick_upgrade_keeps_release_identity_backup_checks_and_rollback_images():
+    script = (ROOT / "deploy" / "quick-upgrade.sh").read_text(encoding="utf-8")
+
+    assert "QUICK_RELEASE_TASK" in script
+    assert "QUICK-ITERATION-[0-9][0-9]" in script
+    assert "git rev-parse HEAD" in script
+    assert "git status --porcelain --untracked-files=no" in script
+    assert script.count("quick-rollback-$rollback_id") == 6
+    assert "docker compose build web caddy" in script
+    assert "database_backup --kind deployment" in script
+    assert "docker compose up -d --wait --wait-timeout 90 --no-deps web caddy" in script
+    assert "manage.py migrate" not in script
+    assert "maintenance_mode" not in script
+    assert "check --deploy --settings=config.settings.production" in script
+    assert "check_financial_integrity" in script
+    assert "check_theme_integrity --strict" in script
 
 
 def test_backup_scheduler_uses_application_timezone_and_expected_boundaries():

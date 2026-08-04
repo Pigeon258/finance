@@ -65,6 +65,17 @@ def test_authenticated_shell_exposes_stable_theme_parts(client, owner):
     assert "/static/themes/aurora-ledger/theme.css" in body
     assert reverse("ledger:transaction-index") in body
     assert reverse("core:settings") in body
+    assert '<details class="mobile-navigation" hidden>' in body
+
+
+def test_mobile_navigation_is_fail_closed_until_responsive_css_applies():
+    app_css = (settings.BASE_DIR / "static" / "css" / "app.css").read_text(
+        encoding="utf-8"
+    )
+
+    # 基础样式加载失败时依靠 hidden 避免桌面、移动导航同时暴露。
+    assert ".mobile-navigation[hidden]" in app_css
+    assert "@media (max-width: 52rem)" in app_css
 
 
 @pytest.mark.django_db
