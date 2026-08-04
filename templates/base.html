@@ -1,37 +1,52 @@
 {% load static %}
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="zh-Hans" data-bs-theme="light" data-theme-id="safe-default">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
     <title>{% block title %}个人财务{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'themes/safe-default/theme.css' %}">
+    {% block extra_head %}{% endblock %}
   </head>
-  <body>
+  <body class="app-body{% if request.user.is_authenticated %} is-authenticated{% else %} is-anonymous{% endif %}" data-pf-part="app-shell">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
-    <header>
-      <nav aria-label="主导航">
-        {% if request.user.is_authenticated %}
-          <a href="{% url 'core:home' %}">首页</a>
-          <a href="{% url 'ledger:transaction-index' %}">交易记录</a>
-          <a href="{% url 'budgets:index' %}">预算管理</a>
-          <a href="{% url 'credit:overview' %}">信用卡</a>
-          <a href="{% url 'installments:index' %}">分期</a>
-          <a href="{% url 'imports:index' %}">账单导入</a>
-          <a href="{% url 'analytics:upcoming' %}">未来事项</a>
-          <details class="nav-menu"><summary>分析与管理</summary><div><a href="{% url 'analytics:reports' %}">统计报表</a><a href="{% url 'analytics:risk-overview' %}">风险预测</a><a href="{% url 'accounts:index' %}">账户</a><a href="{% url 'ledger:category-index' %}">分类</a><a href="{% url 'ledger:transaction-template-index' %}">常用模板</a><a href="{% url 'imports:rules' %}">导入规则</a><a href="{% url 'core:export-center' %}">导出与备份</a><a href="{% url 'core:settings' %}">系统设置</a></div></details>
-          <form class="inline-form" method="post" action="{% url 'core:logout' %}">
-            {% csrf_token %}
-            <button type="submit">退出登录</button>
-          </form>
-        {% endif %}
-      </nav>
-    </header>
-    {% if messages %}
-      <ul class="messages" aria-live="polite">
-        {% for message in messages %}<li role="status">{{ message }}</li>{% endfor %}
-      </ul>
-    {% endif %}
-    <main id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
+    <div class="app-frame">
+      {% if request.user.is_authenticated %}
+        {% include "components/primary_navigation.html" %}
+      {% endif %}
+
+      <div class="app-workspace">
+        <header class="app-topbar" data-pf-part="page-header">
+          {% if request.user.is_authenticated %}
+            <details class="mobile-navigation">
+              <summary aria-label="打开主导航"><span aria-hidden="true">☰</span> 菜单</summary>
+              <div class="mobile-navigation-panel">
+                {% include "components/navigation_links.html" %}
+              </div>
+            </details>
+          {% else %}
+            <a class="brand brand-compact" href="{% url 'core:login' %}" aria-label="个人财务登录页">
+              <span class="brand-mark" aria-hidden="true">PF</span>
+              <span>Personal Finance</span>
+            </a>
+          {% endif %}
+          <div class="topbar-context">
+            <span class="topbar-kicker">个人财务工作台</span>
+            <span class="topbar-status"><span class="status-dot" aria-hidden="true"></span>本地账本安全连接</span>
+          </div>
+        </header>
+
+        {% include "components/messages.html" %}
+
+        <main id="main-content" class="app-main" data-pf-part="content-panel" tabindex="-1">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+    <script defer src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    {% block extra_scripts %}{% endblock %}
   </body>
 </html>

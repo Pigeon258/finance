@@ -1,0 +1,15 @@
+<aside class="app-sidebar" data-pf-part="top-navigation">
+  <a class="brand" href="{% url 'core:home' %}" aria-label="个人财务首页">
+    <span class="brand-mark" aria-hidden="true">PF</span>
+    <span class="brand-copy">
+      <strong>Personal Finance</strong>
+      <small>清醒地掌控每一笔钱</small>
+    </span>
+  </a>
+  <div class="sidebar-label">工作区</div>
+  {% include "components/navigation_links.html" %}
+  <div class="sidebar-footnote">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span>财务事实由核心账本计算</span>
+  </div>
+</aside>

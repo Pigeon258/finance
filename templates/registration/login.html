@@ -3,12 +3,15 @@
 {% block title %}登录 · 个人财务{% endblock %}
 
 {% block content %}
-  <h1>登录</h1>
-  {% if request.GET.restored %}<p role="status">业务数据已恢复，请使用当前管理员密码重新登录。</p>{% endif %}
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ request.GET.next }}">
-    {{ form.as_div }}
-    <button type="submit">登录</button>
-  </form>
+  <section data-pf-part="auth-panel" aria-labelledby="login-heading">
+    <h1 id="login-heading">欢迎回来</h1>
+    <p>登录你的私人财务工作台，继续查看预算、账单和资金计划。</p>
+    {% if request.GET.restored %}<p role="status">业务数据已恢复，请使用当前管理员密码重新登录。</p>{% endif %}
+    <form method="post" data-pf-part="form-panel">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
+      {{ form.as_div }}
+      <button type="submit">安全登录</button>
+    </form>
+  </section>
 {% endblock %}

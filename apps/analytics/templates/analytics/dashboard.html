@@ -3,7 +3,7 @@
 {% block title %}首页仪表盘 · 个人财务{% endblock %}
 
 {% block content %}
-  <div class="page-heading">
+  <div class="page-heading" data-pf-part="page-header">
     <div><h1>个人财务管理系统 · 首页仪表盘</h1><p>当前资金指标截至今天；月度指标按所选预算月份统计。</p></div>
     <form method="get" class="compact-form">{{ form.as_div }}<button type="submit">切换月份</button></form>
   </div>
@@ -12,23 +12,23 @@
     <section aria-labelledby="core-metrics">
       <h2 id="core-metrics">核心指标</h2>
       <div class="metric-grid">
-        <article class="metric-card"><h3>流动资产</h3><strong>{{ snapshot.liquid_assets }}</strong></article>
-        <article class="metric-card"><h3>信用卡负债</h3><strong>{{ snapshot.credit_liability }}</strong></article>
-        <article class="metric-card"><h3>当前净资金</h3><strong>{{ snapshot.net_funds }}</strong></article>
-        <article class="metric-card"><h3>{{ snapshot.month|date:"Y-m" }} 实际收入</h3><strong>{{ snapshot.monthly_income }}</strong></article>
-        <article class="metric-card"><h3>本月预算占用</h3><strong>{{ snapshot.budget.total_occupancy }}</strong></article>
-        <article class="metric-card"><h3>本月剩余预算</h3><strong>{{ snapshot.budget.remaining }}</strong></article>
-        <article class="metric-card"><h3>累计储备资金</h3><strong>{{ snapshot.reserve_balance }}</strong></article>
-        <article class="metric-card"><h3>下一还款</h3><strong>{% if snapshot.next_due_date %}{{ snapshot.next_due_date }} / {{ snapshot.next_due_amount }}{% else %}暂无{% endif %}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>流动资产</h3><strong>{{ snapshot.liquid_assets }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>信用卡负债</h3><strong>{{ snapshot.credit_liability }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>当前净资金</h3><strong>{{ snapshot.net_funds }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>{{ snapshot.month|date:"Y-m" }} 实际收入</h3><strong>{{ snapshot.monthly_income }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>本月预算占用</h3><strong>{{ snapshot.budget.total_occupancy }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>本月剩余预算</h3><strong>{{ snapshot.budget.remaining }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>累计储备资金</h3><strong>{{ snapshot.reserve_balance }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>下一还款</h3><strong>{% if snapshot.next_due_date %}{{ snapshot.next_due_date }} / {{ snapshot.next_due_amount }}{% else %}暂无{% endif %}</strong></article>
       </div>
     </section>
 
     <section aria-labelledby="risk-status">
       <h2 id="risk-status">风险状态</h2>
       <div class="metric-grid metric-grid-small">
-        <article class="metric-card"><h3>信用卡还款</h3><strong>{{ snapshot.credit_status_label }}</strong></article>
-        <article class="metric-card"><h3>月度预算</h3><strong>{{ snapshot.budget_status_label }}</strong></article>
-        <article class="metric-card"><h3>未来分期与现金流</h3><strong>{{ snapshot.installment_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>信用卡还款</h3><strong data-pf-part="status-badge">{{ snapshot.credit_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>月度预算</h3><strong data-pf-part="status-badge">{{ snapshot.budget_status_label }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>未来分期与现金流</h3><strong data-pf-part="status-badge">{{ snapshot.installment_status_label }}</strong></article>
       </div>
       <ul>
         {% for alert in snapshot.alerts %}<li><strong>{{ alert.level }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
@@ -40,7 +40,7 @@
       <h2 id="upcoming">未来 30 天事项</h2>
       <p>日期范围包含今天和第 30 天。已进入信用卡账单的分期期次只标注来源，不重复累计应付款。</p>
       <div class="table-scroll">
-        <table>
+        <table data-pf-part="data-table">
           <thead><tr><th>日期</th><th>类型</th><th>事项</th><th>金额</th><th>说明</th></tr></thead>
           <tbody>
             {% for item in snapshot.upcoming_items %}
@@ -53,7 +53,7 @@
 
     <section aria-labelledby="quick-actions">
       <h2 id="quick-actions">快捷操作</h2>
-      <div class="quick-actions">
+      <div class="quick-actions" data-pf-part="action-group">
         <a href="{% url 'ledger:transaction-create' 'income' %}">记收入</a>
         <a href="{% url 'ledger:transaction-create' 'expense' %}">记支出</a>
         <a href="{% url 'credit:purchase-create' %}">记信用卡消费</a>
