@@ -1,7 +1,7 @@
 {% if messages %}
   <div class="message-stack" data-pf-part="message-banner" aria-live="polite" aria-atomic="false">
     {% for message in messages %}
-      <div class="app-message{% if message.tags %} message-{{ message.tags }}{% endif %}" role="status">
+      <div class="app-message{% if message.tags %} message-{{ message.tags }}{% endif %}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">
         <span class="message-icon" aria-hidden="true">{% if message.tags == "error" %}!{% elif message.tags == "warning" %}△{% else %}✓{% endif %}</span>
         <span>{{ message }}</span>
       </div>

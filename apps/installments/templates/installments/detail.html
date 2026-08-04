@@ -36,7 +36,8 @@
   {% endif %}
 
   <h2>期次</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="分期期次">
+  <table data-pf-part="data-table">
     <thead><tr><th>期次</th><th>预计到期日</th><th>预算月份</th><th>计划金额</th><th>实际金额</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>
       {% for row in item_rows %}
@@ -63,9 +64,11 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   <h2>调整记录</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="分期调整记录">
+  <table data-pf-part="data-table">
     <thead><tr><th>日期</th><th>类型</th><th>期次</th><th>金额变化</th><th>说明</th></tr></thead>
     <tbody>
       {% for adjustment in plan.adjustments.all %}
@@ -73,4 +76,5 @@
       {% empty %}<tr><td colspan="5">暂无调整记录。</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

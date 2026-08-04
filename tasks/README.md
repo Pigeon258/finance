@@ -126,7 +126,7 @@ flowchart LR
 | [VISUAL-THEME-04](visual-theme-04-theme-runtime.md) | 主题运行时与包格式 | VISUAL-THEME-03 | `feat: add secure theme runtime and package contract` | 已完成 |
 | [VISUAL-THEME-05](visual-theme-05-immersive-default.md) | 沉浸式内置主题 | VISUAL-THEME-04 | `feat: add immersive built-in finance theme` | 已完成 |
 | [VISUAL-THEME-06](visual-theme-06-theme-library.md) | 主题库、安全导入与回滚 | VISUAL-THEME-04、05 | `feat: add secure theme library management` | 已完成 |
-| [VISUAL-THEME-07](visual-theme-07-quality.md) | 响应式、无障碍、动效与性能收口 | VISUAL-THEME-05、06 | `test: close visual theme quality gaps` | 待实施 |
+| [VISUAL-THEME-07](visual-theme-07-quality.md) | 响应式、无障碍、动效与性能收口 | VISUAL-THEME-05、06 | `test: close visual theme quality gaps` | 已完成 |
 | [VISUAL-THEME-08](visual-theme-08-acceptance.md) | 整体验收与生产发布 | VISUAL-THEME-07 | `chore: validate and release visual theme system` | 待实施 |
 
 ## 每个任务的共同完成门槛

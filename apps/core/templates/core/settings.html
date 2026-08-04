@@ -17,7 +17,7 @@
       {% csrf_token %}
       <button type="submit">撤销全部其他会话</button>
     </form>
-    <div class="table-scroll">
+    <div class="table-scroll" tabindex="0" role="region" aria-label="登录会话列表">
       <table>
         <thead><tr><th>会话</th><th>创建时间</th><th>最后活动</th><th>过期时间</th><th>操作</th></tr></thead>
         <tbody>

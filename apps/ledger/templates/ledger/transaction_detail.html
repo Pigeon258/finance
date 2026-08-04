@@ -18,10 +18,12 @@
   </dl>
 
   <h2>账户变动</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="账户变动">
+  <table data-pf-part="data-table">
     <thead><tr><th>账户</th><th>余额变化</th></tr></thead>
     <tbody>{% for entry in transaction.entries.all %}<tr><td>{{ entry.account.name }}</td><td>{{ entry.balance_delta }}</td></tr>{% endfor %}</tbody>
   </table>
+  </div>
 
   {% if transaction.related_transaction %}
     <p>关联原交易：<a href="{% url 'ledger:transaction-detail' transaction.related_transaction.id %}">#{{ transaction.related_transaction.id }}</a></p>

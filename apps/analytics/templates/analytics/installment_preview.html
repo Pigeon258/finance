@@ -15,7 +15,8 @@
       <dt>新增前整体状态</dt><dd>{{ preview.baseline.overall_status }}</dd>
       <dt>新增后整体状态</dt><dd>{{ preview.simulated.overall_status }}</dd>
     </dl>
-    <table>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="分期风险预览结果">
+    <table data-pf-part="data-table">
       <thead><tr><th>月份</th><th>确定承诺（含新增）</th><th>预计支出</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in preview.simulated.months %}
@@ -23,5 +24,6 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% endif %}
 {% endblock %}

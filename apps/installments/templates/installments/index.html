@@ -10,7 +10,7 @@
   </dl>
 
   <h2>计划</h2>
-  <div class="table-scroll"><table data-pf-part="data-table">
+  <div class="table-scroll" tabindex="0" role="region" aria-label="商品分期计划"><table data-pf-part="data-table">
     <thead><tr><th>商品</th><th>来源</th><th>原价</th><th>总还款</th><th>状态</th><th>首期月份</th></tr></thead>
     <tbody>
       {% for plan in plans %}
@@ -27,7 +27,7 @@
   </table></div>
 
   <h2>未来月份预占</h2>
-  <div class="table-scroll"><table data-pf-part="data-table">
+  <div class="table-scroll" tabindex="0" role="region" aria-label="未来月份分期预占"><table data-pf-part="data-table">
     <thead><tr><th>月份</th><th>待发生金额</th></tr></thead>
     <tbody>
       {% for row in month_rows %}<tr><td>{{ row.due_month }}</td><td>{{ row.total }}</td></tr>

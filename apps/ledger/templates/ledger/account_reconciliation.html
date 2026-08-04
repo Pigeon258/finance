@@ -13,7 +13,8 @@
   </form>
 
   <h2>最近核对记录</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="最近核对记录">
+  <table data-pf-part="data-table">
     <thead><tr><th>核对时间</th><th>实际余额</th><th>核对前系统余额</th><th>差额</th><th>调整交易</th></tr></thead>
     <tbody>
       {% for item in reconciliations %}
@@ -27,4 +28,5 @@
       {% empty %}<tr><td colspan="5">尚无核对记录。</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

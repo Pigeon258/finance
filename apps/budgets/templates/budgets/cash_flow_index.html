@@ -6,7 +6,8 @@
   <h1>固定支出与预计收入</h1>
   <p><a href="{% url 'budgets:index' %}">返回预算</a> <a href="{% url 'budgets:cash-flow-create' %}">创建计划</a></p>
   <h2>计划</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="固定支出与预计收入计划">
+  <table data-pf-part="data-table">
     <thead><tr><th>名称</th><th>方向</th><th>金额</th><th>周期</th><th>可靠程度</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>
       {% for plan in plans %}
@@ -20,9 +21,11 @@
       {% empty %}<tr><td colspan="7">尚无计划。</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 
   <h2>事项</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="固定支出与预计收入事项">
+  <table data-pf-part="data-table">
     <thead><tr><th>预计日期</th><th>名称</th><th>金额</th><th>状态</th><th>正式交易</th><th>操作</th></tr></thead>
     <tbody>
       {% for occurrence in occurrences %}
@@ -34,4 +37,5 @@
       {% empty %}<tr><td colspan="6">尚无计划事项。</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock %}

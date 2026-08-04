@@ -23,7 +23,8 @@
     </dl>
 
     <h2>账期</h2>
-    <table>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="信用卡账期">
+    <table data-pf-part="data-table">
       <thead><tr><th>账期</th><th>状态</th><th>系统计算账单</th><th>正式应还</th><th>剩余应还</th><th>还款日</th></tr></thead>
       <tbody>
         {% for row in cycle_rows %}
@@ -38,5 +39,6 @@
         {% empty %}<tr><td colspan="6">尚无账期。记录第一笔信用卡消费后自动创建。</td></tr>{% endfor %}
       </tbody>
     </table>
+    </div>
   {% endif %}
 {% endblock %}

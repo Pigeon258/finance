@@ -17,7 +17,8 @@
   {% if cycle.status == "OPEN" %}<p><a href="{% url 'credit:cycle-issue' cycle.id %}">确认银行正式账单并出账</a></p>{% endif %}
 
   <h2>账期项目</h2>
-  <table>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="账期项目">
+  <table data-pf-part="data-table">
     <thead><tr><th>类型</th><th>交易</th><th>分配金额</th></tr></thead>
     <tbody>
       {% for item in cycle.items.all %}
@@ -25,6 +26,7 @@
       {% empty %}<tr><td colspan="3">暂无项目。</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if refund_candidates %}
     <h2>待确认退款冲抵</h2>

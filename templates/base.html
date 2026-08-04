@@ -14,7 +14,7 @@
   <body class="app-body{% if request.user.is_authenticated %} is-authenticated{% else %} is-anonymous{% endif %}" data-pf-part="app-shell" data-appearance-mode="{{ theme_preferences.appearance_mode|lower }}" data-reduce-motion="{{ theme_preferences.reduce_motion|yesno:'true,false' }}" data-theme-background="{{ theme_preferences.show_background|yesno:'true,false' }}">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     {% if active_theme.is_preview %}
-      <div class="theme-preview-banner" data-pf-part="message-banner">
+      <div class="theme-preview-banner" data-pf-part="message-banner" role="status" aria-live="polite">
         <span>临时预览：{{ active_theme.name }}。尚未启用，不会更新 last-known-good。</span>
         <form method="post" action="{% url 'core:theme-preview-clear' %}">{% csrf_token %}<button type="submit">结束预览</button></form>
       </div>
