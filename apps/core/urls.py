@@ -9,6 +9,12 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("settings/", views.settings_view, name="settings"),
+    path("settings/themes/", views.theme_library_view, name="theme-library"),
+    path("settings/themes/preview/clear/", views.theme_preview_clear, name="theme-preview-clear"),
+    path("settings/themes/<slug:theme_id>/preview/", views.theme_preview, name="theme-preview"),
+    path("settings/themes/<slug:theme_id>/activate/", views.theme_activate, name="theme-activate"),
+    path("settings/themes/<slug:theme_id>/delete/", views.theme_delete, name="theme-delete"),
+    path("settings/themes/restore-safe/", views.theme_restore_safe, name="theme-restore-safe"),
     path("exports/", views.export_center, name="export-center"),
     path("exports/transactions.csv", views.export_transactions_csv, name="transactions-csv"),
     path(

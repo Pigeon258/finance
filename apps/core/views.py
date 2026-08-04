@@ -1,5 +1,7 @@
 import io
+import time
 
+from django.conf import settings
 from django.contrib import auth, messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -22,10 +24,19 @@ from .forms import (
     ExportRangeForm,
     OwnerAuthenticationForm,
     SystemPreferenceForm,
+    ThemeUploadForm,
 )
 from .middleware import SESSION_CREATED_AT, SESSION_LAST_ACTIVITY_AT
 from .models import BackupRun, SystemPreference
 from .services import authenticate_with_throttle, get_session_limits
+from .theme_library import (
+    ThemeLibraryError,
+    activate_theme,
+    delete_theme,
+    install_theme_zip,
+    restore_safe_default,
+)
+from .themes import get_theme_registry
 
 
 @require_GET
@@ -46,9 +57,7 @@ def health_ready(request: HttpRequest) -> JsonResponse:
             cursor.execute("SELECT 1")
             cursor.fetchone()
         executor = MigrationExecutor(connection)
-        has_unapplied_migrations = bool(
-            executor.migration_plan(executor.loader.graph.leaf_nodes())
-        )
+        has_unapplied_migrations = bool(executor.migration_plan(executor.loader.graph.leaf_nodes()))
     except Exception:  # Health checks must not expose database or migration details.
         return JsonResponse({"status": "unavailable"}, status=503)
 
@@ -124,6 +133,93 @@ def settings_view(request: HttpRequest):
         owner_id=request.user.pk, current_session_key=current_session_key
     )
     return render(request, "core/settings.html", {"form": form, "sessions": sessions})
+
+
+@require_http_methods(["GET", "POST"])
+def theme_library_view(request: HttpRequest):
+    form = ThemeUploadForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            result = install_theme_zip(form.cleaned_data["theme_zip"])
+        except ThemeLibraryError as error:
+            form.add_error("theme_zip", str(error))
+        else:
+            if result.status == "already-installed":
+                messages.info(request, "相同主题已经安装，未重复写入。")
+            else:
+                messages.success(request, f"主题“{result.theme.name}”已安全导入，尚未启用。")
+            return redirect("core:theme-library")
+
+    preference, _ = SystemPreference.objects.get_or_create(pk=SystemPreference.SINGLETON_ID)
+    registry = get_theme_registry()
+    preview = request.session.get("theme_preview", {})
+    preview_id = preview.get("id", "") if isinstance(preview, dict) else ""
+    return render(
+        request,
+        "core/theme_library.html",
+        {
+            "active_theme_id": preference.active_theme_id,
+            "form": form,
+            "last_known_good_theme_id": preference.last_known_good_theme_id,
+            "preview_theme_id": preview_id,
+            "registry_errors": registry.errors,
+            "themes": registry.themes,
+        },
+    )
+
+
+@require_POST
+def theme_preview(request: HttpRequest, theme_id: str):
+    theme = get_theme_registry().get(theme_id)
+    if theme is None:
+        messages.error(request, "主题当前不可用，无法预览。")
+        return redirect("core:theme-library")
+    request.session["theme_preview"] = {
+        "expires_at": int(time.time()) + settings.THEME_PREVIEW_TTL_SECONDS,
+        "id": theme.id,
+    }
+    messages.info(request, f"正在临时预览“{theme.name}”；预览不会自动启用。")
+    return redirect("core:home")
+
+
+@require_POST
+def theme_preview_clear(request: HttpRequest):
+    request.session.pop("theme_preview", None)
+    messages.info(request, "主题预览已结束。")
+    return redirect("core:theme-library")
+
+
+@require_POST
+def theme_activate(request: HttpRequest, theme_id: str):
+    try:
+        theme = activate_theme(theme_id)
+    except ThemeLibraryError as error:
+        messages.error(request, str(error))
+    else:
+        request.session.pop("theme_preview", None)
+        messages.success(request, f"已启用主题“{theme.name}”，并更新 last-known-good。")
+    return redirect("core:theme-library")
+
+
+@require_POST
+def theme_restore_safe(request: HttpRequest):
+    restore_safe_default()
+    request.session.pop("theme_preview", None)
+    messages.success(request, "已恢复安全默认主题。")
+    return redirect("core:theme-library")
+
+
+@require_POST
+def theme_delete(request: HttpRequest, theme_id: str):
+    preview = request.session.get("theme_preview", {})
+    preview_id = preview.get("id", "") if isinstance(preview, dict) else ""
+    try:
+        delete_theme(theme_id, preview_theme_id=preview_id)
+    except ThemeLibraryError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, "运行时主题已删除。")
+    return redirect("core:theme-library")
 
 
 @require_POST

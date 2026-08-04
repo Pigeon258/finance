@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 
 from apps.analytics import views as analytics_views
@@ -13,3 +15,6 @@ urlpatterns = [
     path("analytics/", include("apps.analytics.urls")),
     path("imports/", include("apps.imports.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.THEME_RUNTIME_URL, document_root=settings.THEME_RUNTIME_DIR)

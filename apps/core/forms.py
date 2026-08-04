@@ -32,7 +32,6 @@ class SystemPreferenceForm(forms.ModelForm):
             "login_failure_global_limit",
             "session_idle_timeout_minutes",
             "session_absolute_timeout_hours",
-            "active_theme_id",
             "appearance_mode",
             "reduce_motion",
             "show_theme_background",
@@ -48,31 +47,10 @@ class SystemPreferenceForm(forms.ModelForm):
             "login_failure_global_limit": "全局登录失败上限",
             "session_idle_timeout_minutes": "会话空闲超时（分钟）",
             "session_absolute_timeout_hours": "会话最长时间（小时）",
-            "active_theme_id": "界面主题",
             "appearance_mode": "明暗外观",
             "reduce_motion": "减少界面动效",
             "show_theme_background": "显示主题背景",
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # 主题注册器只暴露已经完整校验的主题，避免设置页保存未知 ID。
-        from .themes import get_theme_registry
-
-        registry = get_theme_registry()
-        choices = [(theme.id, f"{theme.name}（{theme.version}）") for theme in registry.themes]
-        current_id = getattr(self.instance, "active_theme_id", "")
-        if current_id and current_id not in {value for value, _ in choices}:
-            choices.append((current_id, f"{current_id}（当前未安装，将安全回退）"))
-        self.fields["active_theme_id"].widget = forms.Select(choices=choices)
-
-    def clean_active_theme_id(self):
-        value = self.cleaned_data["active_theme_id"]
-        from .themes import get_theme_registry
-
-        if get_theme_registry().get(value) is None:
-            raise forms.ValidationError("所选主题当前不可用，请先重新安装或选择安全默认主题。")
-        return value
 
     def clean_time_zone(self):
         value = self.cleaned_data["time_zone"]
@@ -101,6 +79,22 @@ class SystemPreferenceForm(forms.ModelForm):
         ):
             self.add_error("session_idle_timeout_minutes", "空闲超时不得长于会话最长时间。")
         return cleaned_data
+
+
+class ThemeUploadForm(forms.Form):
+    theme_zip = forms.FileField(
+        label="主题 ZIP 包",
+        help_text="仅接受本地 .zip；导入后不会自动启用。",
+        widget=forms.ClearableFileInput(attrs={"accept": ".zip,application/zip"}),
+    )
+
+    def clean_theme_zip(self):
+        uploaded = self.cleaned_data["theme_zip"]
+        if not uploaded.name.lower().endswith(".zip"):
+            raise forms.ValidationError("请选择 .zip 主题包。")
+        if uploaded.size > settings.THEME_IMPORT_MAX_UPLOAD_BYTES:
+            raise forms.ValidationError("主题 ZIP 包超过允许大小。")
+        return uploaded
 
 
 class ExportRangeForm(forms.Form):

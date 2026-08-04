@@ -146,6 +146,7 @@ class ThemeDescriptor:
     root: Path | None
     revision: str
     stylesheet_url: str
+    preview_url: str
     config: dict[str, Any]
 
     @property
@@ -505,6 +506,9 @@ def load_theme(root: Path, *, source: str, public_base_url: str) -> ThemeDescrip
     stylesheet_url = ""
     if "theme.css" in file_paths:
         stylesheet_url = f"{public_base_url.rstrip('/')}/theme.css"
+    preview_url = ""
+    if "preview.webp" in file_paths:
+        preview_url = f"{public_base_url.rstrip('/')}/preview.webp"
     return ThemeDescriptor(
         id=theme_id,
         name=manifest["name"].strip(),
@@ -514,6 +518,7 @@ def load_theme(root: Path, *, source: str, public_base_url: str) -> ThemeDescrip
         root=root,
         revision=revision,
         stylesheet_url=stylesheet_url,
+        preview_url=preview_url,
         config=config,
     )
 
@@ -528,6 +533,7 @@ def _emergency_safe_default() -> ThemeDescriptor:
         root=None,
         revision="emergency",
         stylesheet_url=static("themes/safe-default/theme.css"),
+        preview_url="",
         config={"appearance": "light", "charts": {}},
     )
 

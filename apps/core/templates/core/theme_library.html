@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}主题库 · 个人财务{% endblock %}
+
+{% block content %}
+  <div class="page-heading" data-pf-part="page-header">
+    <div><h1>主题库</h1><p>主题只能改变视觉表现；导入不会自动启用，也不会执行脚本、模板或远程资源。</p></div>
+    <form method="post" action="{% url 'core:theme-restore-safe' %}">{% csrf_token %}<button type="submit">一键恢复安全默认</button></form>
+  </div>
+
+  <section aria-labelledby="theme-upload">
+    <h2 id="theme-upload">安全导入主题</h2>
+    <form method="post" enctype="multipart/form-data" data-pf-part="form-panel">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <button type="submit">校验并导入</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="installed-themes">
+    <h2 id="installed-themes">已注册主题</h2>
+    <div class="theme-grid">
+      {% for theme in themes %}
+        <article class="theme-card" data-pf-part="metric-card">
+          {% if theme.preview_url %}
+            <img class="theme-preview" src="{{ theme.preview_url }}?v={{ theme.revision }}" alt="{{ theme.name }} 主题预览" loading="lazy">
+          {% else %}
+            <div class="theme-preview theme-preview-placeholder" aria-label="该主题没有预览图">PF</div>
+          {% endif %}
+          <div>
+            <h3>{{ theme.name }}</h3>
+            <p class="theme-meta"><span>ID：{{ theme.id }}</span><span>版本：{{ theme.version }}</span><span>{% if theme.source == 'builtin' %}内置{% else %}本地导入{% endif %}</span></p>
+            <p>
+              {% if theme.id == active_theme_id %}<strong data-pf-part="status-badge" data-status="success">当前启用</strong>{% endif %}
+              {% if theme.id == last_known_good_theme_id %}<strong data-pf-part="status-badge" data-status="info">last-known-good</strong>{% endif %}
+              {% if theme.id == preview_theme_id %}<strong data-pf-part="status-badge" data-status="warning">正在预览</strong>{% endif %}
+            </p>
+          </div>
+          <div class="theme-card-actions" data-pf-part="action-group">
+            <form method="post" action="{% url 'core:theme-preview' theme.id %}">{% csrf_token %}<button type="submit">临时预览</button></form>
+            {% if theme.id != active_theme_id %}<form method="post" action="{% url 'core:theme-activate' theme.id %}">{% csrf_token %}<button type="submit">明确启用</button></form>{% endif %}
+            {% if theme.source == 'runtime' %}<form method="post" action="{% url 'core:theme-delete' theme.id %}">{% csrf_token %}<button type="submit">删除本地主题</button></form>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if registry_errors %}
+    <section aria-labelledby="invalid-themes">
+      <h2 id="invalid-themes">未注册目录</h2>
+      <p>以下目录未通过运行时校验，不会加载或启用：</p>
+      <ul>{% for theme_id, reason in registry_errors.items %}<li><strong>{{ theme_id }}</strong>：{{ reason }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+{% endblock %}

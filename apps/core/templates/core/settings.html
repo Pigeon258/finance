@@ -4,7 +4,7 @@
 
 {% block content %}
   <h1>系统设置</h1>
-  <p><a href="{% url 'core:password-change' %}">修改密码</a></p>
+  <p><a href="{% url 'core:password-change' %}">修改密码</a> <a href="{% url 'core:theme-library' %}">管理主题库</a></p>
   <form method="post" data-pf-part="form-panel">
     {% csrf_token %}
     {{ form.as_div }}

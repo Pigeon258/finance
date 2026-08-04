@@ -304,6 +304,83 @@ a:hover {
   padding-inline: clamp(1rem, 3vw, 2.5rem);
 }
 
+.theme-preview-banner {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--pf-warning-border, #efd083);
+  color: var(--pf-warning-text, #80580a);
+  background: var(--pf-warning-soft, #fff8df);
+  box-shadow: var(--pf-shadow-sm, 0 0.3rem 1.2rem rgb(25 40 72 / 6%));
+  font-size: 0.86rem;
+}
+
+.theme-preview-banner form {
+  margin: 0;
+}
+
+.theme-preview-banner button {
+  min-height: 2rem;
+  padding-block: 0.3rem;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.theme-card {
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+  overflow: hidden;
+}
+
+.theme-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--pf-border-soft, #e8edf4);
+  border-radius: var(--pf-radius-md, 0.85rem);
+  background: var(--pf-surface-muted, #f7f9fc);
+  object-fit: cover;
+}
+
+.theme-preview-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--pf-text-subtle, #8a94a6);
+  background: var(--pf-accent-gradient, linear-gradient(135deg, #3157d5, #6f50d9));
+}
+
+.theme-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  margin: 0;
+  color: var(--pf-text-muted, #667085);
+  font-size: 0.78rem;
+}
+
+.theme-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.theme-card-actions form {
+  margin: 0;
+}
+
+.theme-card-actions button {
+  min-height: 2.3rem;
+}
+
 .app-message {
   display: flex;
   align-items: flex-start;
@@ -857,6 +934,10 @@ details:not(.nav-menu, .mobile-navigation) > summary {
   .report-filter {
     grid-template-columns: 1fr;
   }
+
+  .theme-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 38rem) {
@@ -910,6 +991,11 @@ details:not(.nav-menu, .mobile-navigation) > summary {
   .inline-form,
   .inline-form button {
     width: auto;
+  }
+
+  .theme-card-actions form,
+  .theme-card-actions button {
+    width: 100%;
   }
 
   th,

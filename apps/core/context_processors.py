@@ -1,3 +1,5 @@
+import time
+
 from django.db import DatabaseError
 
 from .models import SystemPreference
@@ -21,6 +23,17 @@ def theme_context(request):
 
     registry = get_theme_registry()
     selection = registry.select(values["active_theme_id"], values["last_known_good_theme_id"])
+    is_preview = False
+    preview = request.session.get("theme_preview") if getattr(request, "user", None) else None
+    if getattr(getattr(request, "user", None), "is_authenticated", False) and isinstance(
+        preview, dict
+    ):
+        preview_theme = registry.get(preview.get("id", ""))
+        if preview_theme is not None and preview.get("expires_at", 0) > int(time.time()):
+            selection = registry.select(preview_theme.id, values["last_known_good_theme_id"])
+            is_preview = True
+        else:
+            request.session.pop("theme_preview", None)
     theme_appearance = selection.theme.appearance
     preference_appearance = values["appearance_mode"]
     resolved_appearance = (
@@ -39,6 +52,7 @@ def theme_context(request):
         "chart_theme": selection.theme.chart_theme,
         "fallback_reason": selection.fallback_reason,
         "id": selection.theme.id,
+        "is_preview": is_preview,
         "name": selection.theme.name,
         "requested_id": selection.requested_id,
         "resolved_appearance": resolved_appearance,
