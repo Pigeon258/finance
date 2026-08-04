@@ -25,7 +25,7 @@
 - 版本化声明式主题插件接口、安全默认主题、Aurora Ledger 沉浸式主题、明暗/背景/减少动效偏好、ECharts 换肤，以及本地 ZIP 的校验、预览、启用、删除和安全回退；
 - 固定版本的四服务 Docker Compose 部署、Caddy/Gunicorn、安全配置、加密 PostgreSQL 自动备份、轮换及部署/恢复 runbook。
 
-当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。2026-08-03，生产环境已完成公网 HTTPS、防火墙、端口隔离、安全配置、生产检查和加密数据库备份验收，生产基线已固化为 `v0.1.0`。生产环境隔离恢复和整机重启演练仍需按 `docs/deployment.md` 在维护窗口定期执行。
+当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。2026-08-05，视觉主题系统完成生产升级、加密备份、财务与主题完整性、公网静态资源和端口边界验收，生产基线已更新为 `v0.2.0`。生产环境隔离恢复和整机重启演练仍需按 `docs/deployment.md` 在维护窗口定期执行。
 
 `VISUAL-THEME-01`～`08` 已形成应用版本 `0.2.0` 的视觉主题发布基线。主题包是受限的声明式视觉插件，不具有业务逻辑或任意代码执行能力；组件契约、制作规范、安全导入和质量门槛见 `docs/theme-component-contract.md`、`docs/theme-package-contract.md`、`docs/theme-authoring.md`、`docs/theme-library.md` 与 `docs/visual-quality.md`。具体任务状态与依赖见 `tasks/README.md`。
 
@@ -106,7 +106,7 @@ uv run --env-file .env python manage.py runserver
 - `docs/deployment.md`
 - `docs/acceptance.md`
 
-2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；2026-08-03 已完成目标服务器生产上线验收并固化 `v0.1.0` 基线。详细证据见 `docs/acceptance.md`。生产环境隔离恢复和整机重启演练继续按运维计划执行。
+2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；2026-08-03 已完成目标服务器首次生产上线验收并固化 `v0.1.0`；2026-08-05 已完成视觉主题系统生产升级并固化 `v0.2.0`。详细证据见 `docs/acceptance.md`。生产环境隔离恢复和整机重启演练继续按运维计划执行。
 
 ## 质量检查
 

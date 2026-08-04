@@ -43,3 +43,11 @@ docker compose config
 ## 建议提交
 
 `chore: validate and release visual theme system`
+
+## 完成记录
+
+- 2026-08-04 完成 Windows 与隔离 Linux Compose 全量验收，包含真实加密备份和隔离数据库恢复演练。
+- 2026-08-05 将实现提交 `3935f862353c57c9650505dc673dbe6da7f8071e` 发布到生产环境，部署前加密数据库备份完成内置验证。
+- 生产三组应用镜像均为 `0.2.0`，四服务 healthy；Django deploy check、财务完整性和严格主题完整性检查通过。
+- 公网 HTTP/HTTPS、Aurora 主题静态资源、安全响应头、未知主题 404、健康路由隔离和端口边界检查通过。
+- 发布标签为 `v0.2.0`；应用回滚目标为 `v0.1.0`（`8c5e13bfcf375d33eba38dccb9b7a56a8b0d171b`）。
