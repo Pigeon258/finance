@@ -1,6 +1,15 @@
-# 第一版开发路线图
+# 开发路线图
 
-本目录严格依据 `docs/requirements.md` v1.1 与 `docs/system-design.md` v1.1 拆分。计划先建立可运行骨架和账本事实，再逐层增加信用卡、预算、分期、分析、导入与运维能力。
+本目录严格依据 `docs/requirements.md` v1.2 与 `docs/system-design.md` v1.2 拆分。第一版任务 00～16 已完成；后续较大的功能使用“大任务名称 + 子任务编号”的命名空间继续规划和实施。
+
+## 任务命名规则
+
+- 第一版既有任务继续保留 `00`～`16`，不重命名历史文件和提交。
+- 后续大任务使用稳定的英文大写标识和两位子任务号：`<EPIC>-<NN>`。
+- 文件名使用对应的小写连字符形式：`<epic>-<nn>-<short-description>.md`。
+- 示例：显示编号 `VISUAL-THEME-04`，文件名 `visual-theme-04-theme-runtime.md`。
+- 子任务号表达同一大任务内的依赖顺序，不在不同大任务之间比较全局先后。
+- 一个子任务仍应形成一个可审查提交；不得用大任务名扩大单次实现范围。
 
 ## 持续体验与需求输入
 
@@ -68,6 +77,23 @@ flowchart LR
 
 推荐按编号执行。01 与 02 可在 00 后并行；06、07、08 可在各自依赖满足后并行；11 可在核心账本稳定后与业务模块并行。合并前仍必须按依赖顺序集成。
 
+## VISUAL-THEME 依赖关系
+
+```mermaid
+flowchart LR
+  VT01["VISUAL-THEME-01 需求基线"] --> VT02["VISUAL-THEME-02 架构与安全"]
+  VT02 --> VT03["VISUAL-THEME-03 组件系统"]
+  VT03 --> VT04["VISUAL-THEME-04 主题运行时"]
+  VT04 --> VT05["VISUAL-THEME-05 沉浸式主题"]
+  VT04 --> VT06["VISUAL-THEME-06 主题库与导入"]
+  VT05 --> VT06
+  VT05 --> VT07["VISUAL-THEME-07 质量收口"]
+  VT06 --> VT07
+  VT07 --> VT08["VISUAL-THEME-08 验收发布"]
+```
+
+`VISUAL-THEME-01` 和 `VISUAL-THEME-02` 只固化批准后的需求与设计，不包含功能实现。后续任务严格按依赖顺序集成。
+
 ## 任务状态表
 
 | 任务 | 名称 | 依赖 | 建议提交 | 状态 |
@@ -89,6 +115,19 @@ flowchart LR
 | [14](14-export-backup-and-restore.md) | CSV、业务备份与恢复 | 13 | `feat: add encrypted backup and restore` | 已完成 |
 | [15](15-deployment-operations-and-acceptance.md) | Compose、自动备份、完整性与验收 | 14 | 一组运维提交 | 已完成；生产上线验收通过 |
 | [16](16-production-baseline.md) | 生产上线基线固化 | 15 | `chore: freeze production baseline` | 已完成 |
+
+### VISUAL-THEME 任务状态
+
+| 任务 | 名称 | 依赖 | 建议提交 | 状态 |
+|---|---|---|---|---|
+| [VISUAL-THEME-01](visual-theme-01-requirements.md) | 视觉主题需求基线 | 16 | `docs: define visual theme requirements` | 已完成 |
+| [VISUAL-THEME-02](visual-theme-02-architecture.md) | 主题架构与安全设计 | VISUAL-THEME-01 | `docs: design secure visual theme architecture` | 已完成 |
+| [VISUAL-THEME-03](visual-theme-03-component-system.md) | 视觉设计系统与组件契约 | VISUAL-THEME-02 | `feat: establish themeable ui component system` | 待实施 |
+| [VISUAL-THEME-04](visual-theme-04-theme-runtime.md) | 主题运行时与包格式 | VISUAL-THEME-03 | `feat: add secure theme runtime and package contract` | 待实施 |
+| [VISUAL-THEME-05](visual-theme-05-immersive-default.md) | 沉浸式内置主题 | VISUAL-THEME-04 | `feat: add immersive built-in finance theme` | 待实施 |
+| [VISUAL-THEME-06](visual-theme-06-theme-library.md) | 主题库、安全导入与回滚 | VISUAL-THEME-04、05 | `feat: add secure theme library management` | 待实施 |
+| [VISUAL-THEME-07](visual-theme-07-quality.md) | 响应式、无障碍、动效与性能收口 | VISUAL-THEME-05、06 | `test: close visual theme quality gaps` | 待实施 |
+| [VISUAL-THEME-08](visual-theme-08-acceptance.md) | 整体验收与生产发布 | VISUAL-THEME-07 | `chore: validate and release visual theme system` | 待实施 |
 
 ## 每个任务的共同完成门槛
 
