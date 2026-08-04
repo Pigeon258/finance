@@ -79,3 +79,28 @@
 | 容器错误日志筛查 | 通过；未发现应用错误或敏感数据泄露 |
 
 生产上线验收结论：**通过**。首次生产环境隔离恢复演练和整机重启演练仍按 `docs/deployment.md` 安排维护窗口执行，不以本次在线检查替代。
+
+## v0.2.0 视觉主题本地发布验收
+
+- 验收日期：2026-08-04
+- 验收环境：Windows 11、Docker Desktop 29.6.1、Linux containers
+- 隔离 Compose 项目：`pf-theme-acceptance`
+- 应用版本：`0.2.0`
+- 主题格式版本 / 组件契约版本：`1 / 1`
+
+| 检查项 | 结论 |
+|---|---|
+| Ruff、全量 pytest、Django check 与迁移检查 | 通过；最终自动化数量以本节后续发布记录为准 |
+| `docker compose config` 与 Caddy 2.10.2 配置校验 | 通过 |
+| 0.2.0 Web、Caddy、maintenance 镜像构建 | 通过；`collectstatic` 收集 146 个文件 |
+| PostgreSQL 17 迁移、deploy check 与财务完整性 | 通过 |
+| 严格主题完整性 | 通过；`active=aurora-ledger`、`resolved=aurora-ledger`、格式/契约 `1/1` |
+| 主题卷权限 | 首轮发现新卷为 root 所有、UID 10001 无法导入；在镜像预创建 `/app/var/themes` 并赋权后复测通过 |
+| 主题卷持久化与只读边界 | 通过；Web `RW=true`、Caddy `RW=false`，Web/Caddy 强制重建后测试 CSS 仍存在 |
+| Caddy 主题静态响应 | 通过；CSS 200、`text/css`、CSP、`nosniff`、一年 immutable 缓存；未知主题和运行时 JSON 均 404 |
+| 端口隔离 | 通过；Web 8000 和 PostgreSQL 5432 无宿主机绑定，仅 Caddy 发布 80/443 |
+| 部署前加密数据库备份 | 通过；隔离备份完成内置解密、SHA-256 与 `pg_restore --list` 校验 |
+| 数据库恢复演练 | 通过；先创建安全备份，单事务恢复后无迁移、财务和主题完整性检查通过，HTTPS 返回登录跳转 302 |
+| 应用升级序列 | 通过；维护模式启用 → 迁移 → 三项完整性检查 → 关闭维护模式 |
+
+本节只证明隔离本地生产 Compose。临时验收密钥、备份、容器和卷在验收后删除，不能作为生产备份。`v0.2.0` 目标服务器发布仍需创建真实部署前备份、执行 `deploy/upgrade.sh` 与 `deploy/verify-deployment.sh`，并单独记录公网结果。

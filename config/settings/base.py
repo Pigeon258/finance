@@ -101,9 +101,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 THEME_BUILTIN_DIR = BASE_DIR / "static" / "themes"
-THEME_RUNTIME_DIR = BASE_DIR / "var" / "themes"
+THEME_RUNTIME_DIR = Path(os.environ.get("THEME_RUNTIME_DIR", BASE_DIR / "var" / "themes"))
 THEME_RUNTIME_URL = "/themes/"
-THEME_IMPORT_TMP_DIR = BASE_DIR / "var" / "theme-imports"
+THEME_IMPORT_TMP_DIR = Path(
+    os.environ.get("THEME_IMPORT_TMP_DIR", BASE_DIR / "var" / "theme-imports")
+)
 THEME_IMPORT_MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 THEME_IMPORT_MAX_EXTRACTED_BYTES = 20 * 1024 * 1024
 THEME_IMPORT_MAX_FILES = 64

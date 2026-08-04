@@ -22,11 +22,12 @@
 - 历史交易复制、最近账户、常用交易模板和导入规则管理；
 - 登录会话撤销、可配置安全/预算/大额消费阈值，以及基础手机访问和无 JavaScript 降级；
 - UTF-8 CSV 导出、Scrypt + AES-256-GCM 加密业务备份、事务恢复和财务完整性检查。
+- 版本化声明式主题插件接口、安全默认主题、Aurora Ledger 沉浸式主题、明暗/背景/减少动效偏好、ECharts 换肤，以及本地 ZIP 的校验、预览、启用、删除和安全回退；
 - 固定版本的四服务 Docker Compose 部署、Caddy/Gunicorn、安全配置、加密 PostgreSQL 自动备份、轮换及部署/恢复 runbook。
 
 当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。2026-08-03，生产环境已完成公网 HTTPS、防火墙、端口隔离、安全配置、生产检查和加密数据库备份验收，生产基线已固化为 `v0.1.0`。生产环境隔离恢复和整机重启演练仍需按 `docs/deployment.md` 在维护窗口定期执行。
 
-生产基线之后已启动 `VISUAL-THEME` 视觉主题扩展：需求与安全架构基线已经确定，后续将依次完成组件系统、主题运行时、沉浸式内置主题、安全导入、质量收口和生产验收。具体状态与依赖见 `tasks/README.md`。
+`VISUAL-THEME-01`～`08` 已形成应用版本 `0.2.0` 的视觉主题发布基线。主题包是受限的声明式视觉插件，不具有业务逻辑或任意代码执行能力；组件契约、制作规范、安全导入和质量门槛见 `docs/theme-component-contract.md`、`docs/theme-package-contract.md`、`docs/theme-authoring.md`、`docs/theme-library.md` 与 `docs/visual-quality.md`。具体任务状态与依赖见 `tasks/README.md`。
 
 ## 技术要求
 
@@ -94,6 +95,7 @@ uv run --env-file .env python manage.py runserver
 10. 在“系统设置”中调整阈值并查看登录会话；可用另一个浏览器隐私窗口登录后测试撤销其他会话。
 11. 打开“未来事项”检查从当天到第 30 天（含边界）的待办，并缩窄浏览器窗口验证基础手机布局。
 12. 在“导出与备份”中导出测试 CSV，再使用单独口令下载 `.pfbackup`；恢复演练前请先确认数据均为虚构测试数据，并妥善保存恢复前自动备份使用的同一口令。
+13. 在“系统设置 → 管理主题库”预览两个内置主题，切换明暗/背景/减少动效偏好；导入第三方主题前先核对来源、许可与 SHA-256。
 
 建议仅使用虚构测试数据。业务备份文件默认保存在下载目录，恢复前自动备份保存在 `BUSINESS_BACKUP_DIR`（默认项目 `backups/`，已被 Git 忽略）。生产环境的自动数据库备份由 Compose 的 `backup` 服务执行，配置和恢复步骤见部署文档。
 
@@ -113,6 +115,7 @@ uv run ruff check .
 uv run pytest
 uv run python manage.py check
 uv run python manage.py check_financial_integrity
+uv run python manage.py check_theme_integrity --strict
 ```
 
 测试默认使用 SQLite 内存数据库；本地开发配置使用 PostgreSQL。
@@ -122,6 +125,8 @@ uv run python manage.py check_financial_integrity
 - 默认设置：`config.settings.development`
 - 测试设置：`config.settings.test`
 - 生产设置：`config.settings.production`
+- 当前应用版本：`0.2.0`；主题格式版本：`1`；组件契约版本：`1`
+- 运行时主题目录可通过 `THEME_RUNTIME_DIR` 配置；生产 Compose 使用持久 `theme_data` 卷，并由 Caddy 只读提供受限资源。
 - 数据库存储带时区时间，应用时区由 `APP_TIME_ZONE` 配置。
 
 不得提交 `.env`、密钥、真实账单、数据库转储、生产备份或敏感日志。不要通过 Django shell 或其他方式创建额外用户。

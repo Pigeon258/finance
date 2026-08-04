@@ -37,6 +37,7 @@ RUN groupadd --gid 10001 finance \
     && useradd --uid 10001 --gid finance --home-dir /app --shell /usr/sbin/nologin finance
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=assets --chown=finance:finance /app /app
+RUN install -d -o finance -g finance -m 0755 /app/var/themes
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

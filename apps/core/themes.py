@@ -4,14 +4,14 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as package_version
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 import tinycss2
 from django.conf import settings
 from django.templatetags.static import static
+
+from config.version import APP_VERSION
 
 THEME_SCHEMA_VERSION = 1
 THEME_CONTRACT_VERSION = 1
@@ -170,10 +170,7 @@ class ThemeSelection:
 
 
 def _application_version() -> str:
-    try:
-        return package_version("personal-finance")
-    except PackageNotFoundError:
-        return "0.1.0"
+    return APP_VERSION
 
 
 def _semver_triplet(value: str) -> tuple[int, int, int]:

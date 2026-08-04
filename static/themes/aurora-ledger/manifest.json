@@ -3,7 +3,7 @@
   "id": "aurora-ledger",
   "name": "Aurora Ledger 极光账境",
   "version": "1.0.0",
-  "min_app_version": "0.1.0",
+  "min_app_version": "0.2.0",
   "capabilities": [
     "tokens",
     "background",

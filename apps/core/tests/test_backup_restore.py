@@ -77,7 +77,22 @@ def business_data():
     )
     preference = SystemPreference.objects.get()
     preference.large_expense_threshold = Decimal("321.09")
-    preference.save(update_fields=["large_expense_threshold", "updated_at"])
+    preference.active_theme_id = "safe-default"
+    preference.last_known_good_theme_id = "safe-default"
+    preference.appearance_mode = SystemPreference.AppearanceMode.LIGHT
+    preference.reduce_motion = True
+    preference.show_theme_background = False
+    preference.save(
+        update_fields=[
+            "active_theme_id",
+            "appearance_mode",
+            "large_expense_threshold",
+            "last_known_good_theme_id",
+            "reduce_motion",
+            "show_theme_background",
+            "updated_at",
+        ]
+    )
     return bank, category, ledger_transaction
 
 
@@ -153,7 +168,13 @@ def test_encrypted_backup_round_trip_preserves_business_data_and_current_passwor
     assert ledger_transaction.amount == Decimal("12.34")
     assert ledger_transaction.note == "原始备注"
     assert MonthlyBudget.objects.get().total_expense_budget == Decimal("999.99")
-    assert SystemPreference.objects.get().large_expense_threshold == Decimal("321.09")
+    restored_preference = SystemPreference.objects.get()
+    assert restored_preference.large_expense_threshold == Decimal("321.09")
+    assert restored_preference.active_theme_id == "safe-default"
+    assert restored_preference.last_known_good_theme_id == "safe-default"
+    assert restored_preference.appearance_mode == SystemPreference.AppearanceMode.LIGHT
+    assert restored_preference.reduce_motion is True
+    assert restored_preference.show_theme_background is False
     assert MerchantCategoryRule.objects.get().pattern == "测试"
     assert not Merchant.objects.filter(normalized_name="恢复时应删除").exists()
     assert not ImportBatch.objects.exists()

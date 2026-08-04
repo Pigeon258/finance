@@ -68,7 +68,21 @@ sh deploy/upgrade.sh
 sh deploy/verify-deployment.sh
 ```
 
-脚本依次构建、创建部署前加密数据库备份、启用维护模式、迁移、启动、执行 deploy check 和财务完整性检查。失败时不要直接关闭维护模式，应先判断是镜像回滚还是数据库恢复。
+脚本依次构建、创建部署前加密数据库备份、启用维护模式、迁移、启动、执行 deploy check、财务完整性和严格主题完整性检查。失败时不要直接关闭维护模式，应先判断是镜像回滚、主题恢复还是数据库恢复。
+
+### 5.1 运行时主题卷
+
+生产 Compose 使用命名卷 `theme_data`：Web 以读写方式挂载到 `/app/var/themes`，Caddy 以只读方式挂载到 `/srv/themes`。主题导入临时文件只进入 Web 的 `/app/runtime/theme-imports` tmpfs。应用升级和镜像回滚不会删除该卷；不要执行 `docker compose down -v`。
+
+主题资产明确不进入 `.pfbackup` 或数据库备份。请在独立可信位置保存导入过的原始 ZIP、许可和 SHA-256。若主题卷丢失，先确认页面已回退 `safe-default`，再从可信 ZIP 重新导入；不得从未知运行时目录直接复制文件绕过校验。
+
+升级前记录：完整 Git SHA/标签、上一组三个镜像、部署前加密数据库备份、当前活动主题、last-known-good、主题格式 `1` 和组件契约 `1`。升级后执行：
+
+```bash
+docker compose exec -T web python manage.py check_theme_integrity --strict
+```
+
+并人工检查主题库、桌面/手机首页、当前账期、主题预览与一键恢复安全默认。运行时主题资源只允许固定 `/themes/` 路径中的 CSS、图片和 WOFF2；Caddy 必须返回 `nosniff` 与不可变缓存头，未知资源返回 404。
 
 ## 6. 回滚
 
@@ -110,6 +124,8 @@ sh deploy/restore-database.sh db-deployment-YYYYMMDDTHHMMSSZ-ID.dump.enc
 4. 使用 `database_restore` 恢复，运行迁移和 `check_financial_integrity`；
 5. 启动 Web/Caddy，执行 `deploy/verify-deployment.sh` 和人工核对；
 6. 删除所有临时明文，重新确认 secrets 和备份目录权限。
+
+恢复数据库后，若保存的活动主题在 `theme_data` 中不存在，页面应回退 last-known-good 或 `safe-default`，业务恢复不得因此失败。重新导入可信主题包并明确启用即可恢复外观。
 
 ## 9. 重启与故障处理
 

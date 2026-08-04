@@ -1,32 +1,49 @@
 {
-  admin off
-  email {$ACME_EMAIL}
+	admin off
+	email {$ACME_EMAIL}
 }
 
 {$APP_DOMAIN} {
-  encode zstd gzip
+	encode zstd gzip
 
-  @health path /health/*
-  handle @health {
-    respond 404
-  }
+	@health path /health/*
+	handle @health {
+		respond 404
+	}
 
-  handle_path /static/* {
-    root * /srv/static
-    file_server
-  }
+	handle_path /static/themes/* {
+		root * /srv/static/themes
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
 
-  handle {
-    reverse_proxy web:8000
-  }
+	handle_path /static/* {
+		root * /srv/static
+		header Cache-Control "public, max-age=3600, must-revalidate"
+		file_server
+	}
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "same-origin"
-    Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-    -Server
-  }
+	handle_path /themes/* {
+		@theme_asset path_regexp theme_asset ^/[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?/(?:theme\.css|preview\.webp|assets/[A-Za-z0-9._/-]+\.(?:webp|png|jpe?g|woff2))$
+		handle @theme_asset {
+			root * /srv/themes
+			header Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+		respond 404
+	}
+
+	handle {
+		reverse_proxy web:8000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
 }

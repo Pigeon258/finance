@@ -7,7 +7,6 @@ import struct
 import tempfile
 import zipfile
 from datetime import UTC, datetime
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from cryptography.exceptions import InvalidTag
@@ -32,6 +31,7 @@ from apps.imports.models import (
 )
 from apps.installments import backup as installments_backup
 from apps.ledger import backup as ledger_backup
+from config.version import APP_VERSION
 
 from .integrity import assert_financial_integrity
 from .models import BackupRun, MaintenanceState, SystemPreference
@@ -60,11 +60,6 @@ MODULE_SCHEMA_VERSIONS = {
 }
 if MODULE_SCHEMA_VERSIONS != {SCHEMA_VERSION}:
     raise RuntimeError("业务模块备份 schema 版本不一致。")
-
-try:
-    APP_VERSION = version("personal-finance")
-except PackageNotFoundError:  # pragma: no cover - editable installs provide package metadata.
-    APP_VERSION = "0.1.0"
 
 BACKUP_MODELS = (
     SystemPreference,

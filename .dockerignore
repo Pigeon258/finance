@@ -3,7 +3,9 @@
 __pycache__
 *.pyc
 .pytest_cache
+.pytest-*
 .ruff_cache
+.docker-acceptance
 .env
 .env.*
 backups
