@@ -67,11 +67,12 @@ class CategoryBudget(models.Model):
     monthly_budget = models.ForeignKey(
         MonthlyBudget, on_delete=models.PROTECT, related_name="category_budgets"
     )
+    name = models.CharField("预算项目名称", max_length=100)
     category = models.ForeignKey(
         Category, on_delete=models.PROTECT, related_name="category_budgets"
     )
     budget_amount = models.DecimalField(
-        "分类预算",
+        "项目预算金额",
         max_digits=14,
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.00"))],
@@ -83,14 +84,15 @@ class CategoryBudget(models.Model):
         default=Decimal("80.00"),
         validators=[MinValueValidator(Decimal("0.00")), MaxValueValidator(Decimal("100.00"))],
     )
+    sort_order = models.PositiveIntegerField("显示顺序", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["category__sort_order", "category_id"]
+        ordering = ["sort_order", "id"]
         constraints = [
             models.UniqueConstraint(
-                fields=["monthly_budget", "category"], name="budgets_unique_month_category"
+                fields=["monthly_budget", "name"], name="budgets_unique_month_budget_item"
             ),
             models.CheckConstraint(
                 condition=models.Q(budget_amount__gte=0),
@@ -103,7 +105,7 @@ class CategoryBudget(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.monthly_budget.month:%Y-%m} {self.category}"
+        return f"{self.monthly_budget.month:%Y-%m} {self.name}"
 
     def clean(self) -> None:
         super().clean()

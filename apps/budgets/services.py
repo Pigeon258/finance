@@ -54,18 +54,20 @@ def _clamped_date(year: int, month: int, day: int) -> date:
 def save_monthly_budget(
     *,
     month: date,
-    total_expense_budget: Decimal,
+    total_expense_budget: Decimal | None = None,
     savings_target: Decimal = Decimal("0.00"),
     minimum_safety_buffer: Decimal = Decimal("0.00"),
     note: str = "",
 ) -> MonthlyBudget:
     month = _month_start(month)
-    for value in [total_expense_budget, savings_target, minimum_safety_buffer]:
+    for value in [savings_target, minimum_safety_buffer]:
         _validate_money(value, allow_zero=True)
     budget = MonthlyBudget.objects.select_for_update().filter(month=month).first()
     if budget is None:
         budget = MonthlyBudget(month=month)
-    budget.total_expense_budget = total_expense_budget
+    if total_expense_budget is not None:
+        _validate_money(total_expense_budget, allow_zero=True)
+        budget.total_expense_budget = total_expense_budget
     budget.savings_target = savings_target
     budget.minimum_safety_buffer = minimum_safety_buffer
     budget.note = note
@@ -75,69 +77,155 @@ def save_monthly_budget(
 
 
 @db_transaction.atomic
+def refresh_monthly_budget_total(*, monthly_budget: MonthlyBudget) -> MonthlyBudget:
+    monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
+    total = sum(
+        (
+            item.budget_amount
+            for item in CategoryBudget.objects.filter(monthly_budget=monthly_budget)
+        ),
+        Decimal("0.00"),
+    )
+    monthly_budget.total_expense_budget = total
+    monthly_budget.full_clean()
+    monthly_budget.save(update_fields=["total_expense_budget", "updated_at"])
+    return monthly_budget
+
+
+def _get_or_create_monthly_budget(*, month: date) -> MonthlyBudget:
+    month = _month_start(month)
+    budget, _ = MonthlyBudget.objects.get_or_create(
+        month=month,
+        defaults={
+            "total_expense_budget": Decimal("0.00"),
+            "savings_target": Decimal("0.00"),
+            "minimum_safety_buffer": Decimal("0.00"),
+        },
+    )
+    return budget
+
+
+@db_transaction.atomic
+def create_budget_item(
+    *,
+    month: date,
+    name: str,
+    category: Category,
+    budget_amount: Decimal,
+    warning_threshold: Decimal | None = None,
+    sort_order: int = 0,
+) -> CategoryBudget:
+    monthly_budget = MonthlyBudget.objects.select_for_update().filter(
+        month=_month_start(month)
+    ).first()
+    if monthly_budget is None:
+        monthly_budget = _get_or_create_monthly_budget(month=month)
+        monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
+    item = _save_budget_item(
+        monthly_budget=monthly_budget,
+        name=name,
+        category=category,
+        budget_amount=budget_amount,
+        warning_threshold=warning_threshold,
+        sort_order=sort_order,
+    )
+    refresh_monthly_budget_total(monthly_budget=monthly_budget)
+    return item
+
+
+@db_transaction.atomic
+def update_budget_item(
+    *,
+    item: CategoryBudget,
+    name: str,
+    category: Category,
+    budget_amount: Decimal,
+    warning_threshold: Decimal | None = None,
+    sort_order: int | None = None,
+) -> CategoryBudget:
+    item = CategoryBudget.objects.select_for_update().get(pk=item.pk)
+    item = _save_budget_item(
+        monthly_budget=item.monthly_budget,
+        name=name,
+        category=category,
+        budget_amount=budget_amount,
+        warning_threshold=warning_threshold,
+        sort_order=sort_order if sort_order is not None else item.sort_order,
+        item=item,
+    )
+    refresh_monthly_budget_total(monthly_budget=item.monthly_budget)
+    return item
+
+
+def _save_budget_item(
+    *,
+    monthly_budget: MonthlyBudget,
+    name: str,
+    category: Category,
+    budget_amount: Decimal,
+    warning_threshold: Decimal | None,
+    sort_order: int,
+    item: CategoryBudget | None = None,
+) -> CategoryBudget:
+    name = name.strip()
+    if not name:
+        raise ValidationError("预算项目名称不能为空。")
+    _validate_money(budget_amount)
+    if not category.is_active or category.category_type != Category.CategoryType.EXPENSE:
+        raise ValidationError("预算项目必须使用启用的支出分类。")
+    default_warning, over_threshold = core_selectors.budget_thresholds()
+    warning_threshold = warning_threshold if warning_threshold is not None else default_warning
+    _validate_money(warning_threshold, allow_zero=True)
+    if warning_threshold > over_threshold:
+        raise ValidationError("提醒阈值不得高于系统超支阈值。")
+    item = item or CategoryBudget(monthly_budget=monthly_budget)
+    item.monthly_budget = monthly_budget
+    item.name = name
+    item.category = category
+    item.budget_amount = budget_amount
+    item.warning_threshold = warning_threshold
+    item.sort_order = sort_order
+    item.full_clean()
+    item.save()
+    return item
+
+
+@db_transaction.atomic
+def delete_budget_item(*, item: CategoryBudget) -> None:
+    item = CategoryBudget.objects.select_for_update().get(pk=item.pk)
+    monthly_budget = item.monthly_budget
+    item.delete()
+    refresh_monthly_budget_total(monthly_budget=monthly_budget)
+
+
+@db_transaction.atomic
 def save_category_budget(
     *,
     monthly_budget: MonthlyBudget,
     category: Category,
     budget_amount: Decimal,
     warning_threshold: Decimal | None = None,
+    name: str | None = None,
+    sort_order: int = 0,
 ) -> CategoryBudget:
-    _validate_money(budget_amount, allow_zero=True)
-    default_warning, over_threshold = core_selectors.budget_thresholds()
-    warning_threshold = warning_threshold if warning_threshold is not None else default_warning
-    _validate_money(warning_threshold, allow_zero=True)
-    if warning_threshold > over_threshold:
-        raise ValidationError("分类提醒阈值不得高于系统超支阈值。")
-    if not category.is_active or category.category_type != Category.CategoryType.EXPENSE:
-        raise ValidationError("分类预算必须使用启用的支出分类。")
-    monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
-    category_budget = (
+    """Legacy compatibility helper; budget items are now named and may share a category."""
+    item_name = (name or category.name).strip()
+    item = (
         CategoryBudget.objects.select_for_update()
-        .filter(monthly_budget=monthly_budget, category=category)
+        .filter(monthly_budget=monthly_budget, name=item_name)
         .first()
     )
-    if category_budget is None:
-        category_budget = CategoryBudget(monthly_budget=monthly_budget, category=category)
-    category_budget.budget_amount = budget_amount
-    category_budget.warning_threshold = warning_threshold
-    category_budget.full_clean()
-    category_budget.save()
-    return category_budget
-
-
-@db_transaction.atomic
-def save_category_budgets(
-    *,
-    monthly_budget: MonthlyBudget,
-    budget_amounts: dict[int, Decimal],
-    warning_thresholds: dict[int, Decimal],
-) -> int:
-    monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
-    categories = Category.objects.filter(
-        category_type=Category.CategoryType.EXPENSE, is_active=True
+    saved = _save_budget_item(
+        monthly_budget=monthly_budget,
+        name=item_name,
+        category=category,
+        budget_amount=budget_amount,
+        warning_threshold=warning_threshold,
+        sort_order=sort_order if item is None else item.sort_order,
+        item=item,
     )
-    default_warning, over_threshold = core_selectors.budget_thresholds()
-    saved_count = 0
-    for category in categories:
-        amount = budget_amounts.get(category.id, Decimal("0.00"))
-        warning_threshold = warning_thresholds.get(category.id, default_warning)
-        if amount == 0:
-            CategoryBudget.objects.filter(
-                monthly_budget=monthly_budget, category=category
-            ).delete()
-            continue
-        _validate_money(amount, allow_zero=True)
-        _validate_money(warning_threshold, allow_zero=True)
-        if warning_threshold > over_threshold:
-            raise ValidationError("分类提醒阈值不得高于系统超支阈值。")
-        save_category_budget(
-            monthly_budget=monthly_budget,
-            category=category,
-            budget_amount=amount,
-            warning_threshold=warning_threshold,
-        )
-        saved_count += 1
-    return saved_count
+    refresh_monthly_budget_total(monthly_budget=monthly_budget)
+    return saved
 
 
 @db_transaction.atomic
@@ -159,16 +247,18 @@ def copy_monthly_budget(*, source_month: date, target_month: date) -> MonthlyBud
         },
     )
     target = MonthlyBudget.objects.select_for_update().get(pk=target.pk)
-    for source_category in source.category_budgets.all():
+    for source_item in source.category_budgets.all():
         CategoryBudget.objects.get_or_create(
             monthly_budget=target,
-            category=source_category.category,
+            name=source_item.name,
             defaults={
-                "budget_amount": source_category.budget_amount,
-                "warning_threshold": source_category.warning_threshold,
+                "category": source_item.category,
+                "budget_amount": source_item.budget_amount,
+                "warning_threshold": source_item.warning_threshold,
+                "sort_order": source_item.sort_order,
             },
         )
-    return target
+    return refresh_monthly_budget_total(monthly_budget=target)
 
 
 def _reserve_total() -> Decimal:

@@ -99,7 +99,7 @@ def test_month_budget_unique_and_copy_is_idempotent(expense_category):
 
     assert first.pk == second.pk
     assert first.month == date(2026, 7, 1)
-    assert first.total_expense_budget == Decimal("1000.01")
+    assert first.total_expense_budget == Decimal("300.03")
     assert CategoryBudget.objects.filter(monthly_budget=first).count() == 1
     with pytest.raises(IntegrityError), transaction.atomic():
         MonthlyBudget.objects.create(month=date(2026, 7, 1), total_expense_budget=Decimal("1.00"))
@@ -332,53 +332,82 @@ def test_expected_income_does_not_change_balance_until_confirmation(income_categ
 
 
 @pytest.mark.django_db
-def test_category_budget_bulk_page_lists_and_saves_multiple_categories(
+def test_budget_items_can_be_created_edited_and_deleted_and_total_is_automatic(
     authenticated_client, expense_category
 ):
-    budget = services.save_monthly_budget(
-        month=date(2026, 7, 1), total_expense_budget=Decimal("1000.00")
-    )
     second_category = Category.objects.filter(
         category_type=Category.CategoryType.EXPENSE, is_active=True
     ).exclude(pk=expense_category.pk).first()
 
     page = authenticated_client.get(
-        reverse("budgets:category-budgets-edit", args=[budget.id])
+        reverse("budgets:budget-item-index"), {"month": "2026-07"}
     )
     assert page.status_code == 200
-    content = page.content.decode()
-    assert expense_category.name in content
-    assert second_category.name in content
-    assert f'name="budget_{expense_category.id}"' in content
-    assert f'name="budget_{second_category.id}"' in content
 
     response = authenticated_client.post(
-        reverse("budgets:category-budgets-edit", args=[budget.id]),
+        reverse("budgets:budget-item-create") + "?month=2026-07",
         {
-            f"budget_{expense_category.id}": "300.00",
-            f"warning_threshold_{expense_category.id}": "80.00",
-            f"budget_{second_category.id}": "150.00",
-            f"warning_threshold_{second_category.id}": "70.00",
+            "name": "工作日午餐",
+            "category": expense_category.id,
+            "budget_amount": "300.00",
+            "warning_threshold": "80.00",
+            "sort_order": "1",
         },
     )
     assert response.status_code == 302
-    assert CategoryBudget.objects.filter(monthly_budget=budget).count() == 2
+    first_item = CategoryBudget.objects.get(name="工作日午餐")
+    budget = first_item.monthly_budget
+    assert budget.total_expense_budget == Decimal("300.00")
+
+    response = authenticated_client.post(
+        reverse("budgets:budget-item-create") + "?month=2026-07",
+        {
+            "name": "周末采购",
+            "category": second_category.id,
+            "budget_amount": "150.00",
+            "warning_threshold": "70.00",
+            "sort_order": "2",
+        },
+    )
+    assert response.status_code == 302
+    budget.refresh_from_db()
+    assert budget.total_expense_budget == Decimal("450.00")
+
+    response = authenticated_client.post(
+        reverse("budgets:budget-item-edit", args=[first_item.id]),
+        {
+            "name": "工作日午餐",
+            "category": expense_category.id,
+            "budget_amount": "350.00",
+            "warning_threshold": "80.00",
+            "sort_order": "1",
+        },
+    )
+    assert response.status_code == 302
+    budget.refresh_from_db()
+    assert budget.total_expense_budget == Decimal("500.00")
+
+    response = authenticated_client.post(
+        reverse("budgets:budget-item-delete", args=[first_item.id])
+    )
+    assert response.status_code == 302
+    budget.refresh_from_db()
+    assert budget.total_expense_budget == Decimal("150.00")
 
     index_page = authenticated_client.get(
         reverse("budgets:index"), {"month": "2026-07"}
     ).content.decode()
-    assert "设置分类预算" in index_page
-    assert reverse("budgets:category-budgets-edit", args=[budget.id]) in index_page
+    assert "设置预算项目" in index_page
+    assert "周末采购" in index_page
+    assert "<td>工作日午餐</td>" not in index_page
 
 
 @pytest.mark.django_db
-def test_budget_index_prompts_for_monthly_total_before_category_budgets(
-    authenticated_client,
-):
+def test_budget_index_prompts_for_budget_items_when_none_exist(authenticated_client):
     page = authenticated_client.get(reverse("budgets:index")).content.decode()
 
-    assert "设置分类预算" not in page
-    assert "请先设置月度总预算" in page or "设置月度总预算" in page
+    assert "设置预算项目" in page
+    assert "尚无预算项目" in page
 
 
 @pytest.mark.django_db

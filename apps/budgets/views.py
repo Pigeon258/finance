@@ -12,15 +12,14 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from . import selectors, services
 from .forms import (
-    CategoryBudgetForm,
-    CategoryBudgetsForm,
+    BudgetItemForm,
     ConfirmOccurrenceForm,
     GenerateOccurrencesForm,
     MonthlyBudgetForm,
     PlannedCashFlowForm,
     ReserveMovementForm,
 )
-from .models import MonthlyBudget, PlannedCashFlow, PlannedCashFlowOccurrence
+from .models import CategoryBudget, MonthlyBudget, PlannedCashFlow, PlannedCashFlowOccurrence
 
 TOKEN_SESSION_KEY = "budget_submission_tokens"
 
@@ -69,6 +68,7 @@ def index(request: HttpRequest):
         {
             "month": month,
             "snapshot": snapshot,
+            "item_rows": selectors.budget_item_rows(month=month),
             "category_rows": selectors.category_budget_rows(budget=budget) if budget else [],
             "reserve_balance": selectors.reserve_balance(),
             "reserve_movements": selectors.reserve_movements()[:10],
@@ -83,7 +83,6 @@ def monthly_budget_edit(request: HttpRequest):
     budget = selectors.monthly_budget(month=month)
     initial = {
         "month": month,
-        "total_expense_budget": budget.total_expense_budget if budget else Decimal("0.00"),
         "savings_target": budget.savings_target if budget else Decimal("0.00"),
         "minimum_safety_buffer": budget.minimum_safety_buffer if budget else Decimal("0.00"),
         "note": budget.note if budget else "",
@@ -100,45 +99,6 @@ def monthly_budget_edit(request: HttpRequest):
     return render(request, "budgets/form.html", {"title": "设置月度预算", "form": form})
 
 
-@require_http_methods(["GET", "POST"])
-def category_budgets_edit(request: HttpRequest, budget_id: int):
-    budget = get_object_or_404(MonthlyBudget, pk=budget_id)
-    planning = selectors.category_budget_planning_rows(month=budget.month)
-    rows = planning["rows"]
-    categories = [row["category"] for row in rows]
-    existing_budgets = {
-        row["category"].id: row["category_budget"]
-        for row in rows
-        if row["category_budget"] is not None
-    }
-    form = CategoryBudgetsForm(
-        request.POST or None,
-        categories=categories,
-        existing_budgets=existing_budgets,
-    )
-    if request.method == "POST" and form.is_valid():
-        try:
-            saved_count = services.save_category_budgets(
-                monthly_budget=budget,
-                budget_amounts=form.category_amounts(),
-                warning_thresholds=form.category_warning_thresholds(),
-            )
-        except ValidationError as error:
-            _add_error(form, error)
-        else:
-            messages.success(request, f"已保存 {saved_count} 个分类预算。")
-            return redirect(f"{reverse('budgets:index')}?month={budget.month:%Y-%m}")
-    for row in rows:
-        category_id = row["category"].id
-        row["budget_field"] = form[f"budget_{category_id}"]
-        row["warning_threshold_field"] = form[f"warning_threshold_{category_id}"]
-    return render(
-        request,
-        "budgets/category_budgets_form.html",
-        {"budget": budget, "rows": rows, "form": form},
-    )
-
-
 @require_POST
 def copy_previous(request: HttpRequest):
     month = _month_from_query(request)
@@ -147,23 +107,85 @@ def copy_previous(request: HttpRequest):
     except (ValidationError, MonthlyBudget.DoesNotExist) as error:
         messages.error(request, str(error))
     else:
-        messages.success(request, "已复制上月预算；已有分类设置保持不变。")
+        messages.success(request, "已复制上月预算项目；已有项目设置保持不变。")
     return redirect(f"{reverse('budgets:index')}?month={month:%Y-%m}")
 
 
+@require_GET
+def budget_item_index(request: HttpRequest):
+    month = _month_from_query(request)
+    budget = selectors.monthly_budget(month=month)
+    return render(
+        request,
+        "budgets/budget_items.html",
+        {
+            "month": month,
+            "budget": budget,
+            "items": selectors.budget_item_rows(month=month),
+        },
+    )
+
+
 @require_http_methods(["GET", "POST"])
-def category_budget_edit(request: HttpRequest, budget_id: int):
-    budget = get_object_or_404(MonthlyBudget, pk=budget_id)
-    form = CategoryBudgetForm(request.POST or None)
+def budget_item_create(request: HttpRequest):
+    month = _month_from_query(request)
+    form = BudgetItemForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:
-            services.save_category_budget(monthly_budget=budget, **form.cleaned_data)
+            item = services.create_budget_item(month=month, **form.cleaned_data)
         except ValidationError as error:
             _add_error(form, error)
         else:
-            messages.success(request, "分类预算已保存。")
-            return redirect(f"{reverse('budgets:index')}?month={budget.month:%Y-%m}")
-    return render(request, "budgets/form.html", {"title": "设置分类预算", "form": form})
+            messages.success(request, f"预算项目“{item.name}”已创建，月度总预算已自动更新。")
+            return redirect(f"{reverse('budgets:budget-item-index')}?month={month:%Y-%m}")
+    return render(
+        request,
+        "budgets/budget_item_form.html",
+        {"form": form, "title": "新增预算项目", "month": month},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def budget_item_edit(request: HttpRequest, item_id: int):
+    item = get_object_or_404(CategoryBudget, pk=item_id)
+    form = BudgetItemForm(
+        request.POST or None,
+        initial={
+            "name": item.name,
+            "category": item.category,
+            "budget_amount": item.budget_amount,
+            "warning_threshold": item.warning_threshold,
+            "sort_order": item.sort_order,
+        },
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            item = services.update_budget_item(item=item, **form.cleaned_data)
+        except ValidationError as error:
+            _add_error(form, error)
+        else:
+            messages.success(request, f"预算项目“{item.name}”已更新，月度总预算已自动更新。")
+            return redirect(
+                f"{reverse('budgets:budget-item-index')}?month={item.monthly_budget.month:%Y-%m}"
+            )
+    return render(
+        request,
+        "budgets/budget_item_form.html",
+        {"form": form, "title": "编辑预算项目", "month": item.monthly_budget.month},
+    )
+
+
+@require_POST
+def budget_item_delete(request: HttpRequest, item_id: int):
+    item = get_object_or_404(CategoryBudget, pk=item_id)
+    month = item.monthly_budget.month
+    try:
+        services.delete_budget_item(item=item)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "预算项目已删除，月度总预算已自动更新。")
+    return redirect(f"{reverse('budgets:budget-item-index')}?month={month:%Y-%m}")
 
 
 @require_http_methods(["GET", "POST"])

@@ -405,10 +405,10 @@ def report_snapshot(
     budget_rows = (
         tuple(
             BudgetExecutionRow(
-                row["category_budget"].category.name,
-                row["category_budget"].budget_amount,
+                row["category"].name,
+                row["budget_amount"],
                 row["occupancy"],
-                row["category_budget"].budget_amount - row["occupancy"],
+                row["budget_amount"] - row["occupancy"],
                 row["usage_percentage"],
                 row["status"],
             )

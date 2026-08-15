@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p>月份：{{ month|date:"Y-m" }}。保存后系统会自动重新汇总该月总预算。</p>
+  <form method="post" data-pf-part="form-panel">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">保存预算项目</button>
+  </form>
+{% endblock %}

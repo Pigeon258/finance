@@ -220,13 +220,13 @@ def _necessary_budget_remaining(*, month: date) -> Decimal:
     if budget is None:
         return Decimal("0.00")
     total = Decimal("0.00")
-    for category_budget in budget.category_budgets.select_related("category"):
-        if category_budget.category.necessity != Category.Necessity.NECESSARY:
+    for row in budget_selectors.category_budget_rows(budget=budget):
+        if row["category"].necessity != Category.Necessity.NECESSARY:
             continue
-        actual = budget_selectors.monthly_breakdown(month=month, category=category_budget.category)[
+        actual = budget_selectors.monthly_breakdown(month=month, category=row["category"])[
             "actual_expense"
         ]
-        total += max(category_budget.budget_amount - actual, Decimal("0.00"))
+        total += max(row["budget_amount"] - actual, Decimal("0.00"))
     return total
 
 
@@ -429,7 +429,7 @@ def risk_alerts(*, as_of: date, forecast_months: int = 6) -> tuple[RiskAlert, ..
                     RiskAlert(
                         AlertLevel.DANGER,
                         "CATEGORY_OVER",
-                        f"{row['category_budget'].category.name} 分类预算已达到超支阈值。",
+                        f"{row['category'].name} 分类预算已达到超支阈值。",
                         row["occupancy"],
                     )
                 )
@@ -438,7 +438,7 @@ def risk_alerts(*, as_of: date, forecast_months: int = 6) -> tuple[RiskAlert, ..
                     RiskAlert(
                         AlertLevel.WARNING,
                         "CATEGORY_WARNING",
-                        f"{row['category_budget'].category.name} 分类预算已达到提醒阈值。",
+                        f"{row['category'].name} 分类预算已达到提醒阈值。",
                         row["occupancy"],
                     )
                 )

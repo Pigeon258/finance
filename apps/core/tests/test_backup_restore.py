@@ -277,6 +277,7 @@ def test_every_business_model_type_round_trips_with_relationships(tmp_path):
     )
     CategoryBudget.objects.create(
         monthly_budget=monthly_budget,
+        name="备份预算项目",
         category=category,
         budget_amount=Decimal("300.00"),
     )

@@ -360,7 +360,7 @@ def test_reports_budget_installment_credit_and_savings_sections(
     report = selectors.report_snapshot(
         date_from=date(2026, 7, 1), date_to=date(2026, 8, 31), budget_month=date(2026, 7, 1)
     )
-    assert report.budget_summary["total_budget"] == Decimal("800.00")
+    assert report.budget_summary["total_budget"] == Decimal("400.00")
     assert report.budget_rows[0].occupied == Decimal("200.00")
     assert report.credit.configured is True
     assert report.credit.monthly_purchases[0].amount == Decimal("100.00")

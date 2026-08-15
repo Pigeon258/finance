@@ -15,12 +15,6 @@ class MonthlyBudgetForm(forms.Form):
         input_formats=["%Y-%m"],
         widget=forms.DateInput(format="%Y-%m", attrs={"type": "month"}),
     )
-    total_expense_budget = forms.DecimalField(
-        label="月度总支出预算",
-        max_digits=14,
-        decimal_places=2,
-        min_value=Decimal("0.00"),
-    )
     savings_target = forms.DecimalField(
         label="储蓄目标",
         max_digits=14,
@@ -38,70 +32,15 @@ class MonthlyBudgetForm(forms.Form):
     note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
 
-class CategoryBudgetsForm(forms.Form):
-    def __init__(self, *args, categories=(), existing_budgets=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        existing_budgets = existing_budgets or {}
-        warning_threshold, over_threshold = core_selectors.budget_thresholds()
-        for category in categories:
-            current = existing_budgets.get(category.id)
-            budget_initial = current.budget_amount if current else Decimal("0.00")
-            threshold_initial = (
-                current.warning_threshold if current else warning_threshold
-            )
-            self.fields[f"budget_{category.id}"] = forms.DecimalField(
-                label=f"{category.name}预算",
-                max_digits=14,
-                decimal_places=2,
-                min_value=Decimal("0.00"),
-                initial=budget_initial,
-                required=False,
-                widget=forms.NumberInput(
-                    attrs={
-                        "step": "0.01",
-                        "min": "0",
-                        "inputmode": "decimal",
-                        "aria-label": f"{category.name}预算",
-                    }
-                ),
-            )
-            self.fields[f"warning_threshold_{category.id}"] = forms.DecimalField(
-                label=f"{category.name}提醒阈值（%）",
-                max_digits=5,
-                decimal_places=2,
-                min_value=Decimal("0.00"),
-                max_value=over_threshold,
-                initial=threshold_initial,
-                required=False,
-                widget=forms.NumberInput(
-                    attrs={
-                        "step": "0.01",
-                        "min": "0",
-                        "max": str(over_threshold),
-                        "aria-label": f"{category.name}提醒阈值",
-                    }
-                ),
-            )
-
-    def category_amounts(self):
-        return {
-            int(name.removeprefix("budget_")): value
-            for name, value in self.cleaned_data.items()
-            if name.startswith("budget_") and value is not None
-        }
-
-    def category_warning_thresholds(self):
-        return {
-            int(name.removeprefix("warning_threshold_")): value
-            for name, value in self.cleaned_data.items()
-            if name.startswith("warning_threshold_") and value is not None
-        }
-
-
-class CategoryBudgetForm(forms.Form):
-    category = forms.ModelChoiceField(label="支出分类", queryset=Category.objects.none())
+class BudgetItemForm(forms.Form):
+    name = forms.CharField(label="预算项目名称", max_length=100)
+    category = forms.ModelChoiceField(label="所属支出分类", queryset=Category.objects.none())
     budget_amount = forms.DecimalField(
-        label="分类预算", max_digits=14, decimal_places=2, min_value=Decimal("0.00")
+        label="项目预算金额",
+        max_digits=14,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        help_text="例如：工作日午餐 500.00、周末采购 800.00。系统会自动汇总为月度总预算。",
     )
     warning_threshold = forms.DecimalField(
         label="提醒阈值（%）",
@@ -111,6 +50,7 @@ class CategoryBudgetForm(forms.Form):
         max_value=Decimal("100.00"),
         initial=Decimal("80.00"),
     )
+    sort_order = forms.IntegerField(label="显示顺序", min_value=0, initial=0)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

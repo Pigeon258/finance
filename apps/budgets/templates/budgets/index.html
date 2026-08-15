@@ -12,8 +12,8 @@
     <button type="submit">查看</button>
   </form>
   <nav class="quick-actions" data-pf-part="action-group" aria-label="预算操作">
-    <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置月度总预算</a>
-    {% if snapshot.budget %}<a href="{% url 'budgets:category-budgets-edit' snapshot.budget.id %}">设置分类预算</a>{% endif %}
+    <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置储蓄与安全余量</a>
+    <a href="{% url 'budgets:budget-item-index' %}?month={{ month|date:'Y-m' }}">设置预算项目</a>
     <a href="{% url 'budgets:reserve-create' %}">记录储备变动</a>
     <a href="{% url 'budgets:cash-flow-index' %}">固定支出与预计收入</a>
   </nav>
@@ -25,7 +25,7 @@
 
   {% if snapshot.budget %}
     <dl>
-      <dt>月度总预算</dt><dd>{{ snapshot.total_budget }}</dd>
+      <dt>预算项目合计（自动汇总）</dt><dd>{{ snapshot.total_budget }}</dd>
       <dt>普通支出</dt><dd>{{ snapshot.ordinary_expense }}</dd>
       <dt>固定支出占用</dt><dd>{{ snapshot.fixed_expense }}（实际 {{ snapshot.fixed_actual }}，待发生 {{ snapshot.fixed_planned }}）</dd>
       <dt>分期占用</dt><dd>{{ snapshot.installment }}（实际 {{ snapshot.installment_actual }}，待发生 {{ snapshot.installment_planned }}）</dd>
@@ -35,21 +35,32 @@
       <dt>使用比例</dt><dd>{% if snapshot.usage_percentage is not None %}{{ snapshot.usage_percentage }}%{% else %}—{% endif %}</dd>
       <dt>最低安全余量</dt><dd>{{ snapshot.budget.minimum_safety_buffer }}</dd>
     </dl>
-    <nav class="quick-actions" data-pf-part="action-group" aria-label="分类预算操作">
-      <a href="{% url 'budgets:category-budgets-edit' snapshot.budget.id %}">编辑分类预算</a>
-    </nav>
-    <h2>分类预算</h2>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="分类预算表"><table data-pf-part="data-table">
-      <thead><tr><th>分类</th><th>预算</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
-      <tbody>
-        {% for row in category_rows %}
-          <tr><td>{{ row.category_budget.category }}</td><td>{{ row.category_budget.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
-        {% empty %}<tr><td colspan="5">尚未设置分类预算。</td></tr>{% endfor %}
-      </tbody>
-    </table></div>
   {% else %}
-    <p>本月尚未设置月度总预算。请先<a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置月度总预算</a>，然后再为餐饮、日用品等分类设置明细预算。</p>
+    <p>本月尚未创建预算项目。点击“设置预算项目”，填写具体项目后系统会自动汇总月度总预算。</p>
   {% endif %}
+
+  <h2>预算项目</h2>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="预算项目操作">
+    <a href="{% url 'budgets:budget-item-index' %}?month={{ month|date:'Y-m' }}">管理预算项目</a>
+  </nav>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="预算项目表"><table data-pf-part="data-table">
+    <thead><tr><th>项目名称</th><th>所属分类</th><th>预算金额</th></tr></thead>
+    <tbody>
+      {% for item in item_rows %}
+        <tr><td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.budget_amount }}</td></tr>
+      {% empty %}<tr><td colspan="3">尚无预算项目。</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+
+  <h2>分类汇总</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="分类汇总表"><table data-pf-part="data-table">
+    <thead><tr><th>分类</th><th>预算合计</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
+    <tbody>
+      {% for row in category_rows %}
+        <tr><td>{{ row.category }}</td><td>{{ row.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
+      {% empty %}<tr><td colspan="5">尚未设置预算项目。</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
 
   <h2>累计储备</h2>
   <p>{{ reserve_balance }}</p>
