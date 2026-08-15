@@ -1,5 +1,7 @@
+import errno
 import io
 import logging
+import os
 import stat
 import zipfile
 from pathlib import Path
@@ -246,6 +248,52 @@ def test_publish_failure_leaves_no_partial_theme(theme_directories):
 
     assert error.value.code == "publish-failed"
     assert not (theme_directories / "runtime" / "interrupted-theme").exists()
+
+
+def test_cross_device_publish_uses_target_side_temporary_directory(theme_directories):
+    root = _write_theme(theme_directories / "source", theme_id="cross-device-theme")
+    real_replace = os.replace
+
+    def _replace_with_cross_device_error(source: str, destination: str) -> None:
+        if Path(source).parent != Path(destination).parent:
+            raise OSError(errno.EXDEV, os.strerror(errno.EXDEV))
+        real_replace(source, destination)
+
+    with patch(
+        "apps.core.theme_library.os.replace", side_effect=_replace_with_cross_device_error
+    ):
+        result = install_theme_zip(_upload(_zip_directory(root)))
+
+    final_root = theme_directories / "runtime" / "cross-device-theme"
+    assert result.status == "installed"
+    assert result.theme.id == "cross-device-theme"
+    assert (final_root / "manifest.json").is_file()
+    assert not list(
+        (theme_directories / "runtime").glob(".cross-device-theme.install-*")
+    )
+
+
+def test_cross_device_publish_removes_temporary_directory_on_copy_failure(theme_directories):
+    root = _write_theme(theme_directories / "source", theme_id="copy-fail-theme")
+    real_replace = os.replace
+
+    def _replace_with_cross_device_error(source: str, destination: str) -> None:
+        if Path(source).parent != Path(destination).parent:
+            raise OSError(errno.EXDEV, os.strerror(errno.EXDEV))
+        real_replace(source, destination)
+
+    with (
+        patch(
+            "apps.core.theme_library.os.replace", side_effect=_replace_with_cross_device_error
+        ),
+        patch("apps.core.theme_library.shutil.copytree", side_effect=OSError("copy failed")),
+        pytest.raises(ThemeLibraryError) as error,
+    ):
+        install_theme_zip(_upload(_zip_directory(root)))
+
+    assert error.value.code == "publish-failed"
+    assert not (theme_directories / "runtime" / "copy-fail-theme").exists()
+    assert not list((theme_directories / "runtime").glob(".copy-fail-theme.install-*"))
 
 
 @pytest.mark.django_db

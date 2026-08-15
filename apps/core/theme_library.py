@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import json
 import logging
 import os
@@ -246,7 +247,30 @@ def _prepare_public_permissions(root: Path) -> None:
 
 
 def _publish_theme(staging_root: Path, final_root: Path) -> None:
-    os.replace(staging_root, final_root)
+    try:
+        os.replace(staging_root, final_root)
+    except OSError as error:
+        if error.errno != errno.EXDEV:
+            raise
+        _publish_theme_cross_device(staging_root, final_root)
+
+
+def _publish_theme_cross_device(staging_root: Path, final_root: Path) -> None:
+    """通过目标目录旁的临时目录复制后重命名，兼容导入临时目录与运行时目录位于不同文件系统。
+
+    正式发布仍以同一运行时目录内的 rename 收尾；复制失败时会删除临时目录，
+    不会留下部分发布的主题目录。
+    """
+    final_parent = final_root.parent
+    final_parent.mkdir(parents=True, exist_ok=True)
+    temporary_root = final_parent / f".{final_root.name}.install-{uuid.uuid4().hex}"
+    try:
+        shutil.copytree(staging_root, temporary_root, symlinks=False)
+        os.replace(temporary_root, final_root)
+    except Exception:
+        if temporary_root.exists():
+            shutil.rmtree(temporary_root, ignore_errors=True)
+        raise
 
 
 def install_theme_zip(uploaded_file) -> ThemeInstallResult:
