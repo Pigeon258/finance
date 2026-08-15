@@ -1,0 +1,122 @@
+# 生产后维护记录
+
+本文汇总 `v0.2.0` 生产基线之后的所有生产维护升级，供后续维护者快速了解项目当前状态、修改原因、部署方式和回滚线索。具体逐项人工验收证据见 `docs/acceptance.md`。
+
+## 1. 当前生产状态（2026-08-15）
+
+| 项目 | 值 |
+|---|---|
+| 生产域名 | `finance.example.com` |
+| 生产运行时提交 | `9e14d2eda271ec91c8e126b94ddbb185ad0de4e7` |
+| 应用版本常量 | `0.2.0`（`config/version.py`） |
+| 主题格式 / 组件契约 | `1 / 1` |
+| 活动主题 | `aurora-ledger` |
+| last-known-good | `safe-default` |
+| 数据库迁移 | 已应用至 `ledger.0006_tag_applies_to` |
+| 最新部署前备份 | `db-deployment-20260815T143728Z-46.dump.enc` |
+| 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
+
+说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
+
+## 2. 维护升级总览
+
+| 日期 | 运行时提交 | 内容 | 数据库迁移 | 部署备份 | 测试 |
+|---|---|---|---|---|---|
+| 2026-08-15 | `e638dbc` | 页面状态中文化、组件统一、零值显示修复、主题跨文件系统发布 | 无 | `db-deployment-20260815T103131Z-43.dump.enc` | `331 passed` |
+| 2026-08-15 | `5e0d740` | 收入/支出等操作表单差异化，全局控件间距和表单面板优化 | 无 | `db-deployment-20260815T125741Z-44.dump.enc` | `334 passed` |
+| 2026-08-15 | `294c974` | 标签按收入/支出类型隔离，新增服务层和表单层校验 | `ledger.0006_tag_applies_to` | `db-deployment-20260815T131435Z-45.dump.enc` | `336 passed` |
+| 2026-08-15 | `9e14d2e` | 新增标签管理页面：新建、编辑、启停、保护性删除 | 无 | `db-deployment-20260815T143728Z-46.dump.enc` | `340 passed` |
+
+## 3. 逐项维护说明
+
+### 3.1 页面状态中文化与组件统一（`e638dbc`）
+
+问题：
+
+- 多个页面直接输出 `OVERDUE`、`SAFE`、`OVER`、`DANGER` 等内部枚举。
+- 预算使用比例 `0.00` 等有效零值被错误显示为“—”。
+- 部分表单使用 `as_p`，部分表格缺少 `data-pf-part`，状态徽章缺少安全默认样式。
+
+处理：
+
+- 集中维护风险状态、预测状态、预警级别和账期状态的中文标签与视觉 tone。
+- 统一 `form.as_div`、`data-table`、`status-badge`、`action-group`。
+- 修复 `core/home.html` 过时文案和主题库英文状态文案。
+
+发布记录：`docs/acceptance.md` 中“2026-08-15 页面状态本地化与主题跨文件系统发布生产升级验收”。
+
+### 3.2 主题跨文件系统发布（随 `e638dbc` 发布）
+
+问题：`THEME_IMPORT_TMP_DIR` 与 `THEME_RUNTIME_DIR` 位于不同文件系统时，`os.replace` 返回 `EXDEV`，主题导入失败。
+
+处理：`_publish_theme` 先尝试原子 rename；遇到 `EXDEV` 时，在运行时目录旁创建隐藏临时目录，复制后同目录 rename，失败即清理，不留下半发布状态。
+
+安全边界：最终发布仍以运行时目录内的 rename 收尾；复制过程禁用符号链接；未改变主题包格式、校验器或资源边界。
+
+### 3.3 交易表单辨识与全局间距（`5e0d740`）
+
+问题：
+
+- “记收入”和“记支出”页面除标题外几乎相同。
+- 预算管理按钮拥挤，文字与边框间距不足，其他页面也有类似问题。
+
+处理：
+
+- 为收入、支出、转账、信用卡消费、信用卡还款、余额调整增加操作徽章、说明文字和差异化提交按钮。
+- 优化全局按钮、表单、筛选面板、快捷操作、表格和次级操作间距。
+- 给顶层表单增加统一卡片面板。
+
+### 3.4 标签类型隔离（`294c974`）
+
+问题：收入和支出分类不共用，但标签全局共用，收入表单可以选择“冲动消费”。
+
+处理：
+
+- `Tag` 新增 `applies_to`（`INCOME` / `EXPENSE`），并增加“类型 + 名称”唯一约束。
+- 迁移 `ledger.0006_tag_applies_to`：
+  - 存量“冲动消费”归入支出标签；
+  - 收入/支出共用的历史标签自动拆分并重新关联交易。
+- 表单只显示与交易类型匹配的标签。
+- 服务层在创建、编辑、反向修正时校验标签类型。
+
+### 3.5 标签管理页面（`9e14d2e`）
+
+入口：左侧“分析与管理 → 标签管理”，URL `/ledger/tags/`。
+
+支持：
+
+- 新建收入/支出标签；
+- 编辑名称和启用状态；
+- 启用/停用；
+- 删除未使用标签；
+- 已用于交易的标签禁止删除，且不能修改收入/支出类型；
+- 收入和支出下可分别存在同名标签。
+
+## 4. 发布与维护约定
+
+- 低风险 UI 修复优先使用 `deploy/upgrade.sh` 完整流程；只有建立了 `QUICK-ITERATION-NN` 任务并满足全部准入条件时，才使用 `deploy/quick-upgrade.sh`。
+- 涉及数据库迁移时必须使用完整升级；升级前必须确认部署备份成功。
+- 发布后必须执行 `deploy/verify-deployment.sh`，并人工检查首页、交易表单、预算管理、信用卡账期、主题库和标签管理。
+- 主题运行数据位于 Docker 命名卷 `theme_data`，不进入数据库备份或 `.pfbackup`；导入主题的原始 ZIP、许可和 SHA-256 需在可信位置另行保存。
+- 生产环境隔离恢复和整机重启演练仍按 `docs/deployment.md` 的维护窗口执行。
+
+## 5. 后续维护者快速清单
+
+```bash
+git fetch --tags origin
+git log --oneline origin/main
+
+ruff check .
+pytest
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py check_financial_integrity
+python manage.py check_theme_integrity --strict
+```
+
+生产操作入口：
+
+- 升级：`docs/deployment.md` 第 5 节
+- 回滚：`docs/deployment.md` 第 6 节
+- 数据库恢复：`docs/deployment.md` 第 7 节
+- 验收记录：`docs/acceptance.md`

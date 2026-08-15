@@ -165,3 +165,16 @@ docker compose run --rm web python manage.py maintenance_mode disable
 2026-07-13，系统所有者在 Ubuntu 22.04 / WSL 2 中对提交 `b91668c` 完成了本地容器验收。四服务健康、端口隔离、本地 HTTPS 与安全头、真实运维备份、隔离数据库恢复、业务备份恢复、日志脱敏和 Docker Engine 重启恢复均通过，详细记录见 `docs/acceptance.md`。
 
 该结果可作为目标服务器部署前的已验证基线，但不能证明公网 DNS/ACME、防火墙、磁盘权限、服务器重启和异地密钥保存已经在生产主机完成。生产部署仍需重新执行本 runbook 第 2～9 节。
+
+## 11. 当前生产状态与维护记录
+
+截至 2026-08-15：
+
+- 生产运行时提交：`9e14d2eda271ec91c8e126b94ddbb185ad0de4e7`
+- 应用版本：`0.2.0`；主题格式/组件契约：`1 / 1`
+- 活动主题：`aurora-ledger`；last-known-good：`safe-default`
+- 数据库迁移：已应用至 `ledger.0006_tag_applies_to`
+- 四服务：`web` / `caddy` / `db` / `backup` 均 healthy
+- 最新部署前备份：`db-deployment-20260815T143728Z-46.dump.enc`
+
+`v0.2.0` 之后的完整修改原因、提交、迁移、备份和测试数量见 `docs/maintenance-history.md`；逐次生产验收记录见 `docs/acceptance.md`。
