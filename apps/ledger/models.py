@@ -70,16 +70,29 @@ class Merchant(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField("标签名称", max_length=50, unique=True)
+    class AppliesTo(models.TextChoices):
+        INCOME = "INCOME", "收入"
+        EXPENSE = "EXPENSE", "支出"
+
+    name = models.CharField("标签名称", max_length=50)
+    applies_to = models.CharField(
+        "适用类型", max_length=10, choices=AppliesTo.choices, default=AppliesTo.EXPENSE
+    )
     is_active = models.BooleanField("启用", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["name", "id"]
+        ordering = ["applies_to", "name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["applies_to", "name"],
+                name="ledger_unique_tag_name_per_type",
+            )
+        ]
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.get_applies_to_display()}标签：{self.name}"
 
 
 class Transaction(models.Model):

@@ -74,13 +74,28 @@ def test_transaction_pages_require_login(client):
 
 
 @pytest.mark.django_db
-def test_default_impulse_tag_is_available():
-    assert Tag.objects.filter(name="冲动消费", is_active=True).exists()
+def test_default_impulse_tag_is_available_for_expenses_only():
+    tag = Tag.objects.get(name="冲动消费")
+    assert tag.is_active is True
+    assert tag.applies_to == Tag.AppliesTo.EXPENSE
+
+
+@pytest.mark.django_db
+def test_income_and_expense_forms_only_offer_matching_tags(authenticated_client):
+    income_page = authenticated_client.get(
+        reverse("ledger:transaction-create", args=["income"])
+    ).content.decode()
+    expense_page = authenticated_client.get(
+        reverse("ledger:transaction-create", args=["expense"])
+    ).content.decode()
+
+    assert "冲动消费" not in income_page
+    assert "冲动消费" in expense_page
 
 
 @pytest.mark.django_db
 def test_income_form_creates_manual_income(authenticated_client, accounts, categories):
-    tag = Tag.objects.create(name="生活费")
+    tag = Tag.objects.create(name="生活费", applies_to=Tag.AppliesTo.INCOME)
     response = _post_operation(
         authenticated_client,
         "income",

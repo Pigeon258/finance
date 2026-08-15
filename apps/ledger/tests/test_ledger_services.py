@@ -333,6 +333,36 @@ def test_service_rolls_back_header_when_later_validation_fails(bank, income_cate
 
 
 @pytest.mark.django_db
+def test_income_and_expense_services_reject_tags_from_the_other_type(
+    bank, income_category, expense_category
+):
+    impulse_tag = Tag.objects.get(name="冲动消费")
+    income_tag = Tag.objects.create(name="工资收入", applies_to=Tag.AppliesTo.INCOME)
+    before = Transaction.objects.count()
+
+    with pytest.raises(ValidationError, match="收入交易只能使用收入标签"):
+        services.create_income(
+            account=bank,
+            category=income_category,
+            amount=Decimal("10.00"),
+            occurred_at=OCCURRED_AT,
+            channel=Transaction.Channel.BANK,
+            tags=[impulse_tag],
+        )
+    with pytest.raises(ValidationError, match="支出交易只能使用支出标签"):
+        services.create_expense(
+            account=bank,
+            category=expense_category,
+            amount=Decimal("10.00"),
+            occurred_at=OCCURRED_AT,
+            channel=Transaction.Channel.BANK,
+            tags=[income_tag],
+        )
+
+    assert Transaction.objects.count() == before
+
+
+@pytest.mark.django_db
 def test_merchant_and_tags_are_attached_without_changing_entries(bank, expense_category):
     merchant = Merchant.objects.create(name="测试商家", normalized_name="测试商家")
     tag = Tag.objects.get(name="冲动消费")

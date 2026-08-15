@@ -46,9 +46,12 @@ class BaseManualTransactionForm(forms.Form):
     note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
     tags = forms.ModelMultipleChoiceField(label="标签", queryset=Tag.objects.none(), required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, tag_applies_to: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["tags"].queryset = Tag.objects.filter(is_active=True).order_by("name")
+        tag_queryset = Tag.objects.filter(is_active=True).order_by("name")
+        if tag_applies_to is not None:
+            tag_queryset = tag_queryset.filter(applies_to=tag_applies_to)
+        self.fields["tags"].queryset = tag_queryset
 
 
 class IncomeForm(BaseManualTransactionForm):
@@ -56,7 +59,9 @@ class IncomeForm(BaseManualTransactionForm):
     category = forms.ModelChoiceField(label="收入分类", queryset=Category.objects.none())
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args, tag_applies_to=Tag.AppliesTo.INCOME, **kwargs
+        )
         self.fields["account"].queryset = Account.objects.filter(
             balance_nature=Account.BalanceNature.ASSET, is_active=True
         )
@@ -70,7 +75,9 @@ class ExpenseForm(BaseManualTransactionForm):
     category = forms.ModelChoiceField(label="支出分类", queryset=Category.objects.none())
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args, tag_applies_to=Tag.AppliesTo.EXPENSE, **kwargs
+        )
         self.fields["account"].queryset = Account.objects.filter(
             balance_nature=Account.BalanceNature.ASSET, is_active=True
         )

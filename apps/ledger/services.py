@@ -143,6 +143,20 @@ def _validate_category(category: Category, *, category_type: str) -> None:
         raise ValidationError("分类类型与交易类型不匹配。")
 
 
+def _validate_tag(tag: Tag, *, transaction_type: str) -> None:
+    if not tag.is_active:
+        raise ValidationError("停用标签不能用于交易。")
+    expected_applies_to = {
+        Transaction.TransactionType.INCOME: Tag.AppliesTo.INCOME,
+        Transaction.TransactionType.EXPENSE: Tag.AppliesTo.EXPENSE,
+    }.get(transaction_type)
+    if expected_applies_to is not None and tag.applies_to != expected_applies_to:
+        raise ValidationError(
+            f"{Transaction.TransactionType(transaction_type).label}交易只能使用"
+            f"{Tag.AppliesTo(expected_applies_to).label}标签。"
+        )
+
+
 def _budget_month(occurred_at):
     return timezone.localdate(occurred_at).replace(day=1)
 
@@ -180,8 +194,7 @@ def _create_transaction(
     ledger_transaction.full_clean()
     ledger_transaction.save()
     for tag in tags:
-        if not tag.is_active:
-            raise ValidationError("停用标签不能用于新交易。")
+        _validate_tag(tag, transaction_type=transaction_type)
         TransactionTag.objects.create(transaction=ledger_transaction, tag=tag)
     return ledger_transaction
 
@@ -529,8 +542,7 @@ def _rewrite_manual_transaction(
         _validate_account(account)
         _validate_decimal(balance_delta, allow_negative=True)
     for tag in tags:
-        if not tag.is_active:
-            raise ValidationError("停用标签不能用于交易。")
+        _validate_tag(tag, transaction_type=transaction_type)
 
     target.transaction_type = transaction_type
     target.amount = amount
