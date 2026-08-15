@@ -38,6 +38,66 @@ class MonthlyBudgetForm(forms.Form):
     note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
 
+class CategoryBudgetsForm(forms.Form):
+    def __init__(self, *args, categories=(), existing_budgets=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        existing_budgets = existing_budgets or {}
+        warning_threshold, over_threshold = core_selectors.budget_thresholds()
+        for category in categories:
+            current = existing_budgets.get(category.id)
+            budget_initial = current.budget_amount if current else Decimal("0.00")
+            threshold_initial = (
+                current.warning_threshold if current else warning_threshold
+            )
+            self.fields[f"budget_{category.id}"] = forms.DecimalField(
+                label=f"{category.name}预算",
+                max_digits=14,
+                decimal_places=2,
+                min_value=Decimal("0.00"),
+                initial=budget_initial,
+                required=False,
+                widget=forms.NumberInput(
+                    attrs={
+                        "step": "0.01",
+                        "min": "0",
+                        "inputmode": "decimal",
+                        "aria-label": f"{category.name}预算",
+                    }
+                ),
+            )
+            self.fields[f"warning_threshold_{category.id}"] = forms.DecimalField(
+                label=f"{category.name}提醒阈值（%）",
+                max_digits=5,
+                decimal_places=2,
+                min_value=Decimal("0.00"),
+                max_value=over_threshold,
+                initial=threshold_initial,
+                required=False,
+                widget=forms.NumberInput(
+                    attrs={
+                        "step": "0.01",
+                        "min": "0",
+                        "max": str(over_threshold),
+                        "aria-label": f"{category.name}提醒阈值",
+                    }
+                ),
+            )
+
+    def category_amounts(self):
+        return {
+            int(name.removeprefix("budget_")): value
+            for name, value in self.cleaned_data.items()
+            if name.startswith("budget_") and value is not None
+        }
+
+    def category_warning_thresholds(self):
+        return {
+            int(name.removeprefix("warning_threshold_")): value
+            for name, value in self.cleaned_data.items()
+            if name.startswith("warning_threshold_") and value is not None
+        }
+
+
 class CategoryBudgetForm(forms.Form):
     category = forms.ModelChoiceField(label="支出分类", queryset=Category.objects.none())
     budget_amount = forms.DecimalField(
@@ -93,9 +153,24 @@ class PlannedCashFlowForm(forms.Form):
     is_active = forms.BooleanField(label="启用", required=False, initial=True)
     note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, direction: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["category"].queryset = Category.objects.filter(is_active=True)
+        category_queryset = Category.objects.filter(is_active=True)
+        if direction == PlannedCashFlow.Direction.INCOME:
+            category_queryset = category_queryset.filter(
+                category_type=Category.CategoryType.INCOME
+            )
+            self.fields["direction"].initial = PlannedCashFlow.Direction.INCOME
+            self.fields["direction"].disabled = True
+            self.fields["direction"].help_text = "本表单用于创建预计收入，分类仅显示收入分类。"
+        elif direction == PlannedCashFlow.Direction.EXPENSE:
+            category_queryset = category_queryset.filter(
+                category_type=Category.CategoryType.EXPENSE
+            )
+            self.fields["direction"].initial = PlannedCashFlow.Direction.EXPENSE
+            self.fields["direction"].disabled = True
+            self.fields["direction"].help_text = "本表单用于创建固定支出，分类仅显示支出分类。"
+        self.fields["category"].queryset = category_queryset
         self.fields["default_account"].queryset = Account.objects.filter(is_active=True)
 
 

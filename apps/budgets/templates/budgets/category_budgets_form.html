@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}分类预算 · 个人财务{% endblock %}
+
+{% block content %}
+  <div class="page-heading" data-pf-part="page-header">
+    <div>
+      <h1>分类预算：{{ budget.month|date:"Y-m" }}</h1>
+      <p>为餐饮、日用品等支出分类设置每月预算。金额填写 0 或留空表示不设置该分类预算；保存后可在预算管理页查看占用和状态。</p>
+    </div>
+  </div>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="分类预算操作">
+    <a href="{% url 'budgets:index' %}?month={{ budget.month|date:'Y-m' }}">返回预算管理</a>
+  </nav>
+
+  <form method="post" data-pf-part="form-panel">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="errorlist">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="分类预算编辑表">
+      <table data-pf-part="data-table">
+        <thead>
+          <tr><th>支出分类</th><th>消费性质</th><th>每月预算</th><th>提醒阈值（%）</th><th>本月占用</th><th>使用比例</th></tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.category.name }}</td>
+              <td>{{ row.category.get_necessity_display|default:"—" }}</td>
+              <td>
+                {{ row.budget_field.errors }}
+                {{ row.budget_field }}
+              </td>
+              <td>
+                {{ row.warning_threshold_field.errors }}
+                {{ row.warning_threshold_field }}
+              </td>
+              <td>{{ row.occupancy }}</td>
+              <td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">没有可设置预算的支出分类。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit">保存全部分类预算</button>
+  </form>
+{% endblock %}

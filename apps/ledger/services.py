@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError
 from django.db import transaction as db_transaction
 from django.db.models import Sum
+from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 
 from apps.accounts.models import Account, AccountReconciliation
@@ -90,6 +91,16 @@ def deactivate_category(*, category: Category) -> Category:
     category.full_clean()
     category.save(update_fields=["is_active", "updated_at"])
     return category
+
+
+@db_transaction.atomic
+def delete_category(*, category: Category) -> None:
+    try:
+        category.delete()
+    except ProtectedError as error:
+        raise ValidationError(
+            "该分类已用于交易、预算、计划或导入规则，不能直接删除；请改为停用。"
+        ) from error
 
 
 @db_transaction.atomic

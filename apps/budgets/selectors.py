@@ -240,6 +240,86 @@ def category_budget_status(*, category_budget: CategoryBudget) -> dict[str, Deci
     }
 
 
+def category_budget_planning_rows(*, month: date):
+    """Return every active expense category with its configured budget and occupancy."""
+    month = month.replace(day=1)
+    budget = monthly_budget(month=month)
+    configured = {}
+    if budget is not None:
+        configured = {
+            item.category_id: item
+            for item in budget.category_budgets.select_related("category")
+        }
+
+    categories = list(
+        Category.objects.filter(
+            category_type=Category.CategoryType.EXPENSE, is_active=True
+        ).order_by("sort_order", "id")
+    )
+
+    actual_by_category = {
+        row["category_id"]: (row["expenses"] or Decimal("0.00"))
+        - (row["refunds"] or Decimal("0.00"))
+        for row in ledger_selectors.active_transactions()
+        .filter(
+            transaction_type__in=[
+                Transaction.TransactionType.EXPENSE,
+                Transaction.TransactionType.REFUND,
+            ],
+            budget_month=month,
+        )
+        .values("category_id")
+        .annotate(
+            expenses=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.EXPENSE)),
+            refunds=Sum("amount", filter=Q(transaction_type=Transaction.TransactionType.REFUND)),
+        )
+    }
+    fixed_by_category = {
+        row["plan__category_id"]: row["total"] or Decimal("0.00")
+        for row in PlannedCashFlowOccurrence.objects.filter(
+            plan__direction=PlannedCashFlow.Direction.EXPENSE,
+            status=PlannedCashFlowOccurrence.Status.PLANNED,
+            due_date__year=month.year,
+            due_date__month=month.month,
+        )
+        .values("plan__category_id")
+        .annotate(total=Sum("planned_amount"))
+    }
+    installment_by_category = {
+        row["plan__category_id"]: row["total"] or Decimal("0.00")
+        for row in installment_selectors.planned_by_category(month=month)
+    }
+
+    default_warning_threshold, _ = core_selectors.budget_thresholds()
+    rows = []
+    for category in categories:
+        item = configured.get(category.id)
+        budget_amount = item.budget_amount if item else Decimal("0.00")
+        occupancy = (
+            actual_by_category.get(category.id, Decimal("0.00"))
+            + fixed_by_category.get(category.id, Decimal("0.00"))
+            + installment_by_category.get(category.id, Decimal("0.00"))
+        )
+        usage_percentage = (
+            (occupancy / budget_amount * Decimal("100.00")).quantize(Decimal("0.01"))
+            if budget_amount > 0
+            else None
+        )
+        rows.append(
+            {
+                "category": category,
+                "category_budget": item,
+                "budget_amount": budget_amount,
+                "warning_threshold": (
+                    item.warning_threshold if item else default_warning_threshold
+                ),
+                "occupancy": occupancy,
+                "usage_percentage": usage_percentage,
+            }
+        )
+    return {"budget": budget, "rows": rows}
+
+
 def category_budget_rows(*, budget: MonthlyBudget):
     month = budget.month
     actual_rows = (

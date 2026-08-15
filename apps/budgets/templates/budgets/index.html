@@ -12,7 +12,8 @@
     <button type="submit">查看</button>
   </form>
   <nav class="quick-actions" data-pf-part="action-group" aria-label="预算操作">
-    <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置本月预算</a>
+    <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置月度总预算</a>
+    {% if snapshot.budget %}<a href="{% url 'budgets:category-budgets-edit' snapshot.budget.id %}">设置分类预算</a>{% endif %}
     <a href="{% url 'budgets:reserve-create' %}">记录储备变动</a>
     <a href="{% url 'budgets:cash-flow-index' %}">固定支出与预计收入</a>
   </nav>
@@ -34,7 +35,9 @@
       <dt>使用比例</dt><dd>{% if snapshot.usage_percentage is not None %}{{ snapshot.usage_percentage }}%{% else %}—{% endif %}</dd>
       <dt>最低安全余量</dt><dd>{{ snapshot.budget.minimum_safety_buffer }}</dd>
     </dl>
-    <p><a href="{% url 'budgets:category-edit' snapshot.budget.id %}">新增或更新分类预算</a></p>
+    <nav class="quick-actions" data-pf-part="action-group" aria-label="分类预算操作">
+      <a href="{% url 'budgets:category-budgets-edit' snapshot.budget.id %}">编辑分类预算</a>
+    </nav>
     <h2>分类预算</h2>
     <div class="table-scroll" tabindex="0" role="region" aria-label="分类预算表"><table data-pf-part="data-table">
       <thead><tr><th>分类</th><th>预算</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
@@ -45,7 +48,7 @@
       </tbody>
     </table></div>
   {% else %}
-    <p>本月尚未设置预算。</p>
+    <p>本月尚未设置月度总预算。请先<a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置月度总预算</a>，然后再为餐饮、日用品等分类设置明细预算。</p>
   {% endif %}
 
   <h2>累计储备</h2>

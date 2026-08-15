@@ -332,6 +332,105 @@ def test_expected_income_does_not_change_balance_until_confirmation(income_categ
 
 
 @pytest.mark.django_db
+def test_category_budget_bulk_page_lists_and_saves_multiple_categories(
+    authenticated_client, expense_category
+):
+    budget = services.save_monthly_budget(
+        month=date(2026, 7, 1), total_expense_budget=Decimal("1000.00")
+    )
+    second_category = Category.objects.filter(
+        category_type=Category.CategoryType.EXPENSE, is_active=True
+    ).exclude(pk=expense_category.pk).first()
+
+    page = authenticated_client.get(
+        reverse("budgets:category-budgets-edit", args=[budget.id])
+    )
+    assert page.status_code == 200
+    content = page.content.decode()
+    assert expense_category.name in content
+    assert second_category.name in content
+    assert f'name="budget_{expense_category.id}"' in content
+    assert f'name="budget_{second_category.id}"' in content
+
+    response = authenticated_client.post(
+        reverse("budgets:category-budgets-edit", args=[budget.id]),
+        {
+            f"budget_{expense_category.id}": "300.00",
+            f"warning_threshold_{expense_category.id}": "80.00",
+            f"budget_{second_category.id}": "150.00",
+            f"warning_threshold_{second_category.id}": "70.00",
+        },
+    )
+    assert response.status_code == 302
+    assert CategoryBudget.objects.filter(monthly_budget=budget).count() == 2
+
+    index_page = authenticated_client.get(
+        reverse("budgets:index"), {"month": "2026-07"}
+    ).content.decode()
+    assert "设置分类预算" in index_page
+    assert reverse("budgets:category-budgets-edit", args=[budget.id]) in index_page
+
+
+@pytest.mark.django_db
+def test_budget_index_prompts_for_monthly_total_before_category_budgets(
+    authenticated_client,
+):
+    page = authenticated_client.get(reverse("budgets:index")).content.decode()
+
+    assert "设置分类预算" not in page
+    assert "请先设置月度总预算" in page or "设置月度总预算" in page
+
+
+@pytest.mark.django_db
+def test_cash_flow_create_filters_categories_by_direction(
+    authenticated_client, expense_category, income_category
+):
+    expense_page = authenticated_client.get(
+        reverse("budgets:cash-flow-create"), {"direction": "EXPENSE"}
+    ).content.decode()
+    income_page = authenticated_client.get(
+        reverse("budgets:cash-flow-create"), {"direction": "INCOME"}
+    ).content.decode()
+
+    assert expense_category.name in expense_page
+    assert income_category.name not in expense_page
+    assert income_category.name in income_page
+    assert expense_category.name not in income_page
+
+
+@pytest.mark.django_db
+def test_cash_flow_income_page_creates_income_plan(
+    authenticated_client, income_category, bank
+):
+    create_page = authenticated_client.get(
+        reverse("budgets:cash-flow-create"), {"direction": "INCOME"}
+    )
+    token = create_page.context["submission_token"]
+    response = authenticated_client.post(
+        reverse("budgets:cash-flow-create"),
+        {
+            "submission_token": token,
+            "direction": PlannedCashFlow.Direction.INCOME,
+            "name": "预计工资",
+            "amount": "500.00",
+            "category": income_category.id,
+            "default_account": bank.id,
+            "reliability": PlannedCashFlow.Reliability.CERTAIN,
+            "recurrence_type": PlannedCashFlow.RecurrenceType.MONTHLY,
+            "start_date": "2026-07-31",
+            "day_of_month": "31",
+            "is_active": "on",
+            "note": "",
+        },
+    )
+
+    assert response.status_code == 302
+    plan = PlannedCashFlow.objects.get(name="预计工资")
+    assert plan.direction == PlannedCashFlow.Direction.INCOME
+    assert plan.category == income_category
+
+
+@pytest.mark.django_db
 def test_budget_pages_and_cash_flow_duplicate_submission(
     authenticated_client, expense_category, bank
 ):

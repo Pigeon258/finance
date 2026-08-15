@@ -87,8 +87,22 @@ def category_deactivate(request: HttpRequest, category_id: int):
     category = get_object_or_404(Category, pk=category_id)
     try:
         services.deactivate_category(category=category)
-    except ValidationError:
-        pass
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "分类已停用。")
+    return redirect("ledger:category-index")
+
+
+@require_POST
+def category_delete(request: HttpRequest, category_id: int):
+    category = get_object_or_404(Category, pk=category_id)
+    try:
+        services.delete_category(category=category)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "分类已删除。")
     return redirect("ledger:category-index")
 
 

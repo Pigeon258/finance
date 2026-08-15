@@ -25,6 +25,9 @@
                 {% csrf_token %}<button type="submit">停用</button>
               </form>
             {% endif %}
+            <form class="inline-form" method="post" action="{% url 'ledger:category-delete' category.id %}">
+              {% csrf_token %}<button type="submit">删除</button>
+            </form>
           </td>
         </tr>
       {% endfor %}

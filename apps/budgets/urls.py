@@ -9,6 +9,11 @@ urlpatterns = [
     path("monthly/edit/", views.monthly_budget_edit, name="monthly-edit"),
     path("monthly/copy-previous/", views.copy_previous, name="copy-previous"),
     path(
+        "monthly/<int:budget_id>/categories/",
+        views.category_budgets_edit,
+        name="category-budgets-edit",
+    ),
+    path(
         "monthly/<int:budget_id>/categories/edit/", views.category_budget_edit, name="category-edit"
     ),
     path("reserve/new/", views.reserve_create, name="reserve-create"),

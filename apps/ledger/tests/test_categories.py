@@ -1,13 +1,16 @@
+from datetime import datetime
 from decimal import Decimal
 from importlib import import_module
+from zoneinfo import ZoneInfo
 
 import pytest
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
+from apps.accounts.models import Account
 from apps.ledger import selectors, services
-from apps.ledger.models import Category
+from apps.ledger.models import Category, Transaction
 
 
 @pytest.fixture
@@ -141,3 +144,43 @@ def test_category_can_be_created_and_edited_through_pages(client, owner):
     assert response.status_code == 302
     assert category.name == "兼职用品"
     assert category.category_type == Category.CategoryType.EXPENSE
+
+
+@pytest.mark.django_db
+def test_unused_category_can_be_deleted_through_page(client, owner):
+    client.force_login(owner)
+    category = services.create_category(
+        name="待删除分类",
+        category_type=Category.CategoryType.EXPENSE,
+        necessity=Category.Necessity.FLEXIBLE,
+        default_budget=Decimal("0.00"),
+        is_active=True,
+        sort_order=300,
+    )
+
+    response = client.post(reverse("ledger:category-delete", args=[category.id]))
+
+    assert response.status_code == 302
+    assert not Category.objects.filter(pk=category.pk).exists()
+
+
+@pytest.mark.django_db
+def test_used_category_cannot_be_deleted_and_delete_button_is_present(client, owner):
+    client.force_login(owner)
+    category = Category.objects.get(name="餐饮")
+    bank = Account.objects.get(account_type=Account.AccountType.BANK)
+    services.create_expense(
+        account=bank,
+        category=category,
+        amount=Decimal("10.00"),
+        occurred_at=datetime(2026, 7, 10, 12, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+        channel=Transaction.Channel.BANK,
+    )
+
+    index_page = client.get(reverse("ledger:category-index"))
+    assert reverse("ledger:category-delete", args=[category.id]) in index_page.content.decode()
+
+    response = client.post(reverse("ledger:category-delete", args=[category.id]))
+
+    assert response.status_code == 302
+    assert Category.objects.filter(pk=category.pk).exists()

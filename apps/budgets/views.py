@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from . import selectors, services
 from .forms import (
     CategoryBudgetForm,
+    CategoryBudgetsForm,
     ConfirmOccurrenceForm,
     GenerateOccurrencesForm,
     MonthlyBudgetForm,
@@ -99,6 +100,45 @@ def monthly_budget_edit(request: HttpRequest):
     return render(request, "budgets/form.html", {"title": "设置月度预算", "form": form})
 
 
+@require_http_methods(["GET", "POST"])
+def category_budgets_edit(request: HttpRequest, budget_id: int):
+    budget = get_object_or_404(MonthlyBudget, pk=budget_id)
+    planning = selectors.category_budget_planning_rows(month=budget.month)
+    rows = planning["rows"]
+    categories = [row["category"] for row in rows]
+    existing_budgets = {
+        row["category"].id: row["category_budget"]
+        for row in rows
+        if row["category_budget"] is not None
+    }
+    form = CategoryBudgetsForm(
+        request.POST or None,
+        categories=categories,
+        existing_budgets=existing_budgets,
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            saved_count = services.save_category_budgets(
+                monthly_budget=budget,
+                budget_amounts=form.category_amounts(),
+                warning_thresholds=form.category_warning_thresholds(),
+            )
+        except ValidationError as error:
+            _add_error(form, error)
+        else:
+            messages.success(request, f"已保存 {saved_count} 个分类预算。")
+            return redirect(f"{reverse('budgets:index')}?month={budget.month:%Y-%m}")
+    for row in rows:
+        category_id = row["category"].id
+        row["budget_field"] = form[f"budget_{category_id}"]
+        row["warning_threshold_field"] = form[f"warning_threshold_{category_id}"]
+    return render(
+        request,
+        "budgets/category_budgets_form.html",
+        {"budget": budget, "rows": rows, "form": form},
+    )
+
+
 @require_POST
 def copy_previous(request: HttpRequest):
     month = _month_from_query(request)
@@ -154,24 +194,41 @@ def cash_flow_index(request: HttpRequest):
 
 @require_http_methods(["GET", "POST"])
 def cash_flow_create(request: HttpRequest):
-    form = PlannedCashFlowForm(request.POST or None)
+    raw_direction = request.GET.get("direction", request.POST.get("direction"))
+    direction = (
+        raw_direction
+        if raw_direction
+        in {
+            PlannedCashFlow.Direction.INCOME,
+            PlannedCashFlow.Direction.EXPENSE,
+        }
+        else PlannedCashFlow.Direction.EXPENSE
+    )
+    form = PlannedCashFlowForm(request.POST or None, direction=direction)
     if request.method == "POST":
         if not _consume_token(request):
             messages.warning(request, "该提交已处理或已失效。")
             return redirect("budgets:cash-flow-index")
         if form.is_valid():
+            data = form.cleaned_data.copy()
+            data["direction"] = direction
             try:
-                services.create_planned_cash_flow(**form.cleaned_data)
+                services.create_planned_cash_flow(**data)
             except ValidationError as error:
                 _add_error(form, error)
             else:
                 messages.success(request, "计划现金流已创建，并生成首个 12 个月内的事项。")
                 return redirect("budgets:cash-flow-index")
+    title = (
+        "创建预计收入计划"
+        if direction == PlannedCashFlow.Direction.INCOME
+        else "创建固定支出计划"
+    )
     return render(
         request,
         "budgets/form.html",
         {
-            "title": "创建固定支出或预计收入",
+            "title": title,
             "form": form,
             "submission_token": _issue_token(request),
         },

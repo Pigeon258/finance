@@ -106,6 +106,41 @@ def save_category_budget(
 
 
 @db_transaction.atomic
+def save_category_budgets(
+    *,
+    monthly_budget: MonthlyBudget,
+    budget_amounts: dict[int, Decimal],
+    warning_thresholds: dict[int, Decimal],
+) -> int:
+    monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
+    categories = Category.objects.filter(
+        category_type=Category.CategoryType.EXPENSE, is_active=True
+    )
+    default_warning, over_threshold = core_selectors.budget_thresholds()
+    saved_count = 0
+    for category in categories:
+        amount = budget_amounts.get(category.id, Decimal("0.00"))
+        warning_threshold = warning_thresholds.get(category.id, default_warning)
+        if amount == 0:
+            CategoryBudget.objects.filter(
+                monthly_budget=monthly_budget, category=category
+            ).delete()
+            continue
+        _validate_money(amount, allow_zero=True)
+        _validate_money(warning_threshold, allow_zero=True)
+        if warning_threshold > over_threshold:
+            raise ValidationError("分类提醒阈值不得高于系统超支阈值。")
+        save_category_budget(
+            monthly_budget=monthly_budget,
+            category=category,
+            budget_amount=amount,
+            warning_threshold=warning_threshold,
+        )
+        saved_count += 1
+    return saved_count
+
+
+@db_transaction.atomic
 def copy_monthly_budget(*, source_month: date, target_month: date) -> MonthlyBudget:
     source_month = _month_start(source_month)
     target_month = _month_start(target_month)
