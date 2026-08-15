@@ -264,3 +264,27 @@
 | 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
 
 生产发布结论：**通过**。本轮只增加预算配置 UI 和分类维护能力，并修正计划分类选择范围，未改变账务事实、统计口径、数据库结构、凭据、网络暴露或备份格式。
+
+
+## 2026-08-15 预算项目明细化生产发布验收
+
+- 发布确认日期：2026-08-15
+- 发布方式：`deploy/upgrade.sh` 完整升级
+- 已部署提交：`bb79f80af0e917a9966cfaecc95d142574506fab`
+- 发布内容：预算项目明细化，项目金额自动汇总为月度总预算；存量分类预算迁移为预算项目
+- 部署前加密数据库备份：`db-deployment-20260815T154343Z-48.dump.enc`
+- 数据库迁移：应用 `budgets.0002_budget_item_name`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；`ruff check .`、`pytest` 全量 `346 passed`、Django check 与迁移检查通过 |
+| 生产工作区与版本 | 通过；`/opt/personal-finance` 检出完整 SHA `bb79f80`，升级前跟踪文件干净 |
+| `deploy/upgrade.sh` | 通过；构建、部署前加密备份、维护模式、迁移、三项完整性检查和退出维护模式均完成 |
+| 数据库迁移 | 通过；`budgets.0002_budget_item_name` 已应用，生产环境当前无存量预算数据，迁移结果为空 |
+| `deploy/verify-deployment.sh` | 通过；四服务运行、端口隔离、主题卷读写边界、安全头、静态资源和健康端点隔离符合基线 |
+| 财务与主题完整性 | 通过；财务完整性检查通过，严格主题完整性 `active=aurora-ledger resolved=aurora-ledger schema=1 contract=1` |
+| 部署产物核验 | 通过；预算项目列表、新增、编辑、删除路由和模板存在，自动汇总逻辑在测试中覆盖 |
+| 公网冒烟 | 通过；HTTP 308、HTTPS 登录页 200，预算项目页面未登录 302 跳转登录 |
+| 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
+
+生产发布结论：**通过**。本轮改变预算明细配置方式并自动汇总总预算，不改变账务金额事实、统计口径、凭据、网络暴露或备份格式。
