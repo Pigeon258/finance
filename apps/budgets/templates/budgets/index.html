@@ -4,9 +4,11 @@
 
 {% block content %}
   <h1>预算管理</h1>
-  <form method="get">
-    <label for="month">统计月份</label>
-    <input id="month" name="month" type="month" value="{{ month|date:'Y-m' }}">
+  <form method="get" class="filter-form budget-month-form" data-pf-part="form-panel">
+    <div>
+      <label for="month">统计月份</label>
+      <input id="month" name="month" type="month" value="{{ month|date:'Y-m' }}">
+    </div>
     <button type="submit">查看</button>
   </form>
   <nav class="quick-actions" data-pf-part="action-group" aria-label="预算操作">
@@ -14,9 +16,11 @@
     <a href="{% url 'budgets:reserve-create' %}">记录储备变动</a>
     <a href="{% url 'budgets:cash-flow-index' %}">固定支出与预计收入</a>
   </nav>
-  <form method="post" action="{% url 'budgets:copy-previous' %}?month={{ month|date:'Y-m' }}">
-    {% csrf_token %}<button type="submit">从上月复制预算</button>
-  </form>
+  <div class="secondary-actions">
+    <form method="post" action="{% url 'budgets:copy-previous' %}?month={{ month|date:'Y-m' }}">
+      {% csrf_token %}<button type="submit">从上月复制预算</button>
+    </form>
+  </div>
 
   {% if snapshot.budget %}
     <dl>

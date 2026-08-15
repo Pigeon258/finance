@@ -462,6 +462,28 @@ a:hover {
   background: var(--pf-surface-muted, #f7f9fc);
 }
 
+.operation-badge {
+  align-self: center;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--pf-border, #d9e0ec);
+  border-radius: var(--pf-radius-md, 0.85rem);
+}
+
+legend {
+  width: auto;
+  padding-inline: 0.45rem;
+  color: var(--pf-heading, #172033);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .app-main {
   width: min(100%, 90rem);
   margin: 0 auto;
@@ -513,7 +535,7 @@ h3 {
 }
 
 h1 {
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.9rem;
   font-size: clamp(1.7rem, 3vw, 2.35rem);
 }
 
@@ -552,20 +574,28 @@ section {
 }
 
 section + section {
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 form:not(.inline-form, .logout-form, .compact-form, .filter-form, .report-filter) {
   max-width: 54rem;
 }
 
+.app-main > form:not(.inline-form, .logout-form, .compact-form, .filter-form, .report-filter) {
+  padding: clamp(1rem, 2vw, 1.25rem);
+  border: 1px solid var(--pf-border, #d9e0ec);
+  border-radius: var(--pf-radius-lg, 1rem);
+  background: var(--pf-surface, #fff);
+  box-shadow: var(--pf-shadow-sm, 0 0.3rem 1.2rem rgb(25 40 72 / 5%));
+}
+
 form > div {
-  margin-block: 0.85rem;
+  margin-block: 0.95rem;
 }
 
 label {
   display: inline-block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.45rem;
   color: var(--pf-heading, #172033);
   font-size: 0.86rem;
   font-weight: 700;
@@ -577,7 +607,7 @@ textarea {
   display: block;
   width: min(100%, 36rem);
   min-height: 2.75rem;
-  padding: 0.58rem 0.75rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid var(--pf-input-border, #cbd4e1);
   border-radius: var(--pf-radius-sm, 0.65rem);
   color: var(--pf-text, #172033);
@@ -607,7 +637,8 @@ form a {
   align-items: center;
   justify-content: center;
   min-height: 2.75rem;
-  padding: 0.55rem 0.9rem;
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
   border: 1px solid var(--pf-button-border, #bec9da);
   border-radius: var(--pf-radius-sm, 0.65rem);
   color: var(--pf-button-text, #29354a);
@@ -673,15 +704,31 @@ button:disabled,
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.75rem 1rem;
+  gap: 0.8rem 1rem;
 }
 
 .quick-actions {
-  margin-block: 0.75rem 1.1rem;
+  margin-block: 0.9rem 1.3rem;
 }
 
 .compact-form > div {
   margin: 0;
+}
+
+.secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 0.9rem;
+  margin-block: 0.1rem 1.3rem;
+}
+
+.secondary-actions form {
+  margin: 0;
+}
+
+.budget-month-form > div {
+  flex: 0 1 20rem;
+  min-width: min(100%, 18rem);
 }
 
 .filter-form,
@@ -689,9 +736,9 @@ button:disabled,
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.75rem 1rem;
-  margin-block: 1rem 1.25rem;
-  padding: 1rem;
+  gap: 0.8rem 1.1rem;
+  margin-block: 0.9rem 1.4rem;
+  padding: 1.1rem 1.15rem;
   border: 1px solid var(--pf-border, #d9e0ec);
   border-radius: var(--pf-radius-md, 0.85rem);
   background: var(--pf-surface, #fff);
@@ -728,6 +775,7 @@ button:disabled,
 
 .table-scroll {
   width: 100%;
+  margin-block: 0.35rem 1.25rem;
   overflow-x: auto;
   border: 1px solid var(--pf-border, #d9e0ec);
   border-radius: var(--pf-radius-md, 0.85rem);

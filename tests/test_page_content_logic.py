@@ -189,3 +189,44 @@ def test_secondary_pages_share_form_and_table_components(authenticated_client):
     assert 'data-pf-part="form-panel"' in import_rule_page
     assert "<p><label" not in import_rule_page
     assert '<table data-pf-part="data-table">' in upcoming_page
+
+
+@pytest.mark.django_db
+def test_income_and_expense_create_pages_are_visually_distinct(authenticated_client):
+    income_page = authenticated_client.get(
+        reverse("ledger:transaction-create", args=["income"])
+    ).content.decode()
+    expense_page = authenticated_client.get(
+        reverse("ledger:transaction-create", args=["expense"])
+    ).content.decode()
+
+    assert "收入" in income_page
+    assert "资金流入所选资产账户" in income_page
+    assert "保存收入" in income_page
+    assert 'data-operation="income"' in income_page
+
+    assert "普通支出" in expense_page
+    assert "资金从所选资产账户流出" in expense_page
+    assert "保存支出" in expense_page
+    assert 'data-operation="expense"' in expense_page
+
+    assert "资金流入所选资产账户" not in expense_page
+    assert "资金从所选资产账户流出" not in income_page
+
+
+@pytest.mark.django_db
+def test_budget_page_uses_spaced_filter_and_secondary_action_rows(authenticated_client):
+    budget_page = authenticated_client.get(reverse("budgets:index")).content.decode()
+
+    assert 'class="filter-form budget-month-form"' in budget_page
+    assert 'class="secondary-actions"' in budget_page
+
+
+def test_global_spacing_rules_keep_controls_and_copy_separated(settings):
+    app_css = (settings.BASE_DIR / "static" / "css" / "app.css").read_text(encoding="utf-8")
+
+    assert "white-space: nowrap" in app_css
+    assert ".secondary-actions" in app_css
+    assert ".budget-month-form > div" in app_css
+    assert "margin-block: 0.9rem 1.4rem" in app_css
+    assert ".app-main > form:not(" in app_css

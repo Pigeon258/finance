@@ -109,12 +109,54 @@ def _consume_submission_token(request: HttpRequest) -> bool:
 
 
 MANUAL_CREATE_FORMS = {
-    "income": ("记录收入", IncomeForm),
-    "expense": ("记录普通支出", ExpenseForm),
-    "credit-card-expense": ("记录信用卡消费", CreditCardExpenseForm),
-    "transfer": ("账户间转账", TransferForm),
-    "credit-card-repayment": ("信用卡还款", CreditCardRepaymentForm),
-    "balance-adjustment": ("余额调整", BalanceAdjustmentForm),
+    "income": {
+        "title": "记录收入",
+        "operation_label": "收入",
+        "operation_hint": "资金流入所选资产账户，计入当月收入统计。",
+        "operation_tone": "success",
+        "submit_label": "保存收入",
+        "form_class": IncomeForm,
+    },
+    "expense": {
+        "title": "记录普通支出",
+        "operation_label": "支出",
+        "operation_hint": "资金从所选资产账户流出，计入当月支出与预算占用。",
+        "operation_tone": "danger",
+        "submit_label": "保存支出",
+        "form_class": ExpenseForm,
+    },
+    "credit-card-expense": {
+        "title": "记录信用卡消费",
+        "operation_label": "信用卡消费",
+        "operation_hint": "增加信用卡负债，并归入当前未出账账期。",
+        "operation_tone": "warning",
+        "submit_label": "保存信用卡消费",
+        "form_class": CreditCardExpenseForm,
+    },
+    "transfer": {
+        "title": "账户间转账",
+        "operation_label": "转账",
+        "operation_hint": "在资产账户之间划转资金，不改变收入、支出或预算。",
+        "operation_tone": "info",
+        "submit_label": "保存转账",
+        "form_class": TransferForm,
+    },
+    "credit-card-repayment": {
+        "title": "信用卡还款",
+        "operation_label": "还款",
+        "operation_hint": "从资金来源账户向信用卡账户转账，冲减已出账应还金额。",
+        "operation_tone": "info",
+        "submit_label": "保存还款",
+        "form_class": CreditCardRepaymentForm,
+    },
+    "balance-adjustment": {
+        "title": "余额调整",
+        "operation_label": "余额调整",
+        "operation_hint": "按实际余额修正账户差额，不计入收入、支出或预算。",
+        "operation_tone": "neutral",
+        "submit_label": "保存余额调整",
+        "form_class": BalanceAdjustmentForm,
+    },
 }
 
 
@@ -202,7 +244,8 @@ def transaction_create(request: HttpRequest, operation: str):
     form_config = MANUAL_CREATE_FORMS.get(operation)
     if form_config is None:
         return redirect("ledger:transaction-index")
-    title, form_class = form_config
+    title = form_config["title"]
+    form_class = form_config["form_class"]
     initial = _recent_initial(operation)
     template_id = request.GET.get("template")
     copy_id = request.GET.get("copy")
@@ -236,7 +279,16 @@ def transaction_create(request: HttpRequest, operation: str):
     return render(
         request,
         "ledger/transaction_form.html",
-        {"form": form, "title": title, "submission_token": submission_token},
+        {
+            "form": form,
+            "title": title,
+            "submission_token": submission_token,
+            "operation": operation,
+            "operation_label": form_config["operation_label"],
+            "operation_hint": form_config["operation_hint"],
+            "operation_tone": form_config["operation_tone"],
+            "submit_label": form_config["submit_label"],
+        },
     )
 
 
