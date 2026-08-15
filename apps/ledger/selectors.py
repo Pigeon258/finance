@@ -1,12 +1,19 @@
 from datetime import date, datetime, time
 from decimal import Decimal
 
-from django.db.models import Max, Q, QuerySet, Sum
+from django.db.models import Count, Max, Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.accounts.models import Account
 
-from .models import Category, Transaction, TransactionEntry, TransactionTemplate
+from .models import Category, Tag, Transaction, TransactionEntry, TransactionTemplate
+
+
+def tag_list(*, include_inactive: bool = True) -> QuerySet[Tag]:
+    queryset = Tag.objects.annotate(usage_count=Count("transactions", distinct=True))
+    if not include_inactive:
+        queryset = queryset.filter(is_active=True)
+    return queryset.order_by("applies_to", "name", "id")
 
 
 def category_list(*, include_inactive: bool = True) -> QuerySet[Category]:

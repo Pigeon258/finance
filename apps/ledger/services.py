@@ -93,6 +93,41 @@ def deactivate_category(*, category: Category) -> Category:
 
 
 @db_transaction.atomic
+def create_tag(*, name: str, applies_to: str, is_active: bool = True) -> Tag:
+    tag = Tag(name=name.strip(), applies_to=applies_to, is_active=is_active)
+    tag.full_clean()
+    tag.save()
+    return tag
+
+
+@db_transaction.atomic
+def update_tag(*, tag: Tag, name: str, applies_to: str, is_active: bool) -> Tag:
+    if tag.transactions.exists() and tag.applies_to != applies_to:
+        raise ValidationError("标签已用于交易，不能修改收入/支出类型。")
+    tag.name = name.strip()
+    tag.applies_to = applies_to
+    tag.is_active = is_active
+    tag.full_clean()
+    tag.save(update_fields=["name", "applies_to", "is_active", "updated_at"])
+    return tag
+
+
+@db_transaction.atomic
+def set_tag_active(*, tag: Tag, is_active: bool) -> Tag:
+    tag.is_active = is_active
+    tag.full_clean()
+    tag.save(update_fields=["is_active", "updated_at"])
+    return tag
+
+
+@db_transaction.atomic
+def delete_tag(*, tag: Tag) -> None:
+    if tag.transactions.exists():
+        raise ValidationError("该标签已用于交易，不能直接删除；请改为停用。")
+    tag.delete()
+
+
+@db_transaction.atomic
 def save_transaction_template(*, template: TransactionTemplate) -> TransactionTemplate:
     template.full_clean()
     template.save()

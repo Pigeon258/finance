@@ -50,6 +50,11 @@ urlpatterns = [
         views.category_deactivate,
         name="category-deactivate",
     ),
+    path("tags/", views.tag_index, name="tag-index"),
+    path("tags/new/", views.tag_create, name="tag-create"),
+    path("tags/<int:tag_id>/edit/", views.tag_edit, name="tag-edit"),
+    path("tags/<int:tag_id>/toggle/", views.tag_toggle, name="tag-toggle"),
+    path("tags/<int:tag_id>/delete/", views.tag_delete, name="tag-delete"),
     path("templates/", views.transaction_template_index, name="transaction-template-index"),
     path("templates/new/", views.transaction_template_edit, name="transaction-template-create"),
     path(

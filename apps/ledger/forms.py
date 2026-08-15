@@ -5,6 +5,26 @@ from apps.accounts.models import Account
 from .models import Category, Tag, Transaction, TransactionTemplate
 
 
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ["name", "applies_to", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.transactions.exists():
+            self.fields["applies_to"].disabled = True
+            self.fields["applies_to"].help_text = "标签已用于交易，不能修改收入/支出类型。"
+        else:
+            self.fields["applies_to"].help_text = "收入标签和支出标签相互独立。"
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if not name:
+            raise forms.ValidationError("标签名称不能为空。")
+        return name
+
+
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category

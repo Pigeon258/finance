@@ -23,12 +23,13 @@ from .forms import (
     ExpenseForm,
     IncomeForm,
     RefundForm,
+    TagForm,
     TransactionFilterForm,
     TransactionTemplateForm,
     TransferForm,
     VoidTransactionForm,
 )
-from .models import Category, Transaction, TransactionTemplate
+from .models import Category, Tag, Transaction, TransactionTemplate
 
 SUBMISSION_TOKEN_SESSION_KEY = "manual_transaction_submission_tokens"
 
@@ -89,6 +90,68 @@ def category_deactivate(request: HttpRequest, category_id: int):
     except ValidationError:
         pass
     return redirect("ledger:category-index")
+
+
+@require_GET
+def tag_index(request: HttpRequest):
+    return render(
+        request,
+        "ledger/tag_index.html",
+        {"tags": selectors.tag_list()},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def tag_create(request: HttpRequest):
+    form = TagForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.create_tag(**form.cleaned_data)
+        except ValidationError as error:
+            _add_service_error(form, error)
+        else:
+            messages.success(request, "标签已创建。")
+            return redirect("ledger:tag-index")
+    return render(request, "ledger/tag_form.html", {"form": form, "is_create": True})
+
+
+@require_http_methods(["GET", "POST"])
+def tag_edit(request: HttpRequest, tag_id: int):
+    tag = get_object_or_404(Tag, pk=tag_id)
+    form = TagForm(request.POST or None, instance=tag)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.update_tag(tag=tag, **form.cleaned_data)
+        except ValidationError as error:
+            _add_service_error(form, error)
+        else:
+            messages.success(request, "标签已更新。")
+            return redirect("ledger:tag-index")
+    return render(request, "ledger/tag_form.html", {"form": form, "is_create": False})
+
+
+@require_POST
+def tag_toggle(request: HttpRequest, tag_id: int):
+    tag = get_object_or_404(Tag, pk=tag_id)
+    try:
+        services.set_tag_active(tag=tag, is_active=not tag.is_active)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "标签状态已更新。")
+    return redirect("ledger:tag-index")
+
+
+@require_POST
+def tag_delete(request: HttpRequest, tag_id: int):
+    tag = get_object_or_404(Tag, pk=tag_id)
+    try:
+        services.delete_tag(tag=tag)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "标签已删除。")
+    return redirect("ledger:tag-index")
 
 
 def _issue_submission_token(request: HttpRequest) -> str:

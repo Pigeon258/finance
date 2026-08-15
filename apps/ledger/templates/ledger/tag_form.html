@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_create %}新增{% else %}编辑{% endif %}标签 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>{% if is_create %}新增{% else %}编辑{% endif %}标签</h1>
+  <p>标签按收入/支出分别管理，不会在另一类交易表单中出现。</p>
+  <form method="post" data-pf-part="form-panel">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">{% if is_create %}创建标签{% else %}保存修改{% endif %}</button>
+  </form>
+{% endblock %}

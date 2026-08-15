@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}标签管理 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>标签管理</h1>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="标签操作">
+    <a href="{% url 'ledger:tag-create' %}">新增标签</a>
+  </nav>
+  <p>收入标签只出现在收入表单，支出标签只出现在支出和信用卡消费表单。已用于交易的标签不能直接删除，请改为停用。</p>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="标签列表">
+    <table data-pf-part="data-table">
+      <thead><tr><th>名称</th><th>适用类型</th><th>使用次数</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for tag in tags %}
+          <tr>
+            <td>{{ tag.name }}</td>
+            <td><strong data-pf-part="status-badge" data-status="{% if tag.applies_to == 'INCOME' %}success{% else %}warning{% endif %}">{{ tag.get_applies_to_display }}</strong></td>
+            <td>{{ tag.usage_count }}</td>
+            <td>{% if tag.is_active %}启用{% else %}停用{% endif %}</td>
+            <td>
+              <a href="{% url 'ledger:tag-edit' tag.id %}">编辑</a>
+              <form class="inline-form" method="post" action="{% url 'ledger:tag-toggle' tag.id %}">
+                {% csrf_token %}<button type="submit">{% if tag.is_active %}停用{% else %}启用{% endif %}</button>
+              </form>
+              {% if tag.usage_count %}
+                <span class="help-text">已用于 {{ tag.usage_count }} 笔交易，不可删除</span>
+              {% else %}
+                <form class="inline-form" method="post" action="{% url 'ledger:tag-delete' tag.id %}">
+                  {% csrf_token %}<button type="submit">删除</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">尚无标签。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
