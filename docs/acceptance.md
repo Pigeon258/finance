@@ -216,3 +216,25 @@
 | 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
 
 生产发布结论：**通过**。本轮改变标签可用范围并增加数据库约束，但未改变账务金额事实、统计口径、凭据、网络暴露或备份格式。
+
+## 2026-08-15 标签管理页面生产发布验收
+
+- 发布确认日期：2026-08-15
+- 发布方式：`deploy/upgrade.sh` 完整升级，无新增数据库迁移
+- 已部署提交：`9e14d2eda271ec91c8e126b94ddbb185ad0de4e7`
+- 发布内容：新增标签管理页面；支持按收入/支出类型新建、编辑、启用/停用和删除未使用标签；已用于交易的标签禁止删除和变更类型
+- 部署前加密数据库备份：`db-deployment-20260815T143728Z-46.dump.enc`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；`ruff check .`、`pytest` 全量 `340 passed`、Django check 与迁移检查通过 |
+| 生产工作区与版本 | 通过；`/opt/personal-finance` 检出完整 SHA `9e14d2e`，升级前跟踪文件干净 |
+| `deploy/upgrade.sh` | 通过；构建、部署前加密备份、维护模式、迁移检查、三项完整性检查和退出维护模式均完成 |
+| 数据库迁移 | 通过；无新增迁移 |
+| `deploy/verify-deployment.sh` | 通过；四服务运行、端口隔离、主题卷读写边界、安全头、静态资源和健康端点隔离符合基线 |
+| 财务与主题完整性 | 通过；财务完整性检查通过，严格主题完整性 `active=aurora-ledger resolved=aurora-ledger schema=1 contract=1` |
+| 部署产物核验 | 通过；Web 镜像包含 `/ledger/tags/` 路由、标签管理模板、新增/编辑/停用/删除视图和侧栏“标签管理”入口 |
+| 公网冒烟 | 通过；HTTP 308、HTTPS 登录页 200、`/ledger/tags/` 未登录 302 跳转登录 |
+| 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
+
+生产发布结论：**通过**。本轮新增标签管理 UI，不改变账务事实、统计口径、数据库结构、凭据、网络暴露或备份格式。
