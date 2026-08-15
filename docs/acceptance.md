@@ -193,3 +193,26 @@
 | 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
 
 生产发布结论：**通过**。本轮只修改页面表单辨识和视觉间距，未改变账务事实、统计口径、数据库结构、凭据、网络暴露或备份格式。
+
+## 2026-08-15 标签按收入/支出类型隔离生产升级验收
+
+- 发布确认日期：2026-08-15
+- 发布方式：`deploy/upgrade.sh` 完整升级
+- 已部署提交：`294c97473d3a92f12dd70991f6069d8498aa649e`
+- 发布内容：交易标签增加“收入/支出”适用类型；“冲动消费”仅可用于支出；收入、支出表单和服务层均按类型过滤并校验标签
+- 部署前加密数据库备份：`db-deployment-20260815T131435Z-45.dump.enc`
+- 数据库迁移：应用 `ledger.0006_tag_applies_to`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；`ruff check .`、`pytest` 全量 `336 passed`、Django check 与迁移检查通过 |
+| 生产工作区与版本 | 通过；`/opt/personal-finance` 检出完整 SHA `294c974`，升级前跟踪文件干净 |
+| `deploy/upgrade.sh` | 通过；构建、部署前加密备份、维护模式、迁移、三项完整性检查和退出维护模式均完成 |
+| 数据库迁移 | 通过；`ledger.0006_tag_applies_to` 已应用，存量“冲动消费”标签归入支出类型 |
+| `deploy/verify-deployment.sh` | 通过；四服务运行、端口隔离、主题卷读写边界、安全头、静态资源和健康端点隔离符合基线 |
+| 财务与主题完整性 | 通过；财务完整性检查通过，严格主题完整性 `active=aurora-ledger resolved=aurora-ledger schema=1 contract=1` |
+| 部署产物核验 | 通过；生产 IncomeForm 不再提供“冲动消费”，ExpenseForm 正常提供；服务层类型校验已生效 |
+| 公网冒烟 | 通过；HTTP 308、HTTPS 登录页 200 |
+| 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
+
+生产发布结论：**通过**。本轮改变标签可用范围并增加数据库约束，但未改变账务金额事实、统计口径、凭据、网络暴露或备份格式。
