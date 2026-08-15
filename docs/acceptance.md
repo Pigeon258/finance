@@ -149,3 +149,25 @@
 | `deploy/verify-deployment.sh` | 通过；四服务 healthy，端口、主题卷和安全响应头符合生产基线 |
 
 生产快速发布结论：**通过**。本任务未改变财务事实、统计口径、数据库结构、凭据、网络暴露、备份格式或安全边界；若页面壳层出现回归，使用上述三组同时间标签镜像执行 `deploy/rollback.sh`。
+
+## 2026-08-15 页面状态本地化与主题跨文件系统发布生产升级验收
+
+- 发布确认日期：2026-08-15
+- 发布方式：`deploy/upgrade.sh` 完整升级，无数据库迁移
+- 已部署提交：`e638dbcf8d7e3a41a4d4dfda496e67c6790e65af`
+- 发布内容：页面状态中文标签与组件统一；主题导入在 `THEME_IMPORT_TMP_DIR` 与 `THEME_RUNTIME_DIR` 跨文件系统时安全回退发布
+- 部署前加密数据库备份：`db-deployment-20260815T103131Z-43.dump.enc`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；`ruff check .`、`pytest` 全量 `331 passed`、Django check 通过 |
+| 生产工作区与版本 | 通过；`/opt/personal-finance` 检出完整 SHA `e638dbc`，升级前跟踪文件干净 |
+| `deploy/upgrade.sh` | 通过；构建、部署前加密备份、维护模式、迁移检查、三项完整性检查和退出维护模式均完成 |
+| 数据库迁移 | 通过；无需应用迁移 |
+| `deploy/verify-deployment.sh` | 通过；四服务运行、端口隔离、主题卷读写边界、安全头、静态资源和健康端点隔离符合基线 |
+| 财务与主题完整性 | 通过；财务完整性检查通过，严格主题完整性 `active=aurora-ledger resolved=aurora-ledger schema=1 contract=1` |
+| 部署产物核验 | 通过；Web 镜像包含状态标签映射、中文主题库文案、跨文件系统发布回退和修复后的页面模板 |
+| 公网冒烟 | 通过；HTTP 308、HTTPS 登录页 200、`app.css` 200 且为 `text/css`、`/health/live` 404 |
+| 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
+
+生产发布结论：**通过**。本轮只修改页面展示、状态组件和主题文件发布方式，未改变账务事实、统计口径、数据库结构、凭据、网络暴露或备份格式。生产环境隔离恢复和整机重启演练继续按 `docs/deployment.md` 维护窗口执行。
