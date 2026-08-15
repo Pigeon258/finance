@@ -8,18 +8,18 @@
     <p>尚未配置信用卡。</p>
     <p><a href="{% url 'credit:profile-settings' %}">配置信用卡</a></p>
   {% else %}
-    <p>
+    <nav class="quick-actions" data-pf-part="action-group" aria-label="信用卡操作">
       <a href="{% url 'credit:purchase-create' %}">记录信用卡消费</a>
       <a href="{% url 'credit:repayment-create' %}">记录信用卡还款</a>
       <a href="{% url 'credit:profile-settings' %}">修改设置</a>
-    </p>
+    </nav>
     <dl>
       <dt>当前信用卡负债</dt><dd>{{ liability }}</dd>
       <dt>已出账未还</dt><dd>{{ issued_unpaid }}</dd>
       <dt>系统估算未出账</dt><dd>{{ unbilled }}</dd>
       <dt>溢缴款</dt><dd>{{ overpayment }}</dd>
       <dt>下一还款日</dt><dd>{% if next_cycle %}{{ next_cycle.due_date }}，剩余 {{ next_remaining }}{% else %}—{% endif %}</dd>
-      <dt>偿还能力</dt><dd>{{ repayment_capacity.status }}（常规 {{ repayment_capacity.regular_available }}，最终 {{ repayment_capacity.final_available }}）</dd>
+      <dt>偿还能力</dt><dd><strong data-pf-part="status-badge" data-status="{{ repayment_capacity.status_tone }}">{{ repayment_capacity.status_label }}</strong>（常规 {{ repayment_capacity.regular_available }}，最终 {{ repayment_capacity.final_available }}）</dd>
     </dl>
 
     <h2>账期</h2>
@@ -30,9 +30,9 @@
         {% for row in cycle_rows %}
           <tr>
             <td><a href="{% url 'credit:cycle-detail' row.cycle.id %}">{{ row.cycle.cycle_start }} 至 {{ row.cycle.cycle_end }}</a></td>
-            <td>{{ row.status }}</td>
+            <td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td>
             <td>{{ row.calculated }}</td>
-            <td>{{ row.cycle.official_due_amount|default:"—" }}</td>
+            <td>{{ row.cycle.official_due_amount|default_if_none:"—" }}</td>
             <td>{{ row.remaining }}</td>
             <td>{{ row.cycle.due_date }}</td>
           </tr>

@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -156,13 +157,20 @@ def test_issue_uses_official_due_and_locks_transactions(profile, expense_categor
     )
     cycle = BillingCycle.objects.get()
 
-    services.issue_cycle(
-        cycle=cycle,
-        official_statement_amount=Decimal("101.00"),
-        official_due_amount=Decimal("99.00"),
-        due_date=date(2026, 8, 5),
-        note="以银行账单为准",
-    )
+    original_refresh = services._refresh_cycle_status
+    with patch(
+        "apps.credit.services._refresh_cycle_status",
+        side_effect=lambda *, cycle, as_of=None: original_refresh(
+            cycle=cycle, as_of=as_of or date(2026, 7, 20)
+        ),
+    ):
+        services.issue_cycle(
+            cycle=cycle,
+            official_statement_amount=Decimal("101.00"),
+            official_due_amount=Decimal("99.00"),
+            due_date=date(2026, 8, 5),
+            note="以银行账单为准",
+        )
 
     cycle.refresh_from_db()
     purchase.refresh_from_db()

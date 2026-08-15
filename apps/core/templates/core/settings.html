@@ -4,7 +4,10 @@
 
 {% block content %}
   <h1>系统设置</h1>
-  <p><a href="{% url 'core:password-change' %}">修改密码</a> <a href="{% url 'core:theme-library' %}">管理主题库</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="系统设置操作">
+    <a href="{% url 'core:password-change' %}">修改密码</a>
+    <a href="{% url 'core:theme-library' %}">管理主题库</a>
+  </nav>
   <form method="post" data-pf-part="form-panel">
     {% csrf_token %}
     {{ form.as_div }}
@@ -18,7 +21,7 @@
       <button type="submit">撤销全部其他会话</button>
     </form>
     <div class="table-scroll" tabindex="0" role="region" aria-label="登录会话列表">
-      <table>
+      <table data-pf-part="data-table">
         <thead><tr><th>会话</th><th>创建时间</th><th>最后活动</th><th>过期时间</th><th>操作</th></tr></thead>
         <tbody>
           {% for item in sessions %}

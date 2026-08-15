@@ -9,11 +9,11 @@
     <input id="month" name="month" type="month" value="{{ month|date:'Y-m' }}">
     <button type="submit">查看</button>
   </form>
-  <p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="预算操作">
     <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置本月预算</a>
     <a href="{% url 'budgets:reserve-create' %}">记录储备变动</a>
     <a href="{% url 'budgets:cash-flow-index' %}">固定支出与预计收入</a>
-  </p>
+  </nav>
   <form method="post" action="{% url 'budgets:copy-previous' %}?month={{ month|date:'Y-m' }}">
     {% csrf_token %}<button type="submit">从上月复制预算</button>
   </form>
@@ -27,7 +27,7 @@
       <dt>储蓄目标</dt><dd>{{ snapshot.savings_target }}</dd>
       <dt>总占用</dt><dd>{{ snapshot.total_occupancy }}</dd>
       <dt>剩余预算</dt><dd>{{ snapshot.remaining }}</dd>
-      <dt>使用比例</dt><dd>{{ snapshot.usage_percentage|default:"—" }}{% if snapshot.usage_percentage != None %}%{% endif %}</dd>
+      <dt>使用比例</dt><dd>{% if snapshot.usage_percentage is not None %}{{ snapshot.usage_percentage }}%{% else %}—{% endif %}</dd>
       <dt>最低安全余量</dt><dd>{{ snapshot.budget.minimum_safety_buffer }}</dd>
     </dl>
     <p><a href="{% url 'budgets:category-edit' snapshot.budget.id %}">新增或更新分类预算</a></p>
@@ -36,7 +36,7 @@
       <thead><tr><th>分类</th><th>预算</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in category_rows %}
-          <tr><td>{{ row.category_budget.category }}</td><td>{{ row.category_budget.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{{ row.usage_percentage|default:"—" }}</td><td>{{ row.status }}</td></tr>
+          <tr><td>{{ row.category_budget.category }}</td><td>{{ row.category_budget.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
         {% empty %}<tr><td colspan="5">尚未设置分类预算。</td></tr>{% endfor %}
       </tbody>
     </table></div>

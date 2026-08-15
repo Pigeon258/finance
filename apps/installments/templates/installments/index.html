@@ -4,7 +4,10 @@
 
 {% block content %}
   <h1>商品分期</h1>
-  <p><a href="{% url 'installments:create' %}">创建分期计划</a> <a href="{% url 'analytics:installment-preview' %}">新增分期风险预览</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="分期操作">
+    <a href="{% url 'installments:create' %}">创建分期计划</a>
+    <a href="{% url 'analytics:installment-preview' %}">新增分期风险预览</a>
+  </nav>
   <dl>
     <dt>剩余长期消费承诺</dt><dd>{{ remaining }}</dd>
   </dl>

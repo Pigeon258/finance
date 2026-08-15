@@ -12,15 +12,15 @@
   </form>
   {% if preview %}
     <dl>
-      <dt>新增前整体状态</dt><dd>{{ preview.baseline.overall_status }}</dd>
-      <dt>新增后整体状态</dt><dd>{{ preview.simulated.overall_status }}</dd>
+      <dt>新增前整体状态</dt><dd><strong data-pf-part="status-badge" data-status="{{ preview.baseline.overall_status_tone }}">{{ preview.baseline.overall_status_label }}</strong></dd>
+      <dt>新增后整体状态</dt><dd><strong data-pf-part="status-badge" data-status="{{ preview.simulated.overall_status_tone }}">{{ preview.simulated.overall_status_label }}</strong></dd>
     </dl>
     <div class="table-scroll" tabindex="0" role="region" aria-label="分期风险预览结果">
     <table data-pf-part="data-table">
       <thead><tr><th>月份</th><th>确定承诺（含新增）</th><th>预计支出</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in preview.simulated.months %}
-          <tr><td>{{ row.month }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td>{{ row.status }}</td></tr>
+          <tr><td>{{ row.month }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
         {% endfor %}
       </tbody>
     </table>

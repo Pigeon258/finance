@@ -38,7 +38,7 @@
   <section aria-labelledby="backup-history">
     <h2 id="backup-history">最近运行记录</h2>
     <div class="table-scroll" tabindex="0" role="region" aria-label="最近备份运行记录">
-      <table>
+      <table data-pf-part="data-table">
         <thead><tr><th>开始时间</th><th>类型</th><th>状态</th><th>文件</th><th>大小</th></tr></thead>
         <tbody>
           {% for run in backup_runs %}

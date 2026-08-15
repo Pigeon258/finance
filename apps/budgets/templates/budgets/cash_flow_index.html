@@ -4,7 +4,10 @@
 
 {% block content %}
   <h1>固定支出与预计收入</h1>
-  <p><a href="{% url 'budgets:index' %}">返回预算</a> <a href="{% url 'budgets:cash-flow-create' %}">创建计划</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="计划现金流操作">
+    <a href="{% url 'budgets:index' %}">返回预算</a>
+    <a href="{% url 'budgets:cash-flow-create' %}">创建计划</a>
+  </nav>
   <h2>计划</h2>
   <div class="table-scroll" tabindex="0" role="region" aria-label="固定支出与预计收入计划">
   <table data-pf-part="data-table">

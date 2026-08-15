@@ -38,6 +38,40 @@ class AlertLevel(StrEnum):
     DANGER = "DANGER"
 
 
+CREDIT_RISK_LABELS = {
+    CreditRiskStatus.SAFE: "安全",
+    CreditRiskStatus.USE_RESERVE: "需要动用储备",
+    CreditRiskStatus.DANGER: "危险",
+}
+CREDIT_RISK_TONES = {
+    CreditRiskStatus.SAFE: "success",
+    CreditRiskStatus.USE_RESERVE: "warning",
+    CreditRiskStatus.DANGER: "danger",
+}
+FORECAST_RISK_LABELS = {
+    ForecastRiskStatus.SAFE: "安全",
+    ForecastRiskStatus.AFFORDABLE: "可承担",
+    ForecastRiskStatus.USE_RESERVE: "需要动用储备",
+    ForecastRiskStatus.HIGH_RISK: "高风险",
+}
+FORECAST_RISK_TONES = {
+    ForecastRiskStatus.SAFE: "success",
+    ForecastRiskStatus.AFFORDABLE: "success",
+    ForecastRiskStatus.USE_RESERVE: "warning",
+    ForecastRiskStatus.HIGH_RISK: "danger",
+}
+ALERT_LEVEL_LABELS = {
+    AlertLevel.INFO: "提示",
+    AlertLevel.WARNING: "提醒",
+    AlertLevel.DANGER: "危险",
+}
+ALERT_LEVEL_TONES = {
+    AlertLevel.INFO: "info",
+    AlertLevel.WARNING: "warning",
+    AlertLevel.DANGER: "danger",
+}
+
+
 @dataclass(frozen=True)
 class RepaymentCapacity:
     as_of: date
@@ -49,6 +83,14 @@ class RepaymentCapacity:
     regular_available: Decimal
     final_available: Decimal
     status: CreditRiskStatus
+
+    @property
+    def status_label(self) -> str:
+        return CREDIT_RISK_LABELS[self.status]
+
+    @property
+    def status_tone(self) -> str:
+        return CREDIT_RISK_TONES[self.status]
 
 
 @dataclass(frozen=True)
@@ -67,12 +109,28 @@ class MonthlyForecast:
     final_end_without_savings: Decimal
     status: ForecastRiskStatus
 
+    @property
+    def status_label(self) -> str:
+        return FORECAST_RISK_LABELS[self.status]
+
+    @property
+    def status_tone(self) -> str:
+        return FORECAST_RISK_TONES[self.status]
+
 
 @dataclass(frozen=True)
 class ForecastResult:
     as_of: date
     months: tuple[MonthlyForecast, ...]
     overall_status: ForecastRiskStatus
+
+    @property
+    def overall_status_label(self) -> str:
+        return FORECAST_RISK_LABELS[self.overall_status]
+
+    @property
+    def overall_status_tone(self) -> str:
+        return FORECAST_RISK_TONES[self.overall_status]
 
 
 @dataclass(frozen=True)
@@ -89,6 +147,14 @@ class RiskAlert:
     message: str
     amount: Decimal | None = None
     due_date: date | None = None
+
+    @property
+    def level_label(self) -> str:
+        return ALERT_LEVEL_LABELS[self.level]
+
+    @property
+    def level_tone(self) -> str:
+        return ALERT_LEVEL_TONES[self.level]
 
 
 def _validate_money(

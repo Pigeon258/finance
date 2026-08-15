@@ -8,12 +8,14 @@
     {{ form.as_div }}
     <button type="submit">重新计算</button>
   </form>
-  <p><a href="{% url 'analytics:installment-preview' %}">预览新增分期</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="风险操作">
+    <a href="{% url 'analytics:installment-preview' %}">预览新增分期</a>
+  </nav>
 
   {% if capacity %}
     <h2>信用卡偿还能力</h2>
     <dl>
-      <dt>状态</dt><dd>{{ capacity.status }}</dd>
+      <dt>状态</dt><dd><strong data-pf-part="status-badge" data-status="{{ capacity.status_tone }}">{{ capacity.status_label }}</strong></dd>
       <dt>本期剩余应还</dt><dd>{{ capacity.required_due }}</dd>
       <dt>流动资产</dt><dd>{{ capacity.liquid_assets }}</dd>
       <dt>累计储备</dt><dd>{{ capacity.reserve_balance }}</dd>
@@ -24,12 +26,12 @@
   {% endif %}
 
   {% if forecast %}
-    <h2>逐月预测：{{ forecast.overall_status }}</h2>
+    <h2>逐月预测：<strong data-pf-part="status-badge" data-status="{{ forecast.overall_status_tone }}">{{ forecast.overall_status_label }}</strong></h2>
     <div class="table-scroll" tabindex="0" role="region" aria-label="逐月风险预测"><table data-pf-part="data-table">
       <thead><tr><th>月份</th><th>确定收入</th><th>确定承诺</th><th>预计支出</th><th>储蓄目标</th><th>安全余量</th><th>完成储蓄后</th><th>暂停储蓄</th><th>动用储备</th><th>状态</th></tr></thead>
       <tbody>
         {% for row in forecast.months %}
-          <tr><td>{{ row.month }}</td><td>{{ row.certain_income }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.savings_target }}</td><td>{{ row.safety_buffer }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td>{{ row.status }}</td></tr>
+          <tr><td>{{ row.month }}</td><td>{{ row.certain_income }}</td><td>{{ row.determined_commitment }}</td><td>{{ row.expected_expense }}</td><td>{{ row.savings_target }}</td><td>{{ row.safety_buffer }}</td><td>{{ row.regular_end_with_savings }}</td><td>{{ row.regular_end_without_savings }}</td><td>{{ row.final_end_without_savings }}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
         {% endfor %}
       </tbody>
     </table></div>
@@ -37,7 +39,7 @@
 
   <h2>内部预警</h2>
   <ul>
-    {% for alert in alerts %}<li><strong>{{ alert.level }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
+    {% for alert in alerts %}<li><strong data-pf-part="status-badge" data-status="{{ alert.level_tone }}">{{ alert.level_label }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
     {% empty %}<li>当前没有触发预警。</li>{% endfor %}
   </ul>
 {% endblock %}

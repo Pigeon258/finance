@@ -142,6 +142,15 @@ def monthly_purchase_rows(*, profile: CreditCardProfile, date_from: date, date_t
     )
 
 
+CYCLE_STATUS_TONES = {
+    BillingCycle.Status.OPEN: "info",
+    BillingCycle.Status.ISSUED: "info",
+    BillingCycle.Status.PARTIALLY_PAID: "warning",
+    BillingCycle.Status.PAID: "success",
+    BillingCycle.Status.OVERDUE: "danger",
+}
+
+
 def effective_cycle_status(*, cycle: BillingCycle, as_of: date) -> str:
     if cycle.status == BillingCycle.Status.OPEN:
         return BillingCycle.Status.OPEN
@@ -153,3 +162,11 @@ def effective_cycle_status(*, cycle: BillingCycle, as_of: date) -> str:
     if cycle_repaid_amount(cycle=cycle) + cycle_confirmed_credit_amount(cycle=cycle) > 0:
         return BillingCycle.Status.PARTIALLY_PAID
     return BillingCycle.Status.ISSUED
+
+
+def cycle_status_label(*, status: str) -> str:
+    return BillingCycle.Status(status).label
+
+
+def cycle_status_tone(*, status: str) -> str:
+    return CYCLE_STATUS_TONES[BillingCycle.Status(status)]

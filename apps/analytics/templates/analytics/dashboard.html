@@ -31,7 +31,7 @@
         <article class="metric-card" data-pf-part="metric-card"><h3>未来分期与现金流</h3><strong data-pf-part="status-badge" data-status="{{ snapshot.installment_status_tone }}">{{ snapshot.installment_status_label }}</strong></article>
       </div>
       <ul>
-        {% for alert in snapshot.alerts %}<li><strong>{{ alert.level }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
+        {% for alert in snapshot.alerts %}<li><strong data-status="{{ alert.level_tone }}">{{ alert.level_label }}</strong> {{ alert.message }}{% if alert.amount != None %}（{{ alert.amount }}）{% endif %}</li>
         {% empty %}<li>当前没有触发内部预警。</li>{% endfor %}
       </ul>
     </section>

@@ -44,15 +44,19 @@ def overview(request: HttpRequest):
     if profile is None:
         return render(request, "credit/overview.html", {"profile": None})
     today = timezone.localdate()
-    cycle_rows = [
-        {
-            "cycle": cycle,
-            "status": selectors.effective_cycle_status(cycle=cycle, as_of=today),
-            "calculated": selectors.cycle_calculated_statement_amount(cycle=cycle),
-            "remaining": selectors.cycle_remaining_due(cycle=cycle),
-        }
-        for cycle in profile.billing_cycles.all()
-    ]
+    cycle_rows = []
+    for cycle in profile.billing_cycles.all():
+        effective_status = selectors.effective_cycle_status(cycle=cycle, as_of=today)
+        cycle_rows.append(
+            {
+                "cycle": cycle,
+                "status": effective_status,
+                "status_label": selectors.cycle_status_label(status=effective_status),
+                "status_tone": selectors.cycle_status_tone(status=effective_status),
+                "calculated": selectors.cycle_calculated_statement_amount(cycle=cycle),
+                "remaining": selectors.cycle_remaining_due(cycle=cycle),
+            }
+        )
     next_cycle = selectors.next_unpaid_cycle(profile=profile)
     return render(
         request,
@@ -165,6 +169,7 @@ def cycle_detail(request: HttpRequest, cycle_id: int):
         ),
         pk=cycle_id,
     )
+    effective_status = selectors.effective_cycle_status(cycle=cycle, as_of=timezone.localdate())
     refund_candidates = Transaction.objects.filter(
         transaction_type=Transaction.TransactionType.REFUND,
         status=Transaction.Status.ACTIVE,
@@ -177,6 +182,9 @@ def cycle_detail(request: HttpRequest, cycle_id: int):
         "credit/cycle_detail.html",
         {
             "cycle": cycle,
+            "effective_status": effective_status,
+            "status_label": selectors.cycle_status_label(status=effective_status),
+            "status_tone": selectors.cycle_status_tone(status=effective_status),
             "calculated": selectors.cycle_calculated_statement_amount(cycle=cycle),
             "due_base": selectors.cycle_due_base(cycle=cycle),
             "repaid": selectors.cycle_repaid_amount(cycle=cycle),

@@ -32,7 +32,7 @@
             <p class="theme-meta"><span>ID：{{ theme.id }}</span><span>版本：{{ theme.version }}</span><span>{% if theme.source == 'builtin' %}内置{% else %}本地导入{% endif %}</span></p>
             <p>
               {% if theme.id == active_theme_id %}<strong data-pf-part="status-badge" data-status="success">当前启用</strong>{% endif %}
-              {% if theme.id == last_known_good_theme_id %}<strong data-pf-part="status-badge" data-status="info">last-known-good</strong>{% endif %}
+              {% if theme.id == last_known_good_theme_id %}<strong data-pf-part="status-badge" data-status="info">最近可用主题</strong>{% endif %}
               {% if theme.id == preview_theme_id %}<strong data-pf-part="status-badge" data-status="warning">正在预览</strong>{% endif %}
             </p>
           </div>

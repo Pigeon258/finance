@@ -4,7 +4,9 @@
 
 {% block content %}
   <h1>账户管理</h1>
-  <p><a href="{% url 'accounts:create' %}">新增账户</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="账户操作">
+    <a href="{% url 'accounts:create' %}">新增账户</a>
+  </nav>
   <div class="table-scroll" tabindex="0" role="region" aria-label="账户列表">
   <table data-pf-part="data-table">
     <thead><tr><th>名称</th><th>类型</th><th>性质</th><th>初始余额</th><th>状态</th><th>操作</th></tr></thead>

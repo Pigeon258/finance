@@ -50,20 +50,12 @@ class DashboardSnapshot:
 
     @property
     def credit_status_label(self) -> str:
-        return {
-            services.CreditRiskStatus.SAFE: "安全",
-            services.CreditRiskStatus.USE_RESERVE: "需要动用储备",
-            services.CreditRiskStatus.DANGER: "危险",
-        }[self.credit_status]
+        return services.CREDIT_RISK_LABELS[self.credit_status]
 
     @property
     def credit_status_tone(self) -> str:
         # 视觉状态与既有风险枚举一一对应，文字标签仍是主要信息载体。
-        return {
-            services.CreditRiskStatus.SAFE: "success",
-            services.CreditRiskStatus.USE_RESERVE: "warning",
-            services.CreditRiskStatus.DANGER: "danger",
-        }[self.credit_status]
+        return services.CREDIT_RISK_TONES[self.credit_status]
 
     @property
     def budget_status_label(self) -> str:
@@ -85,21 +77,11 @@ class DashboardSnapshot:
 
     @property
     def installment_status_label(self) -> str:
-        return {
-            services.ForecastRiskStatus.SAFE: "安全",
-            services.ForecastRiskStatus.AFFORDABLE: "可承担",
-            services.ForecastRiskStatus.USE_RESERVE: "需要动用储备",
-            services.ForecastRiskStatus.HIGH_RISK: "高风险",
-        }[self.installment_status]
+        return services.FORECAST_RISK_LABELS[self.installment_status]
 
     @property
     def installment_status_tone(self) -> str:
-        return {
-            services.ForecastRiskStatus.SAFE: "success",
-            services.ForecastRiskStatus.AFFORDABLE: "success",
-            services.ForecastRiskStatus.USE_RESERVE: "warning",
-            services.ForecastRiskStatus.HIGH_RISK: "danger",
-        }[self.installment_status]
+        return services.FORECAST_RISK_TONES[self.installment_status]
 
 
 @dataclass(frozen=True)

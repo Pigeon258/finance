@@ -423,6 +423,45 @@ a:hover {
   font-weight: 800;
 }
 
+[data-pf-part="status-badge"] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--pf-info-border, #bdcbee);
+  border-radius: 999px;
+  color: var(--pf-info-text, #27417f);
+  background: var(--pf-info-soft, #eef3ff);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+[data-pf-part="status-badge"][data-status="success"] {
+  border-color: var(--pf-success-border, #9cd9bd);
+  color: var(--pf-success-text, #12603f);
+  background: var(--pf-success-soft, #e9f8f0);
+}
+
+[data-pf-part="status-badge"][data-status="warning"] {
+  border-color: var(--pf-warning-border, #efd083);
+  color: var(--pf-warning-text, #80580a);
+  background: var(--pf-warning-soft, #fff8df);
+}
+
+[data-pf-part="status-badge"][data-status="danger"] {
+  border-color: var(--pf-danger-border, #efb0b0);
+  color: var(--pf-danger-text, #8d2727);
+  background: var(--pf-danger-soft, #fff0f0);
+}
+
+[data-pf-part="status-badge"][data-status="neutral"] {
+  border-color: var(--pf-border, #d9e0ec);
+  color: var(--pf-text-muted, #667085);
+  background: var(--pf-surface-muted, #f7f9fc);
+}
+
 .app-main {
   width: min(100%, 90rem);
   margin: 0 auto;
@@ -635,6 +674,10 @@ button:disabled,
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.75rem 1rem;
+}
+
+.quick-actions {
+  margin-block: 0.75rem 1.1rem;
 }
 
 .compact-form > div {

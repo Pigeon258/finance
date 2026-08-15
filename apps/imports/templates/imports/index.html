@@ -4,7 +4,10 @@
 
 {% block content %}
   <h1>账单导入</h1>
-  <p><a href="{% url 'imports:upload' %}">上传支付宝或微信账单</a> · <a href="{% url 'imports:rules' %}">映射与分类规则</a></p>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="账单导入操作">
+    <a href="{% url 'imports:upload' %}">上传支付宝或微信账单</a>
+    <a href="{% url 'imports:rules' %}">映射与分类规则</a>
+  </nav>
   <p>账单先进入隔离区，只有人工确认后才会写入正式账本。</p>
   <div class="table-scroll" tabindex="0" role="region" aria-label="导入批次列表"><table data-pf-part="data-table">
     <thead><tr><th>上传时间</th><th>文件</th><th>来源</th><th>状态</th><th>总数</th><th>失败</th><th>原文件删除时间</th></tr></thead>

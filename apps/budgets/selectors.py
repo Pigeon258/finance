@@ -16,6 +16,25 @@ from .models import (
     ReserveMovement,
 )
 
+BUDGET_STATUS_LABELS = {
+    "OK": "正常",
+    "WARNING": "提醒",
+    "OVER": "超支",
+}
+BUDGET_STATUS_TONES = {
+    "OK": "success",
+    "WARNING": "warning",
+    "OVER": "danger",
+}
+
+
+def _budget_status_parts(status: str) -> dict[str, str]:
+    return {
+        "status": status,
+        "status_label": BUDGET_STATUS_LABELS[status],
+        "status_tone": BUDGET_STATUS_TONES[status],
+    }
+
 
 def monthly_budget(*, month: date) -> MonthlyBudget | None:
     return (
@@ -214,7 +233,11 @@ def category_budget_status(*, category_budget: CategoryBudget) -> dict[str, Deci
             status = "WARNING"
         else:
             status = "OK"
-    return {"occupancy": amount, "usage_percentage": usage, "status": status}
+    return {
+        "occupancy": amount,
+        "usage_percentage": usage,
+        **_budget_status_parts(status),
+    }
 
 
 def category_budget_rows(*, budget: MonthlyBudget):
@@ -278,7 +301,7 @@ def category_budget_rows(*, budget: MonthlyBudget):
                 "category_budget": item,
                 "occupancy": occupancy,
                 "usage_percentage": usage,
-                "status": status,
+                **_budget_status_parts(status),
             }
         )
     return rows
