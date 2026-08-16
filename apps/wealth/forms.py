@@ -30,6 +30,9 @@ class WealthAccountForm(forms.ModelForm):
 
 
 class TransferInForm(forms.Form):
+    wealth_account = forms.ModelChoiceField(
+        label="转入理财账户", queryset=WealthAccount.objects.none()
+    )
     source_account = forms.ModelChoiceField(label="转出日常账户", queryset=Account.objects.none())
     amount = forms.DecimalField(
         label="转入金额", max_digits=14, decimal_places=2, min_value=Decimal("0.01")
@@ -43,6 +46,7 @@ class TransferInForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["wealth_account"].queryset = WealthAccount.objects.filter(is_active=True)
         self.fields["source_account"].queryset = Account.objects.filter(
             is_active=True,
             balance_nature=Account.BalanceNature.ASSET,
@@ -50,6 +54,9 @@ class TransferInForm(forms.Form):
 
 
 class TransferOutForm(forms.Form):
+    wealth_account = forms.ModelChoiceField(
+        label="转出理财账户", queryset=WealthAccount.objects.none()
+    )
     destination_account = forms.ModelChoiceField(
         label="到账日常账户", queryset=Account.objects.none()
     )
@@ -65,6 +72,7 @@ class TransferOutForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["wealth_account"].queryset = WealthAccount.objects.filter(is_active=True)
         self.fields["destination_account"].queryset = Account.objects.filter(
             is_active=True,
             balance_nature=Account.BalanceNature.ASSET,

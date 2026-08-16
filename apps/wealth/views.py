@@ -85,13 +85,8 @@ def account_edit(request: HttpRequest, account_id: int):
 def transfer_in(request: HttpRequest):
     form = TransferInForm(request.POST or None, initial={"occurred_at": timezone.now()})
     if request.method == "POST" and form.is_valid():
-        data = form.cleaned_data
-        account = WealthAccount.objects.filter(is_active=True).first()
-        if account is None:
-            messages.error(request, "请先创建理财账户。")
-            return redirect("wealth:account-create")
         try:
-            services.transfer_in(wealth_account=account, **data)
+            services.transfer_in(**form.cleaned_data)
         except ValidationError as error:
             _add_error(form, error)
         else:
@@ -104,13 +99,8 @@ def transfer_in(request: HttpRequest):
 def transfer_out(request: HttpRequest):
     form = TransferOutForm(request.POST or None, initial={"occurred_at": timezone.now()})
     if request.method == "POST" and form.is_valid():
-        data = form.cleaned_data
-        account = WealthAccount.objects.filter(is_active=True).first()
-        if account is None:
-            messages.error(request, "请先创建理财账户。")
-            return redirect("wealth:account-create")
         try:
-            services.transfer_out(wealth_account=account, **data)
+            services.transfer_out(**form.cleaned_data)
         except ValidationError as error:
             _add_error(form, error)
         else:
