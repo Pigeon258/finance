@@ -7,13 +7,13 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `fb533dabc3a72559a2c0fb06db576be72fb382f7` |
+| 生产运行时提交 | `8481f8dab0d564949c0c769b893488082f2afa80` |
 | 应用版本常量 | `0.2.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |
-| 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement` |
-| 最新部署前备份 | `db-deployment-20260816T143734Z-55.dump.enc` |
+| 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement`、`accounts.0004_account_type_wealth`、`wealth.0001_initial` |
+| 最新部署前备份 | `db-deployment-20260816T152129Z-57.dump.enc` |
 | 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
 
 说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
@@ -33,6 +33,8 @@
 | 2026-08-16 | `2775f80` | 首页增加预算内剩余指标（后被 `15d8ce4` 口径修正取代） | 无 | `db-deployment-20260816T140517Z-53.dump.enc` | `350 passed` |
 | 2026-08-16 | `15d8ce4` | 首页“可分配预算资金”按当前净资金与未用预算承诺计算 | 无 | `db-deployment-20260816T141038Z-54.dump.enc` | `350 passed` |
 | 2026-08-16 | `fb533da` | 储蓄与消费预算拆分；上月储蓄一键确认结转到累计储备 | `budgets.0003_savings_settlement` | `db-deployment-20260816T143734Z-55.dump.enc` | `351 passed` |
+| 2026-08-16 | `e72e195` | 理财管理第一版：账户、转换、收益、估值、余额宝同步、首页概览 | `accounts.0004_account_type_wealth`、`wealth.0001_initial` | `db-deployment-20260816T151748Z-56.dump.enc` | `356 passed` |
+| 2026-08-16 | `8481f8d` | 转入/转出表单可选择具体理财账户 | 无 | `db-deployment-20260816T152129Z-57.dump.enc` | `356 passed` |
 
 ## 3. 逐项维护说明
 
@@ -216,3 +218,16 @@ python manage.py check_theme_integrity --strict
 - 每月储蓄计划只能结转一次；历史计划金额保留，实际结转金额单独记录。
 
 发布记录：`docs/acceptance.md` 中“2026-08-16 储蓄拆分与结转生产发布验收”。
+
+### 3.12 理财管理第一版（`e72e195`、`8481f8d`）
+
+按 `docs/wealth-management-design.md` 完成：
+
+- 新增 `apps.wealth`，理财账户与日常流动资产分离。
+- 日常账户与理财账户通过核心账本转账互相转换，不计入收支。
+- 支持手工估值、理财收益记录、收益到账日常账户时计入月度收入。
+- 余额宝 `000198` 支持服务端抓取七日年化和每万份收益。
+- 首页新增理财总市值、累计理财收益、本月理财收益。
+- 备份恢复包含理财模型。
+
+发布记录：`docs/acceptance.md` 中“2026-08-16 理财管理第一版生产发布验收”。
