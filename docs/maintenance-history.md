@@ -7,13 +7,13 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `8c1a3f5959789c1dce07398366774f49cb4d9049` |
+| 生产运行时提交 | `8a66e61b6a8e2d26c23b2e7045efb288f83f76d8` |
 | 应用版本常量 | `0.2.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |
 | 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0002_budget_item_name` |
-| 最新部署前备份 | `db-deployment-20260816T133313Z-51.dump.enc` |
+| 最新部署前备份 | `db-deployment-20260816T134819Z-52.dump.enc` |
 | 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
 
 说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
@@ -29,6 +29,7 @@
 | 2026-08-15 | `5a076c8` | 分类预算批量编辑；分类删除；计划现金流按方向过滤分类 | 无 | `db-deployment-20260815T151135Z-47.dump.enc` | `346 passed` |
 | 2026-08-15 | `bb79f80` | 预算项目明细化：项目金额自动汇总为月度总预算 | `budgets.0002_budget_item_name` | `db-deployment-20260815T154343Z-48.dump.enc` | `346 passed` |
 | 2026-08-16 | `8c1a3f5` | 计划事项自动延伸到未来、交易增加项目名称、100% 阈值语义修正 | `ledger.0007_transaction_item_name` | `db-deployment-20260816T133313Z-51.dump.enc` | `349 passed` |
+| 2026-08-16 | `8a66e61` | 首页月度预算风险状态与预算项目阈值对齐 | 无 | `db-deployment-20260816T134819Z-52.dump.enc` | `350 passed` |
 
 ## 3. 逐项维护说明
 
@@ -174,3 +175,11 @@ python manage.py check_theme_integrity --strict
 - 当项目提醒阈值等于系统超支阈值时，正好 100% 不再判定为超支；超过预算后才标记超支。
 
 发布记录：`docs/acceptance.md` 中“2026-08-16 计划事项与交易项目名称生产发布验收”。
+
+### 3.9 首页月度预算状态与项目阈值对齐（`8a66e61`）
+
+问题：预算项目提醒阈值设为 100%，项目实际正好等于预算时，分类汇总已显示正常，但首页“月度预算”仍显示“达到或超过预算”。
+
+处理：首页月度预算风险状态优先依据预算项目/分类汇总状态；没有明细项目时才回退到总预算使用比例。正好 100% 且阈值为 100% 时显示“正常”，超过后才显示“超过预算”。
+
+发布记录：`docs/acceptance.md` 中“2026-08-16 首页月度预算状态修复生产发布验收”。
