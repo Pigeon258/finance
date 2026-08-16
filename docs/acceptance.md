@@ -288,3 +288,27 @@
 | 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
 
 生产发布结论：**通过**。本轮改变预算明细配置方式并自动汇总总预算，不改变账务金额事实、统计口径、凭据、网络暴露或备份格式。
+
+
+## 2026-08-16 计划事项与交易项目名称生产发布验收
+
+- 发布确认日期：2026-08-16
+- 发布方式：`deploy/upgrade.sh` 完整升级
+- 已部署提交：`8c1a3f5959789c1dce07398366774f49cb4d9049`
+- 发布内容：周期计划自动延伸到未来 12 个月；交易和 CSV 增加项目名称；预算 100% 阈值语义修正
+- 部署前加密数据库备份：`db-deployment-20260816T133313Z-51.dump.enc`
+- 数据库迁移：应用 `ledger.0007_transaction_item_name`
+
+| 检查项 | 结论 |
+|---|---|
+| 提交前质量门槛 | 通过；`ruff check .`、`pytest` 全量 `349 passed`、Django check 与迁移检查通过 |
+| 生产工作区与版本 | 通过；`/opt/personal-finance` 检出完整 SHA `8c1a3f5`，升级前跟踪文件干净 |
+| `deploy/upgrade.sh` | 通过；构建、部署前加密备份、维护模式、迁移、三项完整性检查和退出维护模式均完成 |
+| 数据库迁移 | 通过；`ledger.0007_transaction_item_name` 已应用 |
+| `deploy/verify-deployment.sh` | 通过；四服务运行、端口隔离、主题卷读写边界、安全头、静态资源和健康端点隔离符合基线 |
+| 财务与主题完整性 | 通过；财务完整性检查通过，严格主题完整性 `active=aurora-ledger resolved=aurora-ledger schema=1 contract=1` |
+| 部署产物核验 | 通过；Web 镜像包含未来事项自动生成逻辑、交易项目字段和详情/列表展示 |
+| 公网冒烟 | 通过；HTTP 308、HTTPS 登录页 200 |
+| 发布后日志筛查 | 通过；Web 与 Caddy 近期日志未发现 error/traceback/exception/critical |
+
+生产发布结论：**通过**。本轮不改变账务金额事实、统计口径、凭据、网络暴露或备份格式。

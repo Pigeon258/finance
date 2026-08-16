@@ -7,13 +7,13 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `bb79f80af0e917a9966cfaecc95d142574506fab` |
+| 生产运行时提交 | `8c1a3f5959789c1dce07398366774f49cb4d9049` |
 | 应用版本常量 | `0.2.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |
-| 数据库迁移 | 已应用至 `ledger.0006_tag_applies_to`、`budgets.0002_budget_item_name` |
-| 最新部署前备份 | `db-deployment-20260815T154343Z-48.dump.enc` |
+| 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0002_budget_item_name` |
+| 最新部署前备份 | `db-deployment-20260816T133313Z-51.dump.enc` |
 | 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
 
 说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
@@ -28,6 +28,7 @@
 | 2026-08-15 | `9e14d2e` | 新增标签管理页面：新建、编辑、启停、保护性删除 | 无 | `db-deployment-20260815T143728Z-46.dump.enc` | `340 passed` |
 | 2026-08-15 | `5a076c8` | 分类预算批量编辑；分类删除；计划现金流按方向过滤分类 | 无 | `db-deployment-20260815T151135Z-47.dump.enc` | `346 passed` |
 | 2026-08-15 | `bb79f80` | 预算项目明细化：项目金额自动汇总为月度总预算 | `budgets.0002_budget_item_name` | `db-deployment-20260815T154343Z-48.dump.enc` | `346 passed` |
+| 2026-08-16 | `8c1a3f5` | 计划事项自动延伸到未来、交易增加项目名称、100% 阈值语义修正 | `ledger.0007_transaction_item_name` | `db-deployment-20260816T133313Z-51.dump.enc` | `349 passed` |
 
 ## 3. 逐项维护说明
 
@@ -156,3 +157,20 @@ python manage.py check_theme_integrity --strict
 - 分类汇总表按分类聚合多个项目金额，用于占用和状态展示。
 
 发布记录：`docs/acceptance.md` 中“2026-08-15 预算项目明细化生产发布验收”。
+
+
+### 3.8 计划事项自动延伸、交易项目名称与阈值语义（`8c1a3f5`）
+
+问题：
+
+- 周期计划只生成创建时起 12 个月的事项；过去事项被跳过后未来事项不会自动出现。
+- 交易记录只有分类和标签，没有具体项目名称。
+- 一次性年度支出在本月等于预算且提醒阈值设为 100% 时，仍提示“达到超支阈值”。
+
+处理：
+
+- 打开固定支出与预计收入页面时，自动为启用中的周期计划补齐从当前月份起未来 12 个月的事项；页面默认只显示本月及以后事项。
+- 交易、常用模板和 CSV 增加“项目名称”字段；交易表单、列表、详情和搜索均支持。
+- 当项目提醒阈值等于系统超支阈值时，正好 100% 不再判定为超支；超过预算后才标记超支。
+
+发布记录：`docs/acceptance.md` 中“2026-08-16 计划事项与交易项目名称生产发布验收”。
