@@ -63,7 +63,7 @@ class DashboardSnapshot:
             "NOT_SET": "未设置预算",
             "OK": "正常",
             "WARNING": "接近预算",
-            "OVER": "达到或超过预算",
+            "OVER": "超过预算",
         }[self.budget_status]
 
     @property
@@ -188,17 +188,27 @@ def _months_between(date_from: date, date_to: date) -> tuple[date, ...]:
 
 
 def _budget_status(snapshot: dict) -> str:
-    if snapshot["budget"] is None:
+    budget = snapshot["budget"]
+    if budget is None:
         return "NOT_SET"
+    category_rows = budget_selectors.category_budget_rows(budget=budget)
+    if category_rows:
+        if any(row["status"] == "OVER" for row in category_rows):
+            return "OVER"
+        if any(row["status"] == "WARNING" for row in category_rows):
+            return "WARNING"
+        return "OK"
     usage = snapshot["usage_percentage"]
     if usage is None:
         return "OK"
     warning, over = core_selectors.budget_thresholds()
-    if usage >= over:
-        return "OVER"
-    if usage >= warning:
-        return "WARNING"
-    return "OK"
+    if warning < over:
+        if usage >= over:
+            return "OVER"
+        if usage >= warning:
+            return "WARNING"
+    # 没有明细项目时，提醒阈值等于系统上限（通常为 100%）时正好 100% 视为正常。
+    return "OVER" if warning == over and usage > over else "OK"
 
 
 def upcoming_items(

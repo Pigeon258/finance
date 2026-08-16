@@ -140,6 +140,44 @@ def test_dashboard_reconciles_core_metrics_and_excludes_non_statistical_transact
 
 
 @pytest.mark.django_db
+def test_dashboard_budget_status_treats_exact_100_as_ok(
+    bank, expense_category
+):
+    budget_services.save_monthly_budget(month=date(2026, 7, 1))
+    budget_services.create_budget_item(
+        month=date(2026, 7, 1),
+        name="学费",
+        category=expense_category,
+        budget_amount=Decimal("100.00"),
+        warning_threshold=Decimal("100.00"),
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("100.00"),
+        occurred_at=_occurred(2026, 7, 10),
+        channel=Transaction.Channel.BANK,
+        item_name="学费",
+    )
+
+    snapshot = selectors.dashboard_snapshot(month=date(2026, 7, 1), as_of=date(2026, 7, 11))
+    assert snapshot.budget_status == "OK"
+    assert snapshot.budget_status_label == "正常"
+
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("0.01"),
+        occurred_at=_occurred(2026, 7, 11),
+        channel=Transaction.Channel.BANK,
+        item_name="学费补缴",
+    )
+    snapshot = selectors.dashboard_snapshot(month=date(2026, 7, 1), as_of=date(2026, 7, 12))
+    assert snapshot.budget_status == "OVER"
+    assert snapshot.budget_status_label == "超过预算"
+
+
+@pytest.mark.django_db
 def test_reports_use_decimal_refund_netting_and_exclude_transfer_adjustment(
     bank, wechat, card, income_category, expense_category
 ):
