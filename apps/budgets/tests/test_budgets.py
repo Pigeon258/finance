@@ -226,7 +226,7 @@ def test_fixed_expense_confirmation_keeps_total_occupancy_constant(expense_categ
     before_balance = ledger_selectors.account_balance(account=bank)
     before = selectors.monthly_snapshot(month=date(2026, 7, 1))
     assert before["fixed_planned"] == Decimal("500.00")
-    assert before["total_occupancy"] == Decimal("600.00")
+    assert before["total_occupancy"] == Decimal("500.00")
     assert ledger_selectors.account_balance(account=bank) == before_balance
 
     services.confirm_occurrence(
@@ -279,8 +279,9 @@ def test_budget_aggregates_ordinary_fixed_installment_refund_and_savings(expense
     assert snapshot["ordinary_expense"] == Decimal("100.00")
     assert snapshot["fixed_expense"] == Decimal("300.00")
     assert snapshot["installment"] == Decimal("200.00")
-    assert snapshot["total_occupancy"] == Decimal("700.00")
-    assert snapshot["remaining"] == Decimal("500.00")
+    assert snapshot["savings_target"] == Decimal("100.00")
+    assert snapshot["total_occupancy"] == Decimal("600.00")
+    assert snapshot["remaining"] == Decimal("600.00")
 
 
 @pytest.mark.django_db
@@ -568,3 +569,39 @@ def test_cash_flow_index_keeps_history_but_shows_future_occurrences(
     assert response.status_code == 200
     occurrences = response.context["occurrences"]
     assert list(occurrences) == list(selectors.occurrence_list(date_from=date(2026, 8, 1)))
+
+
+
+@pytest.mark.django_db
+def test_savings_carryover_confirms_actual_amount_and_prevents_duplicate(
+    authenticated_client,
+):
+    previous = services.save_monthly_budget(
+        month=date(2026, 6, 1), savings_target=Decimal("100.00")
+    )
+
+    page = authenticated_client.get(
+        reverse("budgets:index"), {"month": "2026-07"}
+    )
+    assert page.context["carryover_budget"] == previous
+    assert "100.00" in page.content.decode()
+
+    response = authenticated_client.post(
+        reverse("budgets:savings-carryover", args=[previous.id]),
+        {"actual_amount": "80.00", "occurred_on": "2026-06-30"},
+    )
+    assert response.status_code == 302
+    previous.refresh_from_db()
+    assert previous.savings_settled_amount == Decimal("80.00")
+    assert previous.savings_settled_at is not None
+    movement = ReserveMovement.objects.get()
+    assert movement.movement_type == ReserveMovement.MovementType.CONTRIBUTION
+    assert movement.amount == Decimal("80.00")
+    assert movement.occurred_on == date(2026, 6, 30)
+
+    duplicate = authenticated_client.post(
+        reverse("budgets:savings-carryover", args=[previous.id]),
+        {"actual_amount": "80.00", "occurred_on": "2026-06-30"},
+    )
+    assert duplicate.status_code == 302
+    assert ReserveMovement.objects.count() == 1

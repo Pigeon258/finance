@@ -62,6 +62,20 @@ class BudgetItemForm(forms.Form):
         )
 
 
+class SavingsCarryoverForm(forms.Form):
+    actual_amount = forms.DecimalField(
+        label="实际储蓄金额",
+        max_digits=14,
+        decimal_places=2,
+        min_value=Decimal("0.00"),
+        help_text="默认使用上月储蓄计划金额，可按实际发生额修改。",
+    )
+    occurred_on = forms.DateField(
+        label="结转日期",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+
+
 class ReserveMovementForm(forms.Form):
     movement_type = forms.ChoiceField(
         label="变动类型", choices=ReserveMovement.MovementType.choices

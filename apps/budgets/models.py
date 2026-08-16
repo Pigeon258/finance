@@ -30,6 +30,14 @@ class MonthlyBudget(models.Model):
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
     )
+    savings_settled_at = models.DateTimeField("储蓄结转时间", null=True, blank=True)
+    savings_settled_amount = models.DecimalField(
+        "实际结转储蓄金额",
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     note = models.TextField("备注", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

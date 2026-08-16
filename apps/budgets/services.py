@@ -77,6 +77,33 @@ def save_monthly_budget(
 
 
 @db_transaction.atomic
+def confirm_savings_carryover(
+    *,
+    monthly_budget: MonthlyBudget,
+    actual_amount: Decimal,
+    occurred_on: date,
+) -> ReserveMovement | None:
+    monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
+    if monthly_budget.savings_settled_at is not None:
+        raise ValidationError("该月储蓄计划已经结转，不能重复确认。")
+    _validate_money(actual_amount, allow_zero=True)
+    movement = None
+    if actual_amount > 0:
+        movement = record_reserve_movement(
+            movement_type=ReserveMovement.MovementType.CONTRIBUTION,
+            amount=actual_amount,
+            occurred_on=occurred_on,
+            note=f"结转 {monthly_budget.month:%Y-%m} 储蓄计划",
+        )
+    monthly_budget.savings_settled_amount = actual_amount
+    monthly_budget.savings_settled_at = timezone.now()
+    monthly_budget.save(
+        update_fields=["savings_settled_amount", "savings_settled_at", "updated_at"]
+    )
+    return movement
+
+
+@db_transaction.atomic
 def refresh_monthly_budget_total(*, monthly_budget: MonthlyBudget) -> MonthlyBudget:
     monthly_budget = MonthlyBudget.objects.select_for_update().get(pk=monthly_budget.pk)
     total = sum(

@@ -11,6 +11,17 @@
     </div>
     <button type="submit">查看</button>
   </form>
+  {% if carryover_budget %}
+    <section aria-labelledby="savings-carryover">
+      <h2 id="savings-carryover">上月储蓄结转</h2>
+      <p>上月（{{ carryover_budget.month|date:"Y-m" }}）储蓄计划为 {{ carryover_budget.savings_target }}，尚未结转。请确认实际储蓄金额后结转到累计储备。</p>
+      <form method="post" action="{% url 'budgets:savings-carryover' carryover_budget.id %}" data-pf-part="form-panel">
+        {% csrf_token %}
+        {{ carryover_form.as_div }}
+        <button type="submit">确认结转</button>
+      </form>
+    </section>
+  {% endif %}
   <nav class="quick-actions" data-pf-part="action-group" aria-label="预算操作">
     <a href="{% url 'budgets:monthly-edit' %}?month={{ month|date:'Y-m' }}">设置储蓄与安全余量</a>
     <a href="{% url 'budgets:budget-item-index' %}?month={{ month|date:'Y-m' }}">设置预算项目</a>
@@ -30,7 +41,7 @@
       <dt>固定支出占用</dt><dd>{{ snapshot.fixed_expense }}（实际 {{ snapshot.fixed_actual }}，待发生 {{ snapshot.fixed_planned }}）</dd>
       <dt>分期占用</dt><dd>{{ snapshot.installment }}（实际 {{ snapshot.installment_actual }}，待发生 {{ snapshot.installment_planned }}）</dd>
       <dt>储蓄目标</dt><dd>{{ snapshot.savings_target }}</dd>
-      <dt>总占用</dt><dd>{{ snapshot.total_occupancy }}</dd>
+      <dt>消费预算占用（不含储蓄）</dt><dd>{{ snapshot.total_occupancy }}</dd>
       <dt>剩余预算</dt><dd>{{ snapshot.remaining }}</dd>
       <dt>使用比例</dt><dd>{% if snapshot.usage_percentage is not None %}{{ snapshot.usage_percentage }}%{% else %}—{% endif %}</dd>
       <dt>最低安全余量</dt><dd>{{ snapshot.budget.minimum_safety_buffer }}</dd>

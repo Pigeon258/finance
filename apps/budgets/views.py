@@ -1,3 +1,4 @@
+import calendar
 from datetime import date
 from decimal import Decimal
 from uuid import uuid4
@@ -18,6 +19,7 @@ from .forms import (
     MonthlyBudgetForm,
     PlannedCashFlowForm,
     ReserveMovementForm,
+    SavingsCarryoverForm,
 )
 from .models import CategoryBudget, MonthlyBudget, PlannedCashFlow, PlannedCashFlowOccurrence
 
@@ -62,12 +64,32 @@ def index(request: HttpRequest):
     month = _month_from_query(request)
     snapshot = selectors.monthly_snapshot(month=month)
     budget = snapshot["budget"]
+    carryover_budget = selectors.pending_savings_carryover(current_month=month)
+    carryover_form = None
+    carryover_occurred_on = None
+    if carryover_budget is not None:
+        carryover_occurred_on = date(
+            carryover_budget.month.year,
+            carryover_budget.month.month,
+            calendar.monthrange(
+                carryover_budget.month.year, carryover_budget.month.month
+            )[1],
+        )
+        carryover_form = SavingsCarryoverForm(
+            initial={
+                "actual_amount": carryover_budget.savings_target,
+                "occurred_on": carryover_occurred_on,
+            }
+        )
     return render(
         request,
         "budgets/index.html",
         {
             "month": month,
             "snapshot": snapshot,
+            "carryover_budget": carryover_budget,
+            "carryover_form": carryover_form,
+            "carryover_occurred_on": carryover_occurred_on,
             "item_rows": selectors.budget_item_rows(month=month),
             "category_rows": selectors.category_budget_rows(budget=budget) if budget else [],
             "reserve_balance": selectors.reserve_balance(),
@@ -109,6 +131,26 @@ def copy_previous(request: HttpRequest):
     else:
         messages.success(request, "已复制上月预算项目；已有项目设置保持不变。")
     return redirect(f"{reverse('budgets:index')}?month={month:%Y-%m}")
+
+
+@require_POST
+def savings_carryover_confirm(request: HttpRequest, budget_id: int):
+    carryover_budget = get_object_or_404(MonthlyBudget, pk=budget_id)
+    form = SavingsCarryoverForm(request.POST)
+    if form.is_valid():
+        try:
+            services.confirm_savings_carryover(
+                monthly_budget=carryover_budget,
+                actual_amount=form.cleaned_data["actual_amount"],
+                occurred_on=form.cleaned_data["occurred_on"],
+            )
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+        else:
+            messages.success(request, "上月储蓄计划已按实际金额结转到累计储备。")
+            return redirect("budgets:index")
+    messages.error(request, "储蓄结转参数无效，请检查后重试。")
+    return redirect("budgets:index")
 
 
 @require_GET

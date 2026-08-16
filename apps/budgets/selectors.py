@@ -71,6 +71,24 @@ def monthly_budget(*, month: date) -> MonthlyBudget | None:
     )
 
 
+def pending_savings_carryover(*, current_month: date) -> MonthlyBudget | None:
+    current_month = current_month.replace(day=1)
+    previous_month = (
+        date(current_month.year - 1, 12, 1)
+        if current_month.month == 1
+        else date(current_month.year, current_month.month - 1, 1)
+    )
+    return (
+        MonthlyBudget.objects.filter(
+            month=previous_month,
+            savings_target__gt=0,
+            savings_settled_at__isnull=True,
+        )
+        .order_by("month")
+        .first()
+    )
+
+
 def reserve_balance(*, as_of: date | None = None) -> Decimal:
     queryset = ReserveMovement.objects.all()
     if as_of is not None:
@@ -224,7 +242,7 @@ def monthly_snapshot(*, month: date) -> dict[str, Decimal | MonthlyBudget | None
     breakdown = monthly_breakdown(month=month)
     savings_target = budget.savings_target if budget else Decimal("0.00")
     total_budget = budget.total_expense_budget if budget else Decimal("0.00")
-    total_occupancy = breakdown["actual_expense"] + breakdown["planned_commitment"] + savings_target
+    total_occupancy = breakdown["actual_expense"] + breakdown["planned_commitment"]
     allocatable_remaining = (
         total_budget - breakdown["actual_expense"] - breakdown["planned_commitment"]
     )
