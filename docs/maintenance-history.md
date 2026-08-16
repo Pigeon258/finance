@@ -7,13 +7,13 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `15d8ce40174008432e7a60bddc3c4dd15363b876` |
+| 生产运行时提交 | `fb533dabc3a72559a2c0fb06db576be72fb382f7` |
 | 应用版本常量 | `0.2.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |
-| 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0002_budget_item_name` |
-| 最新部署前备份 | `db-deployment-20260816T141038Z-54.dump.enc` |
+| 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement` |
+| 最新部署前备份 | `db-deployment-20260816T143734Z-55.dump.enc` |
 | 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
 
 说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
@@ -32,6 +32,7 @@
 | 2026-08-16 | `8a66e61` | 首页月度预算风险状态与预算项目阈值对齐 | 无 | `db-deployment-20260816T134819Z-52.dump.enc` | `350 passed` |
 | 2026-08-16 | `2775f80` | 首页增加预算内剩余指标（后被 `15d8ce4` 口径修正取代） | 无 | `db-deployment-20260816T140517Z-53.dump.enc` | `350 passed` |
 | 2026-08-16 | `15d8ce4` | 首页“可分配预算资金”按当前净资金与未用预算承诺计算 | 无 | `db-deployment-20260816T141038Z-54.dump.enc` | `350 passed` |
+| 2026-08-16 | `fb533da` | 储蓄与消费预算拆分；上月储蓄一键确认结转到累计储备 | `budgets.0003_savings_settlement` | `db-deployment-20260816T143734Z-55.dump.enc` | `351 passed` |
 
 ## 3. 逐项维护说明
 
@@ -198,3 +199,20 @@ python manage.py check_theme_integrity --strict
 - `2775f80` 曾先加入“本月可分配预算”，因口径不符合用户需求，由本提交替换。
 
 发布记录：`docs/acceptance.md` 中“2026-08-16 首页可分配预算资金生产发布验收”。
+
+### 3.11 储蓄与消费预算拆分及月末结转（`fb533da`）
+
+问题：
+
+- 储蓄目标原先计入“总占用”，导致储蓄看起来在占用消费预算。
+- 用户希望每月末把储蓄计划按实际金额结转到累计储备，下月重新计划。
+
+处理：
+
+- 储蓄目标不再计入消费预算占用和剩余预算。
+- 首页分别显示“本月消费预算占用”“本月剩余预算”“计划储蓄”。
+- 新增“上月储蓄结转”确认区：进入新月时，默认带出上月计划金额，用户可修改为实际储蓄金额后一键结转。
+- 结转实际金额大于 0 时创建储备转入记录；实际金额为 0 时仅标记已结转。
+- 每月储蓄计划只能结转一次；历史计划金额保留，实际结转金额单独记录。
+
+发布记录：`docs/acceptance.md` 中“2026-08-16 储蓄拆分与结转生产发布验收”。
