@@ -7,13 +7,13 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `v0.3.0` 对应 Git 标签 |
+| 生产运行时提交 | `47f9e2a94eac92b01e52cfe84c6cda112e381a12`（标签 `v0.3.0`） |
 | 应用版本常量 | `0.3.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |
 | 数据库迁移 | 已应用至 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement`、`accounts.0004_account_type_wealth`、`wealth.0001_initial` |
-| 最新部署前备份 | `db-deployment-20260816T152129Z-57.dump.enc` |
+| 最新部署前备份 | `db-deployment-20260816T162607Z-59.dump.enc` |
 | 生产服务 | `web` / `caddy` / `db` / `backup` 均 healthy |
 
 说明：`main` 分支会在运行时提交之后继续包含发布记录等文档提交；判断生产代码版本时，以 `/opt/personal-finance` 检出的运行时提交和容器镜像为准。
@@ -35,6 +35,7 @@
 | 2026-08-16 | `fb533da` | 储蓄与消费预算拆分；上月储蓄一键确认结转到累计储备 | `budgets.0003_savings_settlement` | `db-deployment-20260816T143734Z-55.dump.enc` | `351 passed` |
 | 2026-08-16 | `e72e195` | 理财管理第一版：账户、转换、收益、估值、余额宝同步、首页概览 | `accounts.0004_account_type_wealth`、`wealth.0001_initial` | `db-deployment-20260816T151748Z-56.dump.enc` | `356 passed` |
 | 2026-08-16 | `8481f8d` | 转入/转出表单可选择具体理财账户 | 无 | `db-deployment-20260816T152129Z-57.dump.enc` | `356 passed` |
+| 2026-08-16 | `v0.3.0` | 开源发布：版本、许可证、贡献与安全文档 | 无 | `db-deployment-20260816T162607Z-59.dump.enc` | `357 passed` |
 
 ## 3. 逐项维护说明
 

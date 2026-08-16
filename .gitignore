@@ -22,3 +22,7 @@ backups/
 *.log
 .idea/
 .vscode/
+
+demands/
+.agents/
+.codex/
