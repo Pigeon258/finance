@@ -133,6 +133,7 @@ def test_dashboard_reconciles_core_metrics_and_excludes_non_statistical_transact
     assert snapshot.liquid_assets == Decimal("1380.00")
     assert snapshot.credit_liability == Decimal("300.00")
     assert snapshot.net_funds == Decimal("1080.00")
+    assert snapshot.allocatable_funds == Decimal("430.00")
     assert snapshot.monthly_income == Decimal("500.00")
     assert snapshot.budget["actual_expense"] == Decimal("450.00")
     assert snapshot.budget["allocatable_remaining"] == Decimal("550.00")

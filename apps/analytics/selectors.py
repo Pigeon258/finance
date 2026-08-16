@@ -37,6 +37,7 @@ class DashboardSnapshot:
     liquid_assets: Decimal
     credit_liability: Decimal
     net_funds: Decimal
+    allocatable_funds: Decimal
     monthly_income: Decimal
     budget: dict
     reserve_balance: Decimal
@@ -299,12 +300,17 @@ def dashboard_snapshot(*, month: date, as_of: date) -> DashboardSnapshot:
     forecast = services.forecast_cash_flow(as_of=as_of, month_count=6)
     alerts = services.risk_alerts(as_of=as_of, forecast_months=6)
     budget = budget_selectors.monthly_snapshot(month=month)
+    net_funds = ledger_selectors.current_net_funds(as_of=as_of_end)
+    allocatable_funds = (
+        net_funds - budget["allocatable_remaining"] - budget["savings_target"]
+    )
     return DashboardSnapshot(
         month=month,
         as_of=as_of,
         liquid_assets=ledger_selectors.liquid_assets(as_of=as_of_end),
         credit_liability=ledger_selectors.current_liabilities(as_of=as_of_end),
-        net_funds=ledger_selectors.current_net_funds(as_of=as_of_end),
+        net_funds=net_funds,
+        allocatable_funds=allocatable_funds,
         monthly_income=ledger_selectors.monthly_income(month=month),
         budget=budget,
         reserve_balance=budget_selectors.reserve_balance(as_of=as_of),
