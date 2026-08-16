@@ -20,6 +20,9 @@
         <article class="metric-card" data-pf-part="metric-card"><h3>可分配预算资金</h3><strong>{{ snapshot.allocatable_funds }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>本月剩余预算</h3><strong>{{ snapshot.budget.remaining }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>计划储蓄</h3><strong>{{ snapshot.budget.savings_target }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>理财总市值</h3><strong>{{ snapshot.wealth_total_value }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>累计理财收益</h3><strong>{{ snapshot.wealth_total_profit }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>本月理财收益</h3><strong>{{ snapshot.wealth_month_income }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>累计储备资金</h3><strong>{{ snapshot.reserve_balance }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>下一还款</h3><strong>{% if snapshot.next_due_date %}{{ snapshot.next_due_date }} / {{ snapshot.next_due_amount }}{% else %}暂无{% endif %}</strong></article>
       </div>

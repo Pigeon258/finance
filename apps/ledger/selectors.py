@@ -140,7 +140,7 @@ def recent_accounts(*, balance_nature: str, limit: int = 5) -> QuerySet[Account]
             is_active=True,
             balance_nature=balance_nature,
             transaction_entries__transaction__status=Transaction.Status.ACTIVE,
-        )
+        ).exclude(account_type=Account.AccountType.WEALTH)
         .annotate(last_used=Max("transaction_entries__transaction__occurred_at"))
         .order_by("-last_used", "sort_order", "id")[:limit]
     )

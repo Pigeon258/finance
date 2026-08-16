@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}手工估值 · 个人财务{% endblock %}
+{% block content %}
+<h1>手工估值：{{ account.name }}</h1>
+<p>无法自动抓取的产品可在此录入当前市值。</p>
+<form method="post" data-pf-part="form-panel">{% csrf_token %}{{ form.as_div }}<button type="submit">保存估值</button></form>
+{% endblock %}

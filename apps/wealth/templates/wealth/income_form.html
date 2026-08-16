@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}记录理财收益 · 个人财务{% endblock %}
+{% block content %}
+<h1>记录理财收益：{{ account.name }}</h1>
+<p>收益继续留在理财账户时，只计入理财收益；选择“到账日常账户”后会同时创建日常收入并计入月度收入。</p>
+<form method="post" data-pf-part="form-panel">{% csrf_token %}{{ form.as_div }}<button type="submit">保存收益</button></form>
+{% endblock %}

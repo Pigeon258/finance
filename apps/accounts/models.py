@@ -10,6 +10,7 @@ class Account(models.Model):
         WECHAT = "WECHAT", "微信余额"
         ALIPAY = "ALIPAY", "支付宝余额"
         CREDIT_CARD = "CREDIT_CARD", "信用卡"
+        WEALTH = "WEALTH", "理财账户"
 
     class BalanceNature(models.TextChoices):
         ASSET = "ASSET", "资产"

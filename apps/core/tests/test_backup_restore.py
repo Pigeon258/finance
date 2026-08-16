@@ -36,6 +36,7 @@ from apps.imports.models import ImportAccountRule, ImportBatch, MerchantCategory
 from apps.installments.models import InstallmentAdjustment, InstallmentItem, InstallmentPlan
 from apps.ledger import services as ledger_services
 from apps.ledger.models import Category, Merchant, Tag, Transaction, TransactionTemplate
+from apps.wealth.models import WealthAccount, WealthFlow
 
 PASSWORD = "correct horse battery staple"
 BACKUP_PASSPHRASE = "a separate backup passphrase"
@@ -316,6 +317,28 @@ def test_every_business_model_type_round_trips_with_relationships(tmp_path):
         match_kind=ImportAccountRule.MatchKind.EXACT,
         pattern="银行卡",
         account=bank,
+    )
+    wealth_core_account = Account.objects.create(
+        name="[理财]备份账户",
+        account_type=Account.AccountType.WEALTH,
+        balance_nature=Account.BalanceNature.ASSET,
+        initial_balance=Decimal("0.00"),
+        is_active=True,
+    )
+    wealth_account = WealthAccount.objects.create(
+        name="备份理财账户",
+        account_type=WealthAccount.AccountType.MONEY_FUND,
+        institution="备份机构",
+        core_account=wealth_core_account,
+        current_value=Decimal("12.34"),
+        valuation_date=datetime(2026, 7, 13).date(),
+    )
+    WealthFlow.objects.create(
+        wealth_account=wealth_account,
+        flow_type=WealthFlow.FlowType.INCOME,
+        amount=Decimal("1.23"),
+        occurred_on=datetime(2026, 7, 13).date(),
+        note="备份流水",
     )
     original_counts = {
         model._meta.label_lower: model.objects.count() for model in backup.BACKUP_MODELS

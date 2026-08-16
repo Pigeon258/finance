@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{% if is_create %}新增{% else %}编辑{% endif %}理财账户 · 个人财务{% endblock %}
+{% block content %}
+<h1>{% if is_create %}新增{% else %}编辑{% endif %}理财账户</h1>
+<p>创建后可在“转入理财”中从日常账户转入资金。</p>
+<form method="post" data-pf-part="form-panel">{% csrf_token %}{{ form.as_div }}<button type="submit">保存</button></form>
+{% endblock %}

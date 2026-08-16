@@ -31,6 +31,7 @@ from apps.imports.models import (
 )
 from apps.installments import backup as installments_backup
 from apps.ledger import backup as ledger_backup
+from apps.wealth import backup as wealth_backup
 from config.version import APP_VERSION
 
 from .integrity import assert_financial_integrity
@@ -57,6 +58,7 @@ MODULE_SCHEMA_VERSIONS = {
     installments_backup.BACKUP_SCHEMA_VERSION,
     budgets_backup.BACKUP_SCHEMA_VERSION,
     imports_backup.BACKUP_SCHEMA_VERSION,
+    wealth_backup.BACKUP_SCHEMA_VERSION,
 }
 if MODULE_SCHEMA_VERSIONS != {SCHEMA_VERSION}:
     raise RuntimeError("业务模块备份 schema 版本不一致。")
@@ -69,6 +71,7 @@ BACKUP_MODELS = (
     *installments_backup.BACKUP_MODELS,
     *budgets_backup.BACKUP_MODELS,
     *imports_backup.BACKUP_MODELS,
+    *wealth_backup.BACKUP_MODELS,
 )
 
 PURGE_MODELS = (

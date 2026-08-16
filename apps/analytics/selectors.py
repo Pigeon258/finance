@@ -14,6 +14,7 @@ from apps.installments import selectors as installment_selectors
 from apps.installments.models import InstallmentItem, InstallmentPlan
 from apps.ledger import selectors as ledger_selectors
 from apps.ledger.models import Transaction
+from apps.wealth import selectors as wealth_selectors
 
 from . import services
 
@@ -39,6 +40,9 @@ class DashboardSnapshot:
     net_funds: Decimal
     allocatable_funds: Decimal
     monthly_income: Decimal
+    wealth_total_value: Decimal
+    wealth_total_profit: Decimal
+    wealth_month_income: Decimal
     budget: dict
     reserve_balance: Decimal
     next_due_date: date | None
@@ -304,6 +308,8 @@ def dashboard_snapshot(*, month: date, as_of: date) -> DashboardSnapshot:
     allocatable_funds = (
         net_funds - budget["allocatable_remaining"] - budget["savings_target"]
     )
+    wealth_total_value = wealth_selectors.total_value()
+    wealth_total_principal = wealth_selectors.total_principal()
     return DashboardSnapshot(
         month=month,
         as_of=as_of,
@@ -312,6 +318,9 @@ def dashboard_snapshot(*, month: date, as_of: date) -> DashboardSnapshot:
         net_funds=net_funds,
         allocatable_funds=allocatable_funds,
         monthly_income=ledger_selectors.monthly_income(month=month),
+        wealth_total_value=wealth_total_value,
+        wealth_total_profit=wealth_total_value - wealth_total_principal,
+        wealth_month_income=wealth_selectors.month_income(month=month),
         budget=budget,
         reserve_balance=budget_selectors.reserve_balance(as_of=as_of),
         next_due_date=next_cycle.due_date if next_cycle else None,

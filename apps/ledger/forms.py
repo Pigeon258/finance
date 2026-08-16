@@ -90,7 +90,7 @@ class IncomeForm(BaseManualTransactionForm):
         )
         self.fields["account"].queryset = Account.objects.filter(
             balance_nature=Account.BalanceNature.ASSET, is_active=True
-        )
+        ).exclude(account_type=Account.AccountType.WEALTH)
         self.fields["category"].queryset = Category.objects.filter(
             category_type=Category.CategoryType.INCOME, is_active=True
         )
@@ -106,7 +106,7 @@ class ExpenseForm(BaseManualTransactionForm):
         )
         self.fields["account"].queryset = Account.objects.filter(
             balance_nature=Account.BalanceNature.ASSET, is_active=True
-        )
+        ).exclude(account_type=Account.AccountType.WEALTH)
         self.fields["category"].queryset = Category.objects.filter(
             category_type=Category.CategoryType.EXPENSE, is_active=True
         )

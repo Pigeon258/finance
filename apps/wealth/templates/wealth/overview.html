@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}理财管理 · 个人财务{% endblock %}
+
+{% block content %}
+  <h1>理财管理</h1>
+  <nav class="quick-actions" data-pf-part="action-group" aria-label="理财操作">
+    <a href="{% url 'wealth:account-create' %}">新增理财账户</a>
+    <a href="{% url 'wealth:transfer-in' %}">转入理财</a>
+    <a href="{% url 'wealth:transfer-out' %}">转出理财</a>
+  </nav>
+
+  <dl>
+    <dt>理财总市值</dt><dd>{{ total_value }}</dd>
+    <dt>理财本金</dt><dd>{{ total_principal }}</dd>
+    <dt>累计收益</dt><dd>{{ total_profit }}</dd>
+    <dt>本月理财收益</dt><dd>{{ month_income }}</dd>
+  </dl>
+
+  <h2>理财账户</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="理财账户列表"><table data-pf-part="data-table">
+    <thead><tr><th>名称</th><th>类型</th><th>机构</th><th>本金</th><th>当前市值</th><th>收益</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.account.name }}</td>
+          <td>{{ row.account.get_account_type_display }}</td>
+          <td>{{ row.account.institution|default:"—" }}</td>
+          <td>{{ row.principal }}</td>
+          <td>{{ row.account.current_value }}</td>
+          <td>{{ row.profit }}</td>
+          <td>
+            <a href="{% url 'wealth:valuation' row.account.id %}">估值</a>
+            <a href="{% url 'wealth:income' row.account.id %}">记收益</a>
+            {% if row.account.fund_code == "000198" %}
+              <form class="inline-form" method="post" action="{% url 'wealth:sync-yuebao' row.account.id %}">{% csrf_token %}<button type="submit">同步余额宝</button></form>
+            {% endif %}
+            <a href="{% url 'wealth:account-edit' row.account.id %}">编辑</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">尚无理财账户。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+
+  <h2>最近流水</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="理财最近流水"><table data-pf-part="data-table">
+    <thead><tr><th>日期</th><th>账户</th><th>类型</th><th>金额</th><th>说明</th></tr></thead>
+    <tbody>{% for flow in recent_flows %}<tr><td>{{ flow.occurred_on }}</td><td>{{ flow.wealth_account }}</td><td>{{ flow.get_flow_type_display }}</td><td>{{ flow.amount }}</td><td>{{ flow.note|default:"—" }}</td></tr>{% empty %}<tr><td colspan="5">尚无流水。</td></tr>{% endfor %}</tbody>
+  </table></div>
+{% endblock %}
