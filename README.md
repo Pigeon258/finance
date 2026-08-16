@@ -1,50 +1,45 @@
 # Personal Finance
 
-面向单用户的个人财务管理系统，采用 Django 服务端渲染的模块化单体架构。需求与设计基线见：
+Personal Finance 是一个面向单用户、自托管场景的个人财务管理系统。项目使用 Django 服务端渲染的模块化单体架构，以复式账本为资金事实来源，重点保证金额计算、账户余额、信用卡负债、预算占用和备份恢复的一致性。
 
-- `docs/requirements.md`
-- `docs/system-design.md`
-- `tasks/README.md`
+## 当前状态
 
-## 当前进度
+当前稳定版本为 `v0.3.0`，已经提供完整的本地运行与 Docker Compose 部署能力。主要功能包括：
 
-已完成任务 00～16 的代码实现、本地容器验收和生产上线基线固化，包括：
+- 单用户登录、会话管理与安全设置；
+- 资产账户、信用卡账户、分类和精确十进制账本；
+- 收入、支出、转账、退款、作废、修正和余额核对；
+- 信用卡账期、全额还款、商品分期和未来付款计划；
+- 月度预算、预算项目、储蓄目标、固定支出和预计收入；
+- 偿还能力分析、未来现金流预测、仪表盘和统计报表；
+- 支付宝与微信账单文件的解析、映射、去重、人工确认和幂等入账；
+- 理财账户、转入转出、手工估值、收益记录和可选收益率同步；
+- CSV 导出、加密 `.pfbackup` 业务备份、事务恢复和财务完整性检查；
+- 声明式主题包、主题预览与切换、安全导入和故障回退；
+- Caddy、Gunicorn、PostgreSQL 和自动备份组成的 Docker Compose 部署。
 
-- 单用户登录、会话与系统设置；
-- 账户、分类和 Decimal 核心账本；
-- 收入、支出、转账、退款、作废、修正与余额核对；
-- 信用卡账期、全额还款与退款抵扣；
-- 商品分期、提前结清和分期退款；
-- 月度预算、按具体项目设置的预算明细（自动汇总总预算）、储备资金、固定支出与预计收入；
-- 信用卡偿还能力、未来现金流预测、分期预览与内部预警；
-- 首页仪表盘、独立未来 30 天事项视图和第一版统计报表；
-- 支付宝/微信 CSV、XLSX、单层 ZIP 的安全解析、映射去重、人工复核、信息安全合并与幂等入账；
-- 历史交易复制、最近账户、常用交易模板和导入规则管理；
-- 收入/支出交易标签按类型隔离，以及标签管理页面（新建、编辑、启停和保护性删除）；
-- 理财管理：理财账户与日常净资金分离，支持转入转出、手工估值、理财收益记录和余额宝收益率同步；
-- 登录会话撤销、可配置安全/预算/大额消费阈值，以及基础手机访问和无 JavaScript 降级；
-- UTF-8 CSV 导出、Scrypt + AES-256-GCM 加密业务备份、事务恢复和财务完整性检查。
-- 版本化声明式主题插件接口、安全默认主题、Aurora Ledger 沉浸式主题、明暗/背景/减少动效偏好、ECharts 换肤，以及本地 ZIP 的校验、预览、启用、删除和安全回退；
-- 固定版本的四服务 Docker Compose 部署、Caddy/Gunicorn、安全配置、加密 PostgreSQL 自动备份、轮换及部署/恢复 runbook。
+## 设计边界
 
-当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。2026-08-05，视觉主题系统完成生产升级、加密备份、财务与主题完整性、公网静态资源和端口边界验收，生产基线已更新为 `v0.2.0`。
+- 系统只面向单用户，不提供公开注册或多用户权限体系。
+- 所有业务金额使用 `Decimal`；账户余额由账本条目计算，不维护可随意修改的缓存余额。
+- 系统只记录和分析财务数据，不绑定支付账户，也不发起真实支付或转账。
+- 核心流程使用服务端页面完成；HTMX 和主题系统只增强交互与外观。
+- 正式关联的财务记录通过停用、作废、退款或反向修正处理，避免破坏性删除。
 
-2026-08-16 发布 `v0.3.0`。该版本在 `v0.2.0` 基础上完成多轮维护升级，并新增理财管理模块（`WEALTH-01`～`04`）。数据库已应用 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement`、`accounts.0004_account_type_wealth` 和 `wealth.0001_initial`。逐次提交、部署备份和验收结论见：
+详细业务规则与系统结构见 [需求说明](docs/requirements.md) 和 [系统设计](docs/system-design.md)。
 
-- `docs/maintenance-history.md`
-- `docs/acceptance.md`
-
-`VISUAL-THEME-01`～`08` 已形成应用版本 `0.2.0` 的视觉主题发布基线。主题包是受限的声明式视觉插件，不具有业务逻辑或任意代码执行能力；组件契约、制作规范、安全导入和质量门槛见 `docs/theme-component-contract.md`、`docs/theme-package-contract.md`、`docs/theme-authoring.md`、`docs/theme-library.md` 与 `docs/visual-quality.md`。具体任务状态与依赖见 `tasks/README.md`。
-
-## 技术要求
+## 技术栈
 
 - Python 3.13
-- [uv](https://docs.astral.sh/uv/)
+- Django 5.2 LTS
 - PostgreSQL 17
+- Django Templates、HTMX、Bootstrap 5、Apache ECharts
+- Gunicorn、Caddy、Docker Compose
+- uv、pytest、Ruff
 
-## Windows 本地试运行
+## Windows 本地运行
 
-以下命令均在项目根目录的 PowerShell 中执行。
+以下命令在项目根目录的 PowerShell 中执行。
 
 ### 1. 安装依赖
 
@@ -52,69 +47,50 @@
 uv sync --group dev
 ```
 
-### 2. 创建本地 PostgreSQL 数据库
+### 2. 创建 PostgreSQL 数据库
 
-在 PostgreSQL 的 SQL Shell（`psql`）或 pgAdmin Query Tool 中，以管理员身份执行：
+在 `psql` 或 pgAdmin 中执行：
 
 ```sql
 CREATE USER finance WITH PASSWORD 'change-me';
 CREATE DATABASE personal_finance OWNER finance;
 ```
 
-如果已经存在同名用户或数据库，请复用现有对象，或同步修改下一步 `.env` 中的连接信息。
+如需使用其他数据库名称或账号，请同步修改下一步的本地配置。
 
-### 3. 配置环境变量
+### 3. 配置并初始化
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-检查 `.env` 中的 `POSTGRES_*` 配置是否与本地数据库一致。`.env` 不会由 Django 自动加载，下面的命令统一通过 `uv run --env-file .env` 加载它。
-
-### 4. 初始化数据库和唯一所有者
-
-```powershell
 uv run --env-file .env python manage.py migrate
 uv run --env-file .env python manage.py create_owner
 ```
 
-`create_owner` 会交互式要求输入两次密码。密码至少 12 位，并需要通过 Django 的常见密码等校验。系统只允许创建一个所有者，不提供注册入口。
+请先检查 `.env` 中的 `POSTGRES_*` 配置。`create_owner` 会交互式创建唯一所有者账号，密码至少 12 位并需通过 Django 密码校验。
 
-### 5. 启动开发服务器
+### 4. 启动服务
 
 ```powershell
 uv run --env-file .env python manage.py runserver
 ```
 
-浏览器访问 <http://127.0.0.1:8000/>，使用刚创建的所有者账号登录。按 `Ctrl+C` 停止服务器。
+浏览器访问 <http://127.0.0.1:8000/>。按 `Ctrl+C` 停止服务。
 
 ## 建议试用顺序
 
-1. 在“账户”和“分类”页面查看初始化数据，并按需编辑账户初始余额。
-2. 在“分析与管理 → 标签管理”新建一个收入标签和一个支出标签，确认两种交易表单只显示对应标签。
-3. 在“交易”页面录入收入、支出和账户转账，确认余额随账本条目计算。
-4. 尝试对测试交易执行退款、作废、反向修正或账户余额核对。
-5. 在“预算管理 → 设置预算项目”中分别填写“工作日午餐”“周末采购”等具体项目预算，确认系统自动汇总月度总预算。
-6. 在“信用卡”中配置唯一信用卡资料，再录入信用卡消费、出账和全额还款。
-7. 在“分期”中创建测试分期，并查看未来月份预算占用。
-8. 打开“风险预测”，检查偿还能力、逐月现金流、内部预警和新增分期只读预览。
-9. 在“账单导入”中上传虚构的支付宝或微信账单，检查账户映射、分类推荐和重复候选，再人工确认写入正式账本。
-10. 从交易列表复制一笔测试交易，或在“常用模板”中保存并套用常见收支；套用模板只预填表单，不会直接入账。
-11. 在“系统设置”中调整阈值并查看登录会话；可用另一个浏览器隐私窗口登录后测试撤销其他会话。
-12. 打开“未来事项”检查从当天到第 30 天（含边界）的待办，并缩窄浏览器窗口验证基础手机布局。
-13. 在“导出与备份”中导出测试 CSV，再使用单独口令下载 `.pfbackup`；恢复演练前请先确认数据均为虚构测试数据，并妥善保存恢复前自动备份使用的同一口令。
-14. 在“系统设置 → 管理主题库”预览两个内置主题，切换明暗/背景/减少动效偏好；导入第三方主题前先核对来源、许可与 SHA-256。
+1. 初始化账户和分类，并录入虚构的收入、支出与转账。
+2. 配置信用卡资料，体验消费、出账和全额还款。
+3. 设置月度预算、预算项目、储蓄目标与计划现金流。
+4. 创建测试分期，查看未来预算占用和偿还能力预测。
+5. 上传虚构的支付宝或微信账单，人工复核后再写入正式账本。
+6. 导出 CSV，并使用单独口令演练 `.pfbackup` 备份与恢复。
+7. 在主题库中预览内置主题；导入第三方主题前核对来源、许可和 SHA-256。
 
-建议仅使用虚构测试数据。业务备份文件默认保存在下载目录，恢复前自动备份保存在 `BUSINESS_BACKUP_DIR`（默认项目 `backups/`，已被 Git 忽略）。生产环境的自动数据库备份由 Compose 的 `backup` 服务执行，配置和恢复步骤见部署文档。
+请只使用虚构测试数据进行试用。不要把 `.env`、密钥、真实账单、数据库转储、备份文件或敏感日志提交到仓库。
 
 ## 生产部署
 
-目标 Linux 服务器需安装 Docker Engine 与 Compose v2，并准备域名、仅开放 80/443 的防火墙和独立备份主密钥。首次部署、升级、回滚、数据库恢复及验收命令见：
-
-- `docs/deployment.md`
-- `docs/acceptance.md`
-
-2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；2026-08-03 已完成目标服务器首次生产上线验收并固化 `v0.1.0`；2026-08-05 已完成视觉主题系统生产升级并固化 `v0.2.0`。2026-08-16 已完成页面状态、交易表单、标签类型隔离、标签管理、分类预算编辑、预算项目明细化、计划事项延伸、交易项目名称、储蓄拆分结转和理财管理第一版，并发布 `v0.3.0`。详细证据见 `docs/acceptance.md`，汇总见 `docs/maintenance-history.md`。生产环境隔离恢复和整机重启演练继续按运维计划执行。
+生产环境需要 Linux、Docker Engine、Compose v2、域名和独立备份密钥。首次部署、升级、回滚、数据库恢复和故障处理见 [部署与恢复指南](docs/deployment.md)。
 
 ## 质量检查
 
@@ -126,23 +102,18 @@ uv run python manage.py check_financial_integrity
 uv run python manage.py check_theme_integrity --strict
 ```
 
-测试默认使用 SQLite 内存数据库；本地开发配置使用 PostgreSQL。
+测试默认使用 SQLite 内存数据库；本地开发和生产配置使用 PostgreSQL。
 
-## 配置说明
+## 文档
 
-- 默认设置：`config.settings.development`
-- 测试设置：`config.settings.test`
-- 生产设置：`config.settings.production`
-- 当前应用版本：`0.3.0`；主题格式版本：`1`；组件契约版本：`1`
-- 运行时主题目录可通过 `THEME_RUNTIME_DIR` 配置；生产 Compose 使用持久 `theme_data` 卷，并由 Caddy 只读提供受限资源。
-- 数据库存储带时区时间，应用时区由 `APP_TIME_ZONE` 配置。
+- [需求说明](docs/requirements.md)：项目目标、业务规则、功能范围和安全要求。
+- [系统设计](docs/system-design.md)：架构、数据模型、账务不变量和部署设计。
+- [部署与恢复](docs/deployment.md)：自托管部署、备份、升级、回滚和恢复。
+- [理财管理](docs/wealth-management-design.md)：理财账户、资金转换和收益口径。
+- [主题制作](docs/theme-authoring.md)：声明式主题包的制作、校验和恢复。
+- [主题包契约](docs/theme-package-contract.md) 与 [组件契约](docs/theme-component-contract.md)：主题格式和可用样式边界。
+- [安全策略](SECURITY.md)：受支持版本和漏洞报告方式。
 
-不得提交 `.env`、密钥、真实账单、数据库转储、生产备份或敏感日志。不要通过 Django shell 或其他方式创建额外用户。
+## 许可证与参与
 
-
-## 开源与参与
-
-- 许可证：MIT，见 `LICENSE`
-- 贡献方式：见 `CONTRIBUTING.md`
-- 安全报告：见 `SECURITY.md`
-- 版本策略：重大维护积累后创建 `release/vX.Y.Z` 分支并打标签发布
+项目采用 [MIT License](LICENSE)。贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

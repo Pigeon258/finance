@@ -1,16 +1,9 @@
-Asset provenance record
+Aurora Ledger asset record
 
-Theme: Aurora Ledger
-Generated: 2026-08-04
-Tool: OpenAI built-in image generation tool
-Third-party input images: none
-Generated source: original abstract aurora and geometric ledger landscape
-Workspace derivatives:
-- assets/background.webp: full generated composition, WebP quality 82
-- preview.webp: 768 x 432 preview derivative, WebP quality 80
+The background and preview are original assets created for the Personal Finance
+project. No third-party input images, brands, text, currency symbols, watermarks,
+recognizable landmarks, or copyrighted characters are included.
 
-Final generation prompt summary:
-Original deep-indigo abstract night scene with teal and violet aurora ribbons,
-translucent ledger-like planes, a quiet dark left navigation area, upper-right focal
-light, low-detail content zones, and no people, brands, text, currency symbols,
-watermarks, recognizable landmarks, or copyrighted characters.
+Included derivatives:
+- assets/background.webp: full composition, WebP quality 82
+- preview.webp: 768 x 432 preview, WebP quality 80

@@ -1,12 +1,11 @@
 Aurora Ledger Theme Asset License
 
-Copyright (c) 2026 Personal Finance project owner.
+Copyright (c) 2026 Personal Finance contributors.
 
-The background and preview images were generated specifically for this project with
-OpenAI's built-in image generation tool, without third-party reference images. The
-theme CSS, configuration, palette, and visual composition are original project work.
+The background, preview, theme CSS, configuration, palette, and visual composition
+are original project assets.
 
 Permission is granted to use, copy, modify, and redistribute these files as part of
 the Personal Finance project and its compiled or deployed distributions. Standalone
 redistribution of the visual assets outside that project requires permission from the
-project owner. No trademark or endorsement rights are granted.
+copyright holders. No trademark or endorsement rights are granted.

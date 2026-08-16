@@ -2,7 +2,6 @@
 
 > 格式版本：1
 > 组件契约版本：1
-> 对应任务：`VISUAL-THEME-04`
 
 制作、版本升级、许可和故障恢复流程见 `docs/theme-authoring.md`。
 

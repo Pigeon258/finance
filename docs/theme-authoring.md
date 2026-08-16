@@ -25,7 +25,7 @@ my-theme/
 3. `theme.css` 只使用组件契约登记的单一 `[data-pf-part="..."]` 选择器和允许的状态伪类。
 4. 将每个非 `manifest.json` 文件的相对路径、字节数和 SHA-256 写入 `manifest.json`。
 5. 将 `schema_version`、`contract_version` 固定为 `1`，`min_app_version` 设置为实际依赖的最低应用版本。
-6. 保留素材来源和许可记录；不得复制 Codex Dream Skin 或其他项目中未明确授权的角色、图片、字体、商标和代码。
+6. 保留素材来源和许可记录；不得复制其他项目中未明确授权的角色、图片、字体、商标和代码。
 
 PowerShell 可用以下命令取得文件大小和哈希：
 
@@ -68,4 +68,4 @@ uv run pytest apps/core/tests/test_theme_runtime.py apps/core/tests/test_theme_l
 - 运行时主题卷丢失：业务数据和主题偏好仍可恢复，页面使用安全默认主题；从可信原始 ZIP 重新导入所需主题。
 - 应用回滚：使用发布前数据库备份和上一版本镜像；不要假设 Django migration 可以安全反向执行。
 
-主题资产不进入 `.pfbackup` 或数据库备份，这是明确的安全与体积边界。主题作者和系统所有者应在独立可信位置保存原始 ZIP、许可文件及其 SHA-256。
+主题资产不进入 `.pfbackup` 或数据库备份，这是明确的安全与体积边界。主题作者和管理员应在独立可信位置保存原始 ZIP、许可文件及其 SHA-256。

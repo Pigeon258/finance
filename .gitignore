@@ -22,7 +22,10 @@ backups/
 *.log
 .idea/
 .vscode/
+/demands/
 
-demands/
-.agents/
-.codex/
+# 本机开发与维护文档，不随公开仓库发布
+/AGENTS.md
+/tasks/
+/docs/acceptance.md
+/docs/maintenance-history.md
