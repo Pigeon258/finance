@@ -15,9 +15,9 @@ def test_release_version_is_synchronized():
     version_module = (ROOT / "config" / "version.py").read_text(encoding="utf-8")
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
 
-    assert project["project"]["version"] == "0.2.0"
-    assert 'APP_VERSION = "0.2.0"' in version_module
-    assert compose.count(":0.2.0}") == 3
+    assert project["project"]["version"] == "0.3.0"
+    assert 'APP_VERSION = "0.3.0"' in version_module
+    assert compose.count(":0.3.0}") == 3
 
 
 def test_compose_has_four_isolated_restartable_services():
@@ -94,9 +94,9 @@ def test_container_images_are_pinned_and_web_runs_non_root():
     assert "headers={'Host':host,'X-Forwarded-Proto':'https'}" in dockerfile
     assert "Docker Socket" not in compose_text
     assert "privileged:" not in compose_text
-    assert "personal-finance-web:0.2.0" in compose_text
-    assert "personal-finance-caddy:0.2.0" in compose_text
-    assert "personal-finance-maintenance:0.2.0" in compose_text
+    assert "personal-finance-web:0.3.0" in compose_text
+    assert "personal-finance-caddy:0.3.0" in compose_text
+    assert "personal-finance-maintenance:0.3.0" in compose_text
 
 
 def test_caddy_blocks_health_routes_and_sets_security_headers_without_request_logging():

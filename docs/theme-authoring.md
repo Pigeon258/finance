@@ -2,7 +2,7 @@
 
 Personal Finance 的“插件接口”是版本化、声明式主题包，不是任意代码插件。主题可以替换设计令牌、注册组件样式、背景艺术和图表外观，但不能执行 Python、JavaScript、Django 模板、系统命令或远程请求。
 
-当前应用版本为 `0.2.0`，主题格式版本和组件契约版本均为 `1`。完整字段与 Safe CSS 规则分别见 `docs/theme-package-contract.md` 和 `docs/theme-component-contract.md`。
+当前应用版本为 `0.3.0`，主题格式版本和组件契约版本均为 `1`。完整字段与 Safe CSS 规则分别见 `docs/theme-package-contract.md` 和 `docs/theme-component-contract.md`。
 
 ## 1. 目录与命名
 

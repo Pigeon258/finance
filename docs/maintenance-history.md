@@ -7,8 +7,8 @@
 | 项目 | 值 |
 |---|---|
 | 生产域名 | `finance.example.com` |
-| 生产运行时提交 | `8481f8dab0d564949c0c769b893488082f2afa80` |
-| 应用版本常量 | `0.2.0`（`config/version.py`） |
+| 生产运行时提交 | `v0.3.0` 对应 Git 标签 |
+| 应用版本常量 | `0.3.0`（`config/version.py`） |
 | 主题格式 / 组件契约 | `1 / 1` |
 | 活动主题 | `aurora-ledger` |
 | last-known-good | `safe-default` |

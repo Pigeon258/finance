@@ -29,7 +29,7 @@
 
 当前版本已经可以在本地试用上述核心流程、账单导入和加密业务备份恢复，并已在 Ubuntu 22.04 / WSL 2 中通过四服务 Compose、网络隔离、安全配置、真实 PostgreSQL 加密备份与隔离恢复、业务恢复和 Docker Engine 重启验收。2026-08-05，视觉主题系统完成生产升级、加密备份、财务与主题完整性、公网静态资源和端口边界验收，生产基线已更新为 `v0.2.0`。
 
-2026-08-16 已累计完成多轮生产维护升级，并开始集成理财管理模块（`WEALTH-01`～`04`）。最近一轮补充了计划事项自动延伸、交易项目名称和 100% 预算阈值语义修正；数据库已应用 `ledger.0007_transaction_item_name` 和 `budgets.0002_budget_item_name`。逐次提交、部署备份和验收结论见：
+2026-08-16 发布 `v0.3.0`。该版本在 `v0.2.0` 基础上完成多轮维护升级，并新增理财管理模块（`WEALTH-01`～`04`）。数据库已应用 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement`、`accounts.0004_account_type_wealth` 和 `wealth.0001_initial`。逐次提交、部署备份和验收结论见：
 
 - `docs/maintenance-history.md`
 - `docs/acceptance.md`
@@ -114,7 +114,7 @@ uv run --env-file .env python manage.py runserver
 - `docs/deployment.md`
 - `docs/acceptance.md`
 
-2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；2026-08-03 已完成目标服务器首次生产上线验收并固化 `v0.1.0`；2026-08-05 已完成视觉主题系统生产升级并固化 `v0.2.0`。2026-08-16 已完成页面状态、交易表单、标签类型隔离、标签管理、分类预算编辑、预算项目明细化、计划事项延伸、交易项目名称、储蓄拆分结转，并完成理财管理第一版，详细证据见 `docs/acceptance.md`，汇总见 `docs/maintenance-history.md`。生产环境隔离恢复和整机重启演练继续按运维计划执行。
+2026-07-13 已在 Ubuntu 22.04 / WSL 2 对提交 `b91668c` 完成本地容器验收；2026-08-03 已完成目标服务器首次生产上线验收并固化 `v0.1.0`；2026-08-05 已完成视觉主题系统生产升级并固化 `v0.2.0`。2026-08-16 已完成页面状态、交易表单、标签类型隔离、标签管理、分类预算编辑、预算项目明细化、计划事项延伸、交易项目名称、储蓄拆分结转和理财管理第一版，并发布 `v0.3.0`。详细证据见 `docs/acceptance.md`，汇总见 `docs/maintenance-history.md`。生产环境隔离恢复和整机重启演练继续按运维计划执行。
 
 ## 质量检查
 
@@ -133,7 +133,7 @@ uv run python manage.py check_theme_integrity --strict
 - 默认设置：`config.settings.development`
 - 测试设置：`config.settings.test`
 - 生产设置：`config.settings.production`
-- 当前应用版本：`0.2.0`；主题格式版本：`1`；组件契约版本：`1`
+- 当前应用版本：`0.3.0`；主题格式版本：`1`；组件契约版本：`1`
 - 运行时主题目录可通过 `THEME_RUNTIME_DIR` 配置；生产 Compose 使用持久 `theme_data` 卷，并由 Caddy 只读提供受限资源。
 - 数据库存储带时区时间，应用时区由 `APP_TIME_ZONE` 配置。
 

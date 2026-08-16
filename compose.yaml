@@ -9,7 +9,7 @@ services:
     build:
       context: .
       target: caddy
-    image: ${CADDY_IMAGE:-personal-finance-caddy:0.2.0}
+    image: ${CADDY_IMAGE:-personal-finance-caddy:0.3.0}
     restart: unless-stopped
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
@@ -44,7 +44,7 @@ services:
     build:
       context: .
       target: production
-    image: ${WEB_IMAGE:-personal-finance-web:0.2.0}
+    image: ${WEB_IMAGE:-personal-finance-web:0.3.0}
     restart: unless-stopped
     read_only: true
     environment: &django-environment
@@ -115,7 +115,7 @@ services:
     build:
       context: .
       target: maintenance
-    image: ${MAINTENANCE_IMAGE:-personal-finance-maintenance:0.2.0}
+    image: ${MAINTENANCE_IMAGE:-personal-finance-maintenance:0.3.0}
     restart: unless-stopped
     read_only: true
     environment:

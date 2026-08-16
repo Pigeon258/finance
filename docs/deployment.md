@@ -168,13 +168,13 @@ docker compose run --rm web python manage.py maintenance_mode disable
 
 ## 11. 当前生产状态与维护记录
 
-截至 2026-08-15：
+截至 2026-08-16：
 
-- 生产运行时提交：`9e14d2eda271ec91c8e126b94ddbb185ad0de4e7`
-- 应用版本：`0.2.0`；主题格式/组件契约：`1 / 1`
+- 生产版本：`v0.3.0`（Git 标签 `v0.3.0`）
+- 应用版本：`0.3.0`；主题格式/组件契约：`1 / 1`
 - 活动主题：`aurora-ledger`；last-known-good：`safe-default`
-- 数据库迁移：已应用至 `ledger.0006_tag_applies_to`
+- 数据库迁移：已应用至 `ledger.0007_transaction_item_name`、`budgets.0003_savings_settlement`、`accounts.0004_account_type_wealth`、`wealth.0001_initial`
 - 四服务：`web` / `caddy` / `db` / `backup` 均 healthy
-- 最新部署前备份：`db-deployment-20260815T143728Z-46.dump.enc`
+- 最新部署前备份：以 `docs/acceptance.md` 的 `v0.3.0` 发布记录为准
 
 `v0.2.0` 之后的完整修改原因、提交、迁移、备份和测试数量见 `docs/maintenance-history.md`；逐次生产验收记录见 `docs/acceptance.md`。

@@ -4,7 +4,7 @@
 
 ## 当前生产状态
 
-截至 2026-08-15，生产运行时提交为 `9e14d2eda271ec91c8e126b94ddbb185ad0de4e7`；活动主题为 `aurora-ledger`，last-known-good 为 `safe-default`；四服务均 healthy。`v0.2.0` 之后的维护升级历史与部署备份清单见 `docs/maintenance-history.md`，本节后续为逐次验收记录。
+截至 2026-08-16，生产版本为 `v0.3.0`（Git 标签 `v0.3.0`）；活动主题为 `aurora-ledger`，last-known-good 为 `safe-default`；四服务均 healthy。`v0.2.0` 之后的维护升级历史与部署备份清单见 `docs/maintenance-history.md`，本节后续为逐次验收记录。
 
 ## 开发工作站验收
 

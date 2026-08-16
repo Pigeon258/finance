@@ -147,7 +147,7 @@ flowchart LR
 
 | 任务 | 名称 | 依赖 | 状态 |
 |---|---|---|---|
-| [WEALTH-01](WEALTH-01-foundation-accounts.md) | 理财账户基础 | v0.2.0 基线 | 已完成；随 `feat/wealth-management` 发布 |
+| [WEALTH-01](WEALTH-01-foundation-accounts.md) | 理财账户基础 | v0.3.0 发布基线 | 已完成；随 `v0.3.0` 发布 |
 | [WEALTH-02](WEALTH-02-transfers-income-valuation.md) | 转换、收益与估值 | WEALTH-01 | 已完成 |
 | [WEALTH-03](WEALTH-03-yuebao-sync.md) | 余额宝收益率同步 | WEALTH-01 | 已完成 |
 | [WEALTH-04](WEALTH-04-dashboard-acceptance.md) | 首页集成与发布验收 | WEALTH-02、03 | 已完成 |

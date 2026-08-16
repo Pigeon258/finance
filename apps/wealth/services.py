@@ -1,3 +1,4 @@
+import ast
 import re
 from datetime import datetime
 from decimal import Decimal
@@ -249,7 +250,7 @@ def fetch_yuebao_quote() -> dict[str, Decimal]:
         match = re.search(rf"var {name}\s*=\s*(\[.*?\]);", content)
         if match is None:
             raise ValidationError(f"余额宝数据缺少 {name}。")
-        series = eval(match.group(1))  # noqa: S307 - trusted numeric array from regex-matched JS literal.
+        series = ast.literal_eval(match.group(1))
         if not series:
             raise ValidationError("余额宝收益序列为空。")
         return Decimal(str(series[-1][1]))
