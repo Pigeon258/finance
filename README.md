@@ -138,3 +138,11 @@ uv run python manage.py check_theme_integrity --strict
 - 数据库存储带时区时间，应用时区由 `APP_TIME_ZONE` 配置。
 
 不得提交 `.env`、密钥、真实账单、数据库转储、生产备份或敏感日志。不要通过 Django shell 或其他方式创建额外用户。
+
+
+## 开源与参与
+
+- 许可证：MIT，见 `LICENSE`
+- 贡献方式：见 `CONTRIBUTING.md`
+- 安全报告：见 `SECURITY.md`
+- 版本策略：重大维护积累后创建 `release/vX.Y.Z` 分支并打标签发布
