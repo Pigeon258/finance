@@ -44,7 +44,9 @@ def liquid_assets(*, as_of=None) -> Decimal:
     return sum(
         (
             account_balance(account=account, as_of=as_of)
-            for account in Account.objects.filter(balance_nature=Account.BalanceNature.ASSET)
+            for account in Account.objects.filter(
+                balance_nature=Account.BalanceNature.ASSET
+            ).exclude(account_type=Account.AccountType.WEALTH)
         ),
         Decimal("0.00"),
     )
@@ -216,7 +218,7 @@ def net_funds_series(*, dates: list[date]) -> tuple[tuple[date, Decimal], ...]:
     if not dates:
         return ()
     ordered_dates = sorted(set(dates))
-    accounts = list(Account.objects.all())
+    accounts = list(Account.objects.exclude(account_type=Account.AccountType.WEALTH))
     balances = {account.id: account.initial_balance for account in accounts}
     last_end = timezone.make_aware(
         datetime.combine(ordered_dates[-1], time.max), timezone.get_current_timezone()

@@ -146,3 +146,25 @@ class context_bytes:
 
     def read(self):
         return self.content
+
+
+@pytest.mark.django_db
+def test_transfer_in_reduces_dashboard_net_funds(bank, wealth_account):
+    from apps.analytics import selectors as analytics_selectors
+
+    before = analytics_selectors.dashboard_snapshot(
+        month=date(2026, 7, 1), as_of=date(2026, 7, 2)
+    )
+    services.transfer_in(
+        wealth_account=wealth_account,
+        source_account=bank,
+        amount=Decimal("1500.00"),
+        occurred_at=datetime(2026, 7, 2, 12, 0, tzinfo=TZ),
+    )
+    after = analytics_selectors.dashboard_snapshot(
+        month=date(2026, 7, 1), as_of=date(2026, 7, 2)
+    )
+    assert before.liquid_assets == Decimal("2000.00")
+    assert after.liquid_assets == Decimal("500.00")
+    assert after.net_funds == after.liquid_assets
+    assert after.wealth_total_value == Decimal("1500.00")
