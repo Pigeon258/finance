@@ -36,6 +36,33 @@ def _budget_status_parts(status: str) -> dict[str, str]:
     }
 
 
+def _category_status_parts(
+    *,
+    budget_amount: Decimal,
+    occupancy: Decimal,
+    warning_threshold: Decimal,
+    over_threshold: Decimal,
+) -> dict[str, Decimal | str | None]:
+    if budget_amount == 0:
+        usage = None
+        status = "OVER" if occupancy > 0 else "OK"
+        return {"usage_percentage": usage, **_budget_status_parts(status)}
+
+    usage = (occupancy / budget_amount * Decimal("100.00")).quantize(Decimal("0.01"))
+    if warning_threshold < over_threshold:
+        if occupancy * Decimal("100.00") >= budget_amount * over_threshold:
+            status = "OVER"
+        elif occupancy * Decimal("100.00") >= budget_amount * warning_threshold:
+            status = "WARNING"
+        else:
+            status = "OK"
+    else:
+        # When the user sets the reminder threshold to the system cap (usually 100%),
+        # only spending above the budget is treated as over; hitting exactly 100% is OK.
+        status = "OVER" if occupancy * Decimal("100.00") > budget_amount * over_threshold else "OK"
+    return {"usage_percentage": usage, **_budget_status_parts(status)}
+
+
 def monthly_budget(*, month: date) -> MonthlyBudget | None:
     return (
         MonthlyBudget.objects.prefetch_related("category_budgets__category")
@@ -72,7 +99,7 @@ def planned_cash_flows():
     )
 
 
-def occurrence_list(*, month: date | None = None):
+def occurrence_list(*, month: date | None = None, date_from: date | None = None):
     queryset = PlannedCashFlowOccurrence.objects.select_related(
         "plan__category", "plan__default_account", "linked_transaction"
     )
@@ -83,6 +110,8 @@ def occurrence_list(*, month: date | None = None):
         else:
             next_month = date(month.year, month.month + 1, 1)
         queryset = queryset.filter(due_date__gte=month, due_date__lt=next_month)
+    if date_from is not None:
+        queryset = queryset.filter(due_date__gte=date_from)
     return queryset
 
 
@@ -236,22 +265,15 @@ def category_budget_status(*, category_budget: CategoryBudget) -> dict[str, Deci
     amount = (
         occupancy["actual_expense"] + occupancy["fixed_planned"] + occupancy["installment_planned"]
     )
-    if category_amount == 0:
-        usage = None
-        status = "OVER" if amount > 0 else "OK"
-    else:
-        usage = (amount / category_amount * Decimal("100.00")).quantize(Decimal("0.01"))
-        _, over_threshold = core_selectors.budget_thresholds()
-        if amount * Decimal("100.00") >= category_amount * over_threshold:
-            status = "OVER"
-        elif amount * Decimal("100.00") >= category_amount * category_budget.warning_threshold:
-            status = "WARNING"
-        else:
-            status = "OK"
+    _, over_threshold = core_selectors.budget_thresholds()
     return {
         "occupancy": amount,
-        "usage_percentage": usage,
-        **_budget_status_parts(status),
+        **_category_status_parts(
+            budget_amount=category_amount,
+            occupancy=amount,
+            warning_threshold=category_budget.warning_threshold,
+            over_threshold=over_threshold,
+        ),
     }
 
 
@@ -303,7 +325,7 @@ def category_budget_rows(*, budget: MonthlyBudget):
         for row in installment_selectors.planned_by_category(month=month)
     }
 
-    default_warning, over_threshold = core_selectors.budget_thresholds()
+    _, over_threshold = core_selectors.budget_thresholds()
     categories = {
         category.id: category
         for category in Category.objects.filter(id__in=by_category.keys())
@@ -312,30 +334,23 @@ def category_budget_rows(*, budget: MonthlyBudget):
     for category_id, group in by_category.items():
         category = categories[category_id]
         budget_amount = group["budget_amount"]
-        warning_threshold = min(group["warning_threshold"], default_warning)
+        warning_threshold = group["warning_threshold"]
         occupancy = (
             actual_by_category.get(category_id, Decimal("0.00"))
             + fixed_by_category.get(category_id, Decimal("0.00"))
             + installment_by_category.get(category_id, Decimal("0.00"))
         )
-        if budget_amount == 0:
-            usage = None
-            status = "OVER" if occupancy > 0 else "OK"
-        else:
-            usage = (occupancy / budget_amount * Decimal("100.00")).quantize(Decimal("0.01"))
-            if occupancy * Decimal("100.00") >= budget_amount * over_threshold:
-                status = "OVER"
-            elif occupancy * Decimal("100.00") >= budget_amount * warning_threshold:
-                status = "WARNING"
-            else:
-                status = "OK"
         rows.append(
             {
                 "category": category,
                 "budget_amount": budget_amount,
                 "occupancy": occupancy,
-                "usage_percentage": usage,
-                **_budget_status_parts(status),
+                **_category_status_parts(
+                    budget_amount=budget_amount,
+                    occupancy=occupancy,
+                    warning_threshold=warning_threshold,
+                    over_threshold=over_threshold,
+                ),
             }
         )
     return rows

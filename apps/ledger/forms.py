@@ -63,6 +63,12 @@ class BaseManualTransactionForm(forms.Form):
     )
     channel = forms.ChoiceField(label="支付渠道", choices=Transaction.Channel.choices)
     counterparty = forms.CharField(label="商家或交易对象", max_length=200, required=False)
+    item_name = forms.CharField(
+        label="项目名称",
+        max_length=200,
+        required=False,
+        help_text="例如：工作日午餐、百度网盘会员、学费、住宿费。",
+    )
     note = forms.CharField(label="备注", required=False, widget=forms.Textarea(attrs={"rows": 3}))
     tags = forms.ModelMultipleChoiceField(label="标签", queryset=Tag.objects.none(), required=False)
 
@@ -226,6 +232,7 @@ class TransactionTemplateForm(forms.ModelForm):
             "category",
             "channel",
             "counterparty",
+            "item_name",
             "note",
             "is_active",
             "sort_order",

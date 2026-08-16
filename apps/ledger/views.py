@@ -292,6 +292,7 @@ def _template_form_initial(template: TransactionTemplate) -> dict:
         "occurred_at": timezone.now(),
         "channel": template.channel,
         "counterparty": template.counterparty,
+        "item_name": template.item_name,
         "note": template.note,
     }
     if template.operation in {"income", "expense", "credit-card-expense"}:
@@ -477,6 +478,7 @@ def _template_initial_from_transaction(ledger_transaction: Transaction) -> dict 
         "category": ledger_transaction.category,
         "channel": ledger_transaction.channel,
         "counterparty": ledger_transaction.counterparty,
+        "item_name": ledger_transaction.item_name,
         "note": ledger_transaction.note,
     }
     result["primary_account"] = initial.get("account") or initial.get("source_account")
@@ -538,6 +540,7 @@ def _edit_form_config(ledger_transaction: Transaction):
         "occurred_at": ledger_transaction.occurred_at,
         "channel": ledger_transaction.channel,
         "counterparty": ledger_transaction.counterparty,
+        "item_name": ledger_transaction.item_name,
         "note": ledger_transaction.note,
     }
     if ledger_transaction.transaction_type == Transaction.TransactionType.INCOME:

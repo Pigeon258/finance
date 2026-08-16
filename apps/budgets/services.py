@@ -64,7 +64,7 @@ def save_monthly_budget(
         _validate_money(value, allow_zero=True)
     budget = MonthlyBudget.objects.select_for_update().filter(month=month).first()
     if budget is None:
-        budget = MonthlyBudget(month=month)
+        budget = MonthlyBudget(month=month, total_expense_budget=Decimal("0.00"))
     if total_expense_budget is not None:
         _validate_money(total_expense_budget, allow_zero=True)
         budget.total_expense_budget = total_expense_budget
@@ -370,12 +370,13 @@ def create_planned_cash_flow(
     return plan
 
 
-def _candidate_dates(*, plan: PlannedCashFlow, through_date: date):
+def _candidate_dates(*, plan: PlannedCashFlow, through_date: date, from_date: date | None = None):
     if plan.recurrence_type == PlannedCashFlow.RecurrenceType.ONE_TIME:
         if plan.start_date <= through_date and (
             plan.end_date is None or plan.start_date <= plan.end_date
         ):
-            yield plan.start_date
+            if from_date is None or plan.start_date >= from_date:
+                yield plan.start_date
         return
     if plan.recurrence_type == PlannedCashFlow.RecurrenceType.MONTHLY:
         offset = 0
@@ -387,7 +388,8 @@ def _candidate_dates(*, plan: PlannedCashFlow, through_date: date):
                 continue
             if candidate > through_date or (plan.end_date and candidate > plan.end_date):
                 break
-            yield candidate
+            if from_date is None or candidate >= from_date:
+                yield candidate
             offset += 1
         return
     year = plan.start_date.year
@@ -396,27 +398,54 @@ def _candidate_dates(*, plan: PlannedCashFlow, through_date: date):
         if candidate >= plan.start_date:
             if candidate > through_date or (plan.end_date and candidate > plan.end_date):
                 break
-            yield candidate
+            if from_date is None or candidate >= from_date:
+                yield candidate
         year += 1
 
 
 @db_transaction.atomic
 def generate_occurrences(
-    *, plan: PlannedCashFlow, through_date: date
+    *,
+    plan: PlannedCashFlow,
+    through_date: date,
+    from_date: date | None = None,
 ) -> list[PlannedCashFlowOccurrence]:
     plan = PlannedCashFlow.objects.select_for_update().get(pk=plan.pk)
     if not plan.is_active:
         return []
     if through_date < plan.start_date:
         return []
+    if from_date is not None and through_date < from_date:
+        return []
     generated = []
-    for due_date in _candidate_dates(plan=plan, through_date=through_date):
+    for due_date in _candidate_dates(
+        plan=plan, through_date=through_date, from_date=from_date
+    ):
         occurrence, created = PlannedCashFlowOccurrence.objects.get_or_create(
             plan=plan, due_date=due_date, defaults={"planned_amount": plan.amount}
         )
         if created:
             generated.append(occurrence)
     return generated
+
+
+def ensure_active_plan_occurrences(*, as_of: date, horizon_months: int = 12) -> int:
+    """Ensure every active recurring plan has occurrences from the current month forward."""
+    from_date = as_of.replace(day=1)
+    horizon_year, horizon_month = _shift_month(from_date, horizon_months - 1)
+    through_date = date(
+        horizon_year,
+        horizon_month,
+        calendar.monthrange(horizon_year, horizon_month)[1],
+    )
+    generated_count = 0
+    for plan in PlannedCashFlow.objects.filter(is_active=True):
+        generated_count += len(
+            generate_occurrences(
+                plan=plan, through_date=through_date, from_date=from_date
+            )
+        )
+    return generated_count
 
 
 @db_transaction.atomic

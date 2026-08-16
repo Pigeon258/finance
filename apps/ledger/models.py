@@ -143,6 +143,7 @@ class Transaction(models.Model):
         related_name="transactions",
     )
     counterparty = models.CharField("商家或交易对象", max_length=200, blank=True)
+    item_name = models.CharField("项目名称", max_length=200, blank=True)
     note = models.TextField("备注", blank=True)
     source = models.CharField("来源", max_length=10, choices=Source.choices, default=Source.MANUAL)
     related_transaction = models.ForeignKey(
@@ -287,6 +288,7 @@ class TransactionTemplate(models.Model):
     )
     channel = models.CharField("支付渠道", max_length=10, choices=Transaction.Channel.choices)
     counterparty = models.CharField("商家或交易对象", max_length=200, blank=True)
+    item_name = models.CharField("项目名称", max_length=200, blank=True)
     note = models.TextField("备注", blank=True)
     is_active = models.BooleanField("启用", default=True)
     sort_order = models.PositiveIntegerField("显示顺序", default=0)

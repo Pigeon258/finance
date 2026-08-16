@@ -215,6 +215,7 @@ def _create_transaction(
     category: Category | None,
     channel: str,
     counterparty: str,
+    item_name: str = "",
     note: str,
     source: str,
     budget_month=None,
@@ -233,6 +234,7 @@ def _create_transaction(
         channel=channel,
         merchant=merchant,
         counterparty=counterparty,
+        item_name=item_name,
         note=note,
         source=source,
         related_transaction=related_transaction,
@@ -266,6 +268,7 @@ def create_income(
     occurred_at,
     channel: str,
     counterparty: str = "",
+    item_name: str = "",
     note: str = "",
     source: str = Transaction.Source.MANUAL,
     merchant: Merchant | None = None,
@@ -281,6 +284,7 @@ def create_income(
         category=category,
         channel=channel,
         counterparty=counterparty,
+        item_name=item_name,
         note=note,
         source=source,
         merchant=merchant,
@@ -299,6 +303,7 @@ def create_expense(
     occurred_at,
     channel: str,
     counterparty: str = "",
+    item_name: str = "",
     note: str = "",
     source: str = Transaction.Source.MANUAL,
     merchant: Merchant | None = None,
@@ -315,6 +320,7 @@ def create_expense(
         category=category,
         channel=channel,
         counterparty=counterparty,
+        item_name=item_name,
         note=note,
         source=source,
         merchant=merchant,
@@ -576,6 +582,7 @@ def _rewrite_manual_transaction(
     budget_month,
     channel: str,
     counterparty: str,
+    item_name: str = "",
     note: str,
     entries: list[tuple[Account, Decimal]],
     tags: list[Tag] | tuple[Tag, ...],
@@ -597,6 +604,7 @@ def _rewrite_manual_transaction(
     target.category = category
     target.channel = channel
     target.counterparty = counterparty
+    target.item_name = item_name
     target.note = note
     target.merchant = None
     target.related_transaction = None
@@ -613,6 +621,7 @@ def _rewrite_manual_transaction(
             "category",
             "channel",
             "counterparty",
+            "item_name",
             "note",
             "merchant",
             "related_transaction",
@@ -636,6 +645,7 @@ def update_income(
     occurred_at,
     channel: str,
     counterparty: str = "",
+    item_name: str = "",
     note: str = "",
     tags: list[Tag] | tuple[Tag, ...] = (),
 ) -> Transaction:
@@ -650,6 +660,7 @@ def update_income(
         budget_month=_budget_month(occurred_at),
         channel=channel,
         counterparty=counterparty,
+        item_name=item_name,
         note=note,
         entries=[(account, amount)],
         tags=tags,
@@ -666,6 +677,7 @@ def update_expense(
     occurred_at,
     channel: str,
     counterparty: str = "",
+    item_name: str = "",
     note: str = "",
     tags: list[Tag] | tuple[Tag, ...] = (),
 ) -> Transaction:
@@ -681,6 +693,7 @@ def update_expense(
         budget_month=_budget_month(occurred_at),
         channel=channel,
         counterparty=counterparty,
+        item_name=item_name,
         note=note,
         entries=[(account, delta)],
         tags=tags,

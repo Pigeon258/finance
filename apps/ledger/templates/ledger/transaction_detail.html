@@ -12,6 +12,7 @@
     <dt>预算月份</dt><dd>{{ transaction.budget_month|default:"—" }}</dd>
     <dt>分类</dt><dd>{{ transaction.category|default:"—" }}</dd>
     <dt>支付渠道</dt><dd>{{ transaction.get_channel_display }}</dd>
+    <dt>项目名称</dt><dd>{{ transaction.item_name|default:"—" }}</dd>
     <dt>商家或交易对象</dt><dd>{{ transaction.counterparty|default:"—" }}</dd>
     <dt>备注</dt><dd>{{ transaction.note|default:"—" }}</dd>
     <dt>标签</dt><dd>{% for tag in transaction.tags.all %}{{ tag.name }}{% if not forloop.last %}、{% endif %}{% empty %}—{% endfor %}</dd>

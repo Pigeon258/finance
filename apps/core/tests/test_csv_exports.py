@@ -51,9 +51,9 @@ def test_transaction_csv_is_utf8_exact_and_formula_safe(client, owner):
     assert response.status_code == 200
     assert response["Content-Type"] == "text/csv; charset=utf-8"
     assert rows[1][4] == "12.34"
-    assert rows[1][7] == "'=SUM(1,1)\n中文商家"
-    assert rows[1][8] == "'@恶意公式"
-    assert "'=危险账户: -12.34" in rows[1][10]
+    assert rows[1][8] == "'=SUM(1,1)\n中文商家"
+    assert rows[1][9] == "'@恶意公式"
+    assert "'=危险账户: -12.34" in rows[1][11]
     assert rows[1][1].endswith("+08:00")
 
 

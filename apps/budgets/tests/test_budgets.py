@@ -486,3 +486,85 @@ def test_budget_pages_and_cash_flow_duplicate_submission(
     response = authenticated_client.post(reverse("budgets:cash-flow-create"), data)
     assert response.status_code == 302
     assert PlannedCashFlow.objects.filter(name="会员订阅").count() == 1
+
+
+@pytest.mark.django_db
+def test_ensure_active_plan_occurrences_starts_at_current_month(expense_category, bank):
+    plan = services.create_planned_cash_flow(
+        name="百度网盘会员",
+        direction=PlannedCashFlow.Direction.EXPENSE,
+        amount=Decimal("25.00"),
+        category=expense_category,
+        default_account=bank,
+        reliability=PlannedCashFlow.Reliability.CERTAIN,
+        recurrence_type=PlannedCashFlow.RecurrenceType.MONTHLY,
+        start_date=date(2025, 7, 26),
+        end_date=date(3000, 1, 1),
+    )
+
+    services.ensure_active_plan_occurrences(as_of=date(2026, 8, 16))
+    future = list(
+        selectors.occurrence_list(
+            date_from=date(2026, 8, 1)
+        ).filter(plan=plan)
+    )
+    assert future
+    assert future[0].due_date >= date(2026, 8, 1)
+    assert all(item.due_date >= date(2026, 8, 1) for item in future)
+
+
+@pytest.mark.django_db
+def test_category_budget_exactly_one_hundred_with_threshold_one_hundred_is_ok(
+    authenticated_client, expense_category, bank
+):
+    budget = services.save_monthly_budget(month=date(2026, 7, 1))
+    services.create_budget_item(
+        month=date(2026, 7, 1),
+        name="学费",
+        category=expense_category,
+        budget_amount=Decimal("5000.00"),
+        warning_threshold=Decimal("100.00"),
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("5000.00"),
+        occurred_at=datetime(2026, 7, 10, 12, 0, tzinfo=TZ),
+        channel=Transaction.Channel.BANK,
+        item_name="学费",
+    )
+    rows = selectors.category_budget_rows(budget=budget)
+    assert rows[0]["status"] == "OK"
+    assert rows[0]["usage_percentage"] == Decimal("100.00")
+
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("1.00"),
+        occurred_at=datetime(2026, 7, 11, 12, 0, tzinfo=TZ),
+        channel=Transaction.Channel.BANK,
+        item_name="学费补缴",
+    )
+    rows = selectors.category_budget_rows(budget=budget)
+    assert rows[0]["status"] == "OVER"
+
+
+@pytest.mark.django_db
+def test_cash_flow_index_keeps_history_but_shows_future_occurrences(
+    authenticated_client, expense_category, bank
+):
+    services.create_planned_cash_flow(
+        name="旧周期计划",
+        direction=PlannedCashFlow.Direction.EXPENSE,
+        amount=Decimal("30.00"),
+        category=expense_category,
+        default_account=bank,
+        reliability=PlannedCashFlow.Reliability.CERTAIN,
+        recurrence_type=PlannedCashFlow.RecurrenceType.MONTHLY,
+        start_date=date(2025, 7, 26),
+        end_date=date(3000, 1, 1),
+    )
+    response = authenticated_client.get(reverse("budgets:cash-flow-index"))
+    assert response.status_code == 200
+    occurrences = response.context["occurrences"]
+    assert list(occurrences) == list(selectors.occurrence_list(date_from=date(2026, 8, 1)))

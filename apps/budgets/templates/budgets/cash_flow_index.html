@@ -4,6 +4,7 @@
 
 {% block content %}
   <h1>固定支出与预计收入</h1>
+  <p>系统会自动为启用的周期计划生成从本月起未来 12 个月的事项。过去的待发生事项请点击“跳过”或忽略；本页默认只显示本月及以后事项。</p>
   <nav class="quick-actions" data-pf-part="action-group" aria-label="计划现金流操作">
     <a href="{% url 'budgets:index' %}">返回预算</a>
     <a href="{% url 'budgets:cash-flow-create' %}?direction=EXPENSE">创建固定支出计划</a>

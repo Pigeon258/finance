@@ -204,12 +204,16 @@ def reserve_create(request: HttpRequest):
 
 @require_GET
 def cash_flow_index(request: HttpRequest):
+    today = timezone.localdate()
+    services.ensure_active_plan_occurrences(as_of=today)
     return render(
         request,
         "budgets/cash_flow_index.html",
         {
             "plans": selectors.planned_cash_flows(),
-            "occurrences": selectors.occurrence_list(),
+            "occurrences": selectors.occurrence_list(
+                date_from=today.replace(day=1)
+            ),
         },
     )
 

@@ -118,6 +118,7 @@ def transaction_list(*, filters: dict | None = None) -> QuerySet[Transaction]:
         keyword = filters["keyword"]
         queryset = queryset.filter(
             Q(counterparty__icontains=keyword)
+            | Q(item_name__icontains=keyword)
             | Q(note__icontains=keyword)
             | Q(merchant__name__icontains=keyword)
             | Q(tags__name__icontains=keyword)

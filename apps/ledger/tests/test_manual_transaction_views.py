@@ -61,6 +61,7 @@ def _common_data(*, amount="10.00", channel=Transaction.Channel.BANK):
         "occurred_at": OCCURRED_AT_VALUE,
         "channel": channel,
         "counterparty": "测试商家",
+        "item_name": "测试项目",
         "note": "页面录入",
     }
 
@@ -113,6 +114,7 @@ def test_income_form_creates_manual_income(authenticated_client, accounts, categ
         "ledger:transaction-detail", args=[ledger_transaction.id]
     )
     assert ledger_transaction.source == Transaction.Source.MANUAL
+    assert ledger_transaction.item_name == "测试项目"
     assert ledger_transaction.entries.get().balance_delta == Decimal("1000.00")
     assert list(ledger_transaction.tags.all()) == [tag]
 
