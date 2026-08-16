@@ -17,10 +17,12 @@
         <article class="metric-card" data-pf-part="metric-card"><h3>当前净资金</h3><strong>{{ snapshot.net_funds }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>{{ snapshot.month|date:"Y-m" }} 实际收入</h3><strong>{{ snapshot.monthly_income }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>本月预算占用</h3><strong>{{ snapshot.budget.total_occupancy }}</strong></article>
-        <article class="metric-card" data-pf-part="metric-card"><h3>本月剩余预算</h3><strong>{{ snapshot.budget.remaining }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>本月可分配预算</h3><strong>{{ snapshot.budget.allocatable_remaining }}</strong></article>
+        <article class="metric-card" data-pf-part="metric-card"><h3>完成储蓄后剩余</h3><strong>{{ snapshot.budget.remaining }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>累计储备资金</h3><strong>{{ snapshot.reserve_balance }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>下一还款</h3><strong>{% if snapshot.next_due_date %}{{ snapshot.next_due_date }} / {{ snapshot.next_due_amount }}{% else %}暂无{% endif %}</strong></article>
       </div>
+      <p class="help-text">本月可分配预算 = 预算项目合计 − 已发生支出 − 待发生计划承诺；完成储蓄后剩余 = 本月可分配预算 − 储蓄目标。</p>
     </section>
 
     <section aria-labelledby="risk-status">

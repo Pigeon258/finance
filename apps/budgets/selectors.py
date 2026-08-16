@@ -225,6 +225,9 @@ def monthly_snapshot(*, month: date) -> dict[str, Decimal | MonthlyBudget | None
     savings_target = budget.savings_target if budget else Decimal("0.00")
     total_budget = budget.total_expense_budget if budget else Decimal("0.00")
     total_occupancy = breakdown["actual_expense"] + breakdown["planned_commitment"] + savings_target
+    allocatable_remaining = (
+        total_budget - breakdown["actual_expense"] - breakdown["planned_commitment"]
+    )
     remaining = total_budget - total_occupancy
     usage = (
         (total_occupancy / total_budget * Decimal("100.00")).quantize(Decimal("0.01"))
@@ -236,6 +239,7 @@ def monthly_snapshot(*, month: date) -> dict[str, Decimal | MonthlyBudget | None
         **breakdown,
         "savings_target": savings_target,
         "total_budget": total_budget,
+        "allocatable_remaining": allocatable_remaining,
         "total_occupancy": total_occupancy,
         "remaining": remaining,
         "usage_percentage": usage,

@@ -135,6 +135,7 @@ def test_dashboard_reconciles_core_metrics_and_excludes_non_statistical_transact
     assert snapshot.net_funds == Decimal("1080.00")
     assert snapshot.monthly_income == Decimal("500.00")
     assert snapshot.budget["actual_expense"] == Decimal("450.00")
+    assert snapshot.budget["allocatable_remaining"] == Decimal("550.00")
     assert snapshot.budget["total_occupancy"] == Decimal("550.00")
     assert snapshot.budget["remaining"] == Decimal("450.00")
 
