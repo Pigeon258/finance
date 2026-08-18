@@ -1,7 +1,9 @@
 Aurora Ledger asset record
 
 The background and preview are original assets created for the Personal Finance
-project. No third-party input images, brands, text, currency symbols, watermarks,
+project.
+Third-party input images: none
+No third-party brands, text, currency symbols, watermarks,
 recognizable landmarks, or copyrighted characters are included.
 
 Included derivatives:

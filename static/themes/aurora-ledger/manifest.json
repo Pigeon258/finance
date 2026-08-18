@@ -13,8 +13,8 @@
   "files": [
     {
       "path": "ASSET-SOURCES.txt",
-      "size": 713,
-      "sha256": "fea62050dd1cfc7ed72d5eaa7364b1014237469a958c384937bee1011a1e4221"
+      "size": 405,
+      "sha256": "279d46615c9271e59d10b1cc539344c2128d7b3962a8cee6dc93da2e9a5f16ec"
     },
     {
       "path": "assets/background.webp",
@@ -23,8 +23,8 @@
     },
     {
       "path": "LICENSE.txt",
-      "size": 657,
-      "sha256": "34fcf1f1eb85129b1ce95876b3cc8680e4ba731d2118af215339140ccaf035a5"
+      "size": 520,
+      "sha256": "eea7c6f4eaf79bb31d8fffe3206ac48bd804c0c8b802e525e270706e9564ea16"
     },
     {
       "path": "preview.webp",

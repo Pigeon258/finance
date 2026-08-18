@@ -40,6 +40,17 @@ def account_balance(*, account: Account, as_of=None) -> Decimal:
     return account.initial_balance + entries_total
 
 
+def account_balances(*, as_of=None, include_inactive: bool = True):
+    """返回账户及其由账本实时计算的余额，供首页和账户汇总使用。"""
+    accounts = Account.objects.all()
+    if not include_inactive:
+        accounts = accounts.filter(is_active=True)
+    return tuple(
+        (account, account_balance(account=account, as_of=as_of))
+        for account in accounts.order_by("sort_order", "id")
+    )
+
+
 def liquid_assets(*, as_of=None) -> Decimal:
     return sum(
         (

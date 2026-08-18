@@ -239,7 +239,27 @@ def monthly_breakdown(*, month: date, category: Category | None = None) -> dict[
 def monthly_snapshot(*, month: date) -> dict[str, Decimal | MonthlyBudget | None]:
     month = month.replace(day=1)
     budget = monthly_budget(month=month)
-    breakdown = monthly_breakdown(month=month)
+    full_breakdown = monthly_breakdown(month=month)
+    category_rows = category_budget_rows(budget=budget) if budget else []
+    if category_rows:
+        # 有分类预算项目时，只有已配置预算的分类进入预算口径；其他消费仍由账本记录并扣减账户余额。
+        breakdown = {
+            key: sum(
+                (
+                    monthly_breakdown(month=month, category=row["category"])[key]
+                    for row in category_rows
+                ),
+                Decimal("0.00"),
+            )
+            for key in full_breakdown
+        }
+        unbudgeted_expense = full_breakdown["actual_expense"] - breakdown["actual_expense"]
+    else:
+        # 没有分类预算项目时，兼容月度总预算覆盖全部支出的旧口径。
+        breakdown = full_breakdown
+        unbudgeted_expense = (
+            full_breakdown["actual_expense"] if budget is None else Decimal("0.00")
+        )
     savings_target = budget.savings_target if budget else Decimal("0.00")
     total_budget = budget.total_expense_budget if budget else Decimal("0.00")
     total_occupancy = breakdown["actual_expense"] + breakdown["planned_commitment"]
@@ -255,6 +275,7 @@ def monthly_snapshot(*, month: date) -> dict[str, Decimal | MonthlyBudget | None
     return {
         "budget": budget,
         **breakdown,
+        "unbudgeted_expense": unbudgeted_expense,
         "savings_target": savings_target,
         "total_budget": total_budget,
         "allocatable_remaining": allocatable_remaining,
@@ -367,6 +388,7 @@ def category_budget_rows(*, budget: MonthlyBudget):
                 "category": category,
                 "budget_amount": budget_amount,
                 "occupancy": occupancy,
+                "remaining": budget_amount - occupancy,
                 **_category_status_parts(
                     budget_amount=budget_amount,
                     occupancy=occupancy,

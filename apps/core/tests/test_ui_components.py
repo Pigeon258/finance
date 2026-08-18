@@ -65,17 +65,31 @@ def test_authenticated_shell_exposes_stable_theme_parts(client, owner):
     assert "/static/themes/aurora-ledger/theme.css" in body
     assert reverse("ledger:transaction-index") in body
     assert reverse("core:settings") in body
-    assert '<details class="mobile-navigation" hidden>' in body
+    assert '<details class="mobile-navigation">' in body
 
 
-def test_mobile_navigation_is_fail_closed_until_responsive_css_applies():
+def test_mobile_navigation_uses_responsive_native_details():
     app_css = (settings.BASE_DIR / "static" / "css" / "app.css").read_text(
         encoding="utf-8"
     )
 
-    # 基础样式加载失败时依靠 hidden 避免桌面、移动导航同时暴露。
-    assert ".mobile-navigation[hidden]" in app_css
+    # 导航在移动断点显示，桌面端保持隐藏，并由 details 原生完成展开收起。
+    assert ".mobile-navigation {" in app_css
     assert "@media (max-width: 52rem)" in app_css
+
+
+def test_dashboard_shell_explains_budget_scope_and_account_balances():
+    template = (
+        settings.BASE_DIR
+        / "apps"
+        / "analytics"
+        / "templates"
+        / "analytics"
+        / "dashboard.html"
+    ).read_text(encoding="utf-8")
+
+    assert "未设置预算的消费仍会扣减对应账户余额" in template
+    assert "当前账户余额" in template
 
 
 @pytest.mark.django_db

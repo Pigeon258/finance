@@ -139,6 +139,48 @@ def test_dashboard_reconciles_core_metrics_and_excludes_non_statistical_transact
     assert snapshot.budget["allocatable_remaining"] == Decimal("550.00")
     assert snapshot.budget["total_occupancy"] == Decimal("450.00")
     assert snapshot.budget["remaining"] == Decimal("550.00")
+    account_balances = {account.name: account.balance for account in snapshot.accounts}
+    assert account_balances[bank.name] == Decimal("1280.00")
+    assert account_balances[wechat.name] == Decimal("100.00")
+    assert account_balances[card.name] == Decimal("300.00")
+
+
+@pytest.mark.django_db
+def test_unbudgeted_category_expense_reduces_cash_but_not_budget(bank, expense_category):
+    unbudgeted_category = Category.objects.get(name="娱乐")
+    budget = budget_services.save_monthly_budget(month=date(2026, 7, 1))
+    budget_services.save_category_budget(
+        monthly_budget=budget,
+        category=expense_category,
+        budget_amount=Decimal("1000.00"),
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=expense_category,
+        amount=Decimal("100.00"),
+        occurred_at=_occurred(2026, 7, 3),
+        channel=Transaction.Channel.BANK,
+    )
+    ledger_services.create_expense(
+        account=bank,
+        category=unbudgeted_category,
+        amount=Decimal("75.00"),
+        occurred_at=_occurred(2026, 7, 4),
+        channel=Transaction.Channel.BANK,
+    )
+
+    snapshot = selectors.dashboard_snapshot(month=date(2026, 7, 1), as_of=date(2026, 7, 5))
+    rows = budget_selectors.category_budget_rows(budget=budget)
+
+    assert snapshot.budget["actual_expense"] == Decimal("100.00")
+    assert snapshot.budget["unbudgeted_expense"] == Decimal("75.00")
+    assert snapshot.budget["total_occupancy"] == Decimal("100.00")
+    assert snapshot.budget["remaining"] == Decimal("900.00")
+    assert sum((row["remaining"] for row in rows), Decimal("0.00")) == snapshot.budget[
+        "remaining"
+    ]
+    assert snapshot.net_funds == Decimal("825.00")
+    assert snapshot.allocatable_funds == Decimal("-75.00")
 
 
 @pytest.mark.django_db

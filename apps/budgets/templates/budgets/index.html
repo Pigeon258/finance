@@ -43,6 +43,7 @@
       <dt>储蓄目标</dt><dd>{{ snapshot.savings_target }}</dd>
       <dt>消费预算占用（不含储蓄）</dt><dd>{{ snapshot.total_occupancy }}</dd>
       <dt>剩余预算</dt><dd>{{ snapshot.remaining }}</dd>
+      <dt>未纳入预算的本月支出</dt><dd>{{ snapshot.unbudgeted_expense }}</dd>
       <dt>使用比例</dt><dd>{% if snapshot.usage_percentage is not None %}{{ snapshot.usage_percentage }}%{% else %}—{% endif %}</dd>
       <dt>最低安全余量</dt><dd>{{ snapshot.budget.minimum_safety_buffer }}</dd>
     </dl>
@@ -65,11 +66,11 @@
 
   <h2>分类汇总</h2>
   <div class="table-scroll" tabindex="0" role="region" aria-label="分类汇总表"><table data-pf-part="data-table">
-    <thead><tr><th>分类</th><th>预算合计</th><th>占用</th><th>使用比例</th><th>状态</th></tr></thead>
+    <thead><tr><th>分类</th><th>预算合计</th><th>占用</th><th>剩余</th><th>使用比例</th><th>状态</th></tr></thead>
     <tbody>
       {% for row in category_rows %}
-        <tr><td>{{ row.category }}</td><td>{{ row.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
-      {% empty %}<tr><td colspan="5">尚未设置预算项目。</td></tr>{% endfor %}
+        <tr><td>{{ row.category }}</td><td>{{ row.budget_amount }}</td><td>{{ row.occupancy }}</td><td>{{ row.remaining }}</td><td>{% if row.usage_percentage is not None %}{{ row.usage_percentage }}%{% else %}—{% endif %}</td><td><strong data-pf-part="status-badge" data-status="{{ row.status_tone }}">{{ row.status_label }}</strong></td></tr>
+      {% empty %}<tr><td colspan="6">尚未设置预算项目。</td></tr>{% endfor %}
     </tbody>
   </table></div>
 

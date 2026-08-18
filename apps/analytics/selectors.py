@@ -6,6 +6,7 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 
+from apps.accounts.models import Account
 from apps.budgets import selectors as budget_selectors
 from apps.budgets.models import PlannedCashFlow
 from apps.core import selectors as core_selectors
@@ -43,6 +44,7 @@ class DashboardSnapshot:
     wealth_total_value: Decimal
     wealth_total_profit: Decimal
     wealth_month_income: Decimal
+    accounts: tuple["DashboardAccount", ...]
     budget: dict
     reserve_balance: Decimal
     next_due_date: date | None
@@ -87,6 +89,14 @@ class DashboardSnapshot:
     @property
     def installment_status_tone(self) -> str:
         return services.FORECAST_RISK_TONES[self.installment_status]
+
+
+@dataclass(frozen=True)
+class DashboardAccount:
+    name: str
+    account_type: str
+    balance: Decimal
+    scope_label: str
 
 
 @dataclass(frozen=True)
@@ -310,6 +320,26 @@ def dashboard_snapshot(*, month: date, as_of: date) -> DashboardSnapshot:
     )
     wealth_total_value = wealth_selectors.total_value()
     wealth_total_principal = wealth_selectors.total_principal()
+    accounts = tuple(
+        DashboardAccount(
+            name=account.name,
+            account_type=account.get_account_type_display(),
+            balance=balance,
+            scope_label=(
+                (
+                    "理财账户 · 不计入流动资产与当前净资金"
+                    if account.account_type == Account.AccountType.WEALTH
+                    else (
+                        "资产账户 · 计入流动资产"
+                        if account.balance_nature == Account.BalanceNature.ASSET
+                        else "负债账户 · 从当前净资金中扣除"
+                    )
+                )
+                + (" · 已停用" if not account.is_active else "")
+            ),
+        )
+        for account, balance in ledger_selectors.account_balances(as_of=as_of_end)
+    )
     return DashboardSnapshot(
         month=month,
         as_of=as_of,
@@ -321,6 +351,7 @@ def dashboard_snapshot(*, month: date, as_of: date) -> DashboardSnapshot:
         wealth_total_value=wealth_total_value,
         wealth_total_profit=wealth_total_value - wealth_total_principal,
         wealth_month_income=wealth_selectors.month_income(month=month),
+        accounts=accounts,
         budget=budget,
         reserve_balance=budget_selectors.reserve_balance(as_of=as_of),
         next_due_date=next_cycle.due_date if next_cycle else None,
@@ -433,7 +464,7 @@ def report_snapshot(
                 row["category"].name,
                 row["budget_amount"],
                 row["occupancy"],
-                row["budget_amount"] - row["occupancy"],
+                row["remaining"],
                 row["usage_percentage"],
                 row["status"],
             )

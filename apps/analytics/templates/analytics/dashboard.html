@@ -26,7 +26,23 @@
         <article class="metric-card" data-pf-part="metric-card"><h3>累计储备资金</h3><strong>{{ snapshot.reserve_balance }}</strong></article>
         <article class="metric-card" data-pf-part="metric-card"><h3>下一还款</h3><strong>{% if snapshot.next_due_date %}{{ snapshot.next_due_date }} / {{ snapshot.next_due_amount }}{% else %}暂无{% endif %}</strong></article>
       </div>
-      <p class="help-text">储蓄目标不再占用消费预算。本月消费预算占用 = 已发生支出 + 待发生承诺；本月剩余预算 = 预算项目合计 − 消费预算占用。可分配预算资金 = 当前净资金 − 尚未使用的预算项目余额 − 待发生承诺 − 计划储蓄。</p>
+      <p class="help-text">指标口径：流动资产 = 银行卡、微信余额和支付宝余额；当前净资金 = 流动资产 − 当前信用卡负债。储蓄目标不占用消费预算。已设置分类预算项目时，预算仅统计这些分类；未设置预算的消费仍会扣减对应账户余额，但不会扣减总预算和分类剩余预算。本月消费预算占用 = 已发生支出 + 待发生承诺；本月剩余预算 = 预算项目合计 − 消费预算占用；可分配预算资金 = 当前净资金 − 尚未使用的预算项目余额 − 待发生承诺 − 计划储蓄。</p>
+    </section>
+
+    <section aria-labelledby="account-balances">
+      <h2 id="account-balances">当前账户余额</h2>
+      <p class="help-text">余额截至 {{ snapshot.as_of }}，由核心账本实时计算；理财账户单独展示，不计入流动资产和当前净资金。</p>
+      <div class="account-grid">
+        {% for account in snapshot.accounts %}
+          <article class="metric-card account-card" data-pf-part="metric-card">
+            <div class="account-card-heading"><h3>{{ account.name }}</h3><span class="account-type">{{ account.account_type }}</span></div>
+            <strong>{{ account.balance }}</strong>
+            <p class="account-scope">{{ account.scope_label }}</p>
+          </article>
+        {% empty %}
+          <p>暂无账户。</p>
+        {% endfor %}
+      </div>
     </section>
 
     <section aria-labelledby="risk-status">

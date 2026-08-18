@@ -915,6 +915,48 @@ dd {
   letter-spacing: -0.03em;
 }
 
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.account-card {
+  min-height: 7.4rem;
+}
+
+.account-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.account-card-heading h3 {
+  min-width: 0;
+  margin-bottom: 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.account-type {
+  flex: 0 0 auto;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--pf-border, #d9e0ec);
+  border-radius: 999px;
+  color: var(--pf-text-muted, #667085);
+  background: var(--pf-surface-muted, #f7f9fc);
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.account-scope {
+  margin: 0.55rem 0 0;
+  color: var(--pf-text-muted, #667085);
+  font-size: 0.76rem;
+}
+
 .quick-actions a {
   border-color: var(--pf-accent-border, #b8c6f4);
   color: var(--pf-link, #3157d5);
@@ -957,6 +999,10 @@ details:not(.nav-menu, .mobile-navigation) > summary {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .account-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 52rem) {
@@ -976,7 +1022,7 @@ details:not(.nav-menu, .mobile-navigation) > summary {
     min-height: 3.75rem;
   }
 
-  .mobile-navigation[hidden] {
+  .mobile-navigation {
     position: relative;
     display: block;
   }
@@ -1058,6 +1104,10 @@ details:not(.nav-menu, .mobile-navigation) > summary {
 
   .metric-grid,
   .metric-grid-small {
+    grid-template-columns: 1fr;
+  }
+
+  .account-grid {
     grid-template-columns: 1fr;
   }
 

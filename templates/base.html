@@ -27,7 +27,7 @@
       <div class="app-workspace">
         <header class="app-topbar" data-pf-part="page-header">
           {% if request.user.is_authenticated %}
-            <details class="mobile-navigation" hidden>
+            <details class="mobile-navigation">
               <summary aria-label="打开主导航"><span aria-hidden="true">☰</span> 菜单</summary>
               <div class="mobile-navigation-panel">
                 {% include "components/navigation_links.html" %}
